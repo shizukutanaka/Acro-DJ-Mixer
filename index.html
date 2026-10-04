@@ -166,7 +166,7 @@
       <button data-act="cue" title="Cue — jump to cue point (hold while stopped to audition from it; shift = set cue point here)">Cue</button>
       <button data-act="sync" title="Sync — match tempo and beat phase to the other deck (shift = phase only, keep your tempo)">Sync</button>
       <button data-act="dbl" title="Instant doubles — load this track into the other deck at the same point and tempo">×2</button><button data-act="brake" title="Vinyl brake — pause spins down, play spins up">Brake</button>
-      <button data-act="loop" title="4-beat loop snapped to the beat grid (shift = free-size in/out)">Loop</button><button data-act="reloop" title="Reloop — re-enter the last loop you exited">↺</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been">Roll</button><button data-act="slip" title="Slip — held pads play the cue momentarily, release resumes where the track would have been">Slip</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier (shift: trim in-point a beat earlier)">◂</button><button data-act="loopfwd" title="Move the loop one length later (shift: trim in-point a beat later)">▸</button></span>
+      <button data-act="loop" title="4-beat loop snapped to the beat grid (shift = free-size in/out)">Loop</button><button data-act="reloop" title="Reloop — re-enter the last loop you exited">↺</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been">Roll</button><button data-act="slip" title="Slip — held pads play the cue momentarily, release resumes where the track would have been">Slip</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier (shift: in-point a beat earlier, alt: out-point a beat earlier)">◂</button><button data-act="loopfwd" title="Move the loop one length later (shift: in-point a beat later, alt: out-point a beat later)">▸</button></span>
       <button data-act="cueout" title="Headphone cue — preview this deck on the cue output">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
       <button data-act="eject" title="Eject — unload the track, reset the deck">⏏</button>
@@ -210,7 +210,7 @@
       <button data-act="cue" title="Cue — jump to cue point (hold while stopped to audition from it; shift = set cue point here)">Cue</button>
       <button data-act="sync" title="Sync — match tempo and beat phase to the other deck (shift = phase only, keep your tempo)">Sync</button>
       <button data-act="dbl" title="Instant doubles — load this track into the other deck at the same point and tempo">×2</button><button data-act="brake" title="Vinyl brake — pause spins down, play spins up">Brake</button>
-      <button data-act="loop" title="4-beat loop snapped to the beat grid (shift = free-size in/out)">Loop</button><button data-act="reloop" title="Reloop — re-enter the last loop you exited">↺</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been">Roll</button><button data-act="slip" title="Slip — held pads play the cue momentarily, release resumes where the track would have been">Slip</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier (shift: trim in-point a beat earlier)">◂</button><button data-act="loopfwd" title="Move the loop one length later (shift: trim in-point a beat later)">▸</button></span>
+      <button data-act="loop" title="4-beat loop snapped to the beat grid (shift = free-size in/out)">Loop</button><button data-act="reloop" title="Reloop — re-enter the last loop you exited">↺</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been">Roll</button><button data-act="slip" title="Slip — held pads play the cue momentarily, release resumes where the track would have been">Slip</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier (shift: in-point a beat earlier, alt: out-point a beat earlier)">◂</button><button data-act="loopfwd" title="Move the loop one length later (shift: in-point a beat later, alt: out-point a beat later)">▸</button></span>
       <button data-act="cueout" title="Headphone cue — preview this deck on the cue output">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
       <button data-act="eject" title="Eject — unload the track, reset the deck">⏏</button>
@@ -611,8 +611,9 @@ class Deck {
     this.rollBtn = rollBtn;
     this.el.querySelector('[data-act=loopdiv]').addEventListener('click', () => this.setLoopLen(0.5));
     this.el.querySelector('[data-act=loopmul]').addEventListener('click', () => this.setLoopLen(2));
-    this.el.querySelector('[data-act=loopback]').addEventListener('click', e => { e.shiftKey ? this.adjustLoopIn(-1) : this.moveLoop(-1); });
-    this.el.querySelector('[data-act=loopfwd]').addEventListener('click', e => { e.shiftKey ? this.adjustLoopIn(1) : this.moveLoop(1); });
+    const loopMove = (e, dir) => e.altKey ? this.adjustLoopOut(dir) : e.shiftKey ? this.adjustLoopIn(dir) : this.moveLoop(dir);
+    this.el.querySelector('[data-act=loopback]').addEventListener('click', e => loopMove(e, -1));
+    this.el.querySelector('[data-act=loopfwd]').addEventListener('click', e => loopMove(e, 1));
     this.cueBtn.addEventListener('click', () => this.toggleCue());
     this.pads.forEach((pad, i) => {
       pad.addEventListener('click', e => {
@@ -1740,6 +1741,22 @@ class Deck {
     const start = Math.min(Math.max(this.loopStart + dir * step, 0), this.loopEnd - min);
     if (start === this.loopStart) return;
     this.loopStart = start;
+    this.applyLoop();
+    this._drawnPos = undefined;
+    this.drawWave();
+    this.tagLib({ loop: [this.loopStart, this.loopEnd] });
+  }
+
+  // Alt+‹loop› (CDJ LOOP OUT ADJUST): slide the loop's out-point a
+  // beat earlier/later while the in-point stays — the exit mirror of
+  // adjustLoopIn for a loop that runs one beat too long or short.
+  adjustLoopOut(dir) {
+    if (!this.loopOn || !this.buffer) return;
+    const step = this.grid ? 60 / this.grid.bpm : 1;
+    const min = this.grid ? step / 2 : 0.05;
+    const end = Math.min(Math.max(this.loopEnd + dir * step, this.loopStart + min), this.buffer.duration);
+    if (end === this.loopEnd) return;
+    this.loopEnd = end;
     this.applyLoop();
     this._drawnPos = undefined;
     this.drawWave();
