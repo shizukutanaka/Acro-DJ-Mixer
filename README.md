@@ -51,7 +51,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   (tempo limited to the ±16% slider range, like hardware).
 - **Loop** — one click captures a beat-grid-quantized 4-beat (one bar)
   loop on either engine; the region highlights on the waveform and
-  seeking outside it exits the loop (see ADR-0006).
+  seeking outside it exits the loop (see ADR-0006); `½`/`2×` halve or
+  double the armed loop in place (see ADR-0009).
 - **Headphone cue (PFL)** — `Phones` button taps each deck pre-fader onto
   a cue bus; `Cue out` picks the output device (`setSinkId`, Chrome/Edge).
   See ADR-0007.
@@ -87,8 +88,8 @@ Ordered by value per the ADR's automation layer:
    Krumhansl–Schmuckler → Camelot compatibility.
 3b. ~~3-band DJ EQ.~~ Done (ADR-0005) — pulled ahead of the library work
    as P1 core mixer functionality.
-3c. ~~Beat-grid loop.~~ Done (ADR-0006) — one-bar quantized loop on both
-   engines; loop-length cycling remains open.
+3c. ~~Beat-grid loop.~~ Done (ADR-0006/0009) — one-bar quantized loop on
+   both engines, plus in-place ½/2× length cycling.
 3d. ~~Headphone cue.~~ Done (ADR-0007) — pre-fader cue bus via
    MediaStream + `setSinkId`.
 4. ~~Track library with persistence.~~ Done (ADR-0008) — IndexedDB,

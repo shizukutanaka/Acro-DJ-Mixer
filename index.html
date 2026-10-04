@@ -110,6 +110,9 @@
   .lib-row button { font-size: 11px; padding: 2px 8px; }
   .lib-row .lib-del { color: var(--muted); }
   .muted { color: var(--muted); font-size: 12px; }
+  .looplen { display: inline-flex; gap: 2px; }
+  .looplen[hidden] { display: none; }
+  .looplen button { font-size: 11px; padding: 3px 6px; }
   @media (max-width: 760px) {
     main { grid-template-columns: 1fr; }
   }
@@ -130,7 +133,7 @@
       <button class="primary" data-act="play">Play</button>
       <button data-act="cue">Cue</button>
       <button data-act="sync">Sync</button>
-      <button data-act="loop" title="4-beat loop snapped to the beat grid">Loop</button>
+      <button data-act="loop" title="4-beat loop snapped to the beat grid">Loop</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button></span>
       <button data-act="cueout" title="Headphone cue — preview this deck on the cue output">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
       <span class="time">0:00 / 0:00</span>
@@ -159,7 +162,7 @@
       <button class="primary" data-act="play">Play</button>
       <button data-act="cue">Cue</button>
       <button data-act="sync">Sync</button>
-      <button data-act="loop" title="4-beat loop snapped to the beat grid">Loop</button>
+      <button data-act="loop" title="4-beat loop snapped to the beat grid">Loop</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button></span>
       <button data-act="cueout" title="Headphone cue — preview this deck on the cue output">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
       <span class="time">0:00 / 0:00</span>
@@ -388,6 +391,7 @@ class Deck {
     this.source = null;
     this.keylockBtn = root.querySelector('[data-act=keylock]');
     this.loopBtn = root.querySelector('[data-act=loop]');
+    this.loopLenEl = root.querySelector('.looplen');
     this.loopOn = false;
     this.loopStart = 0;
     this.loopEnd = 0;
@@ -431,6 +435,8 @@ class Deck {
     this.el.querySelector('[data-act=cue]').addEventListener('click', () => this.cue());
     this.el.querySelector('[data-act=sync]').addEventListener('click', () => this.syncTo(this.partner));
     this.loopBtn.addEventListener('click', () => this.toggleLoop());
+    this.el.querySelector('[data-act=loopdiv]').addEventListener('click', () => this.setLoopLen(0.5));
+    this.el.querySelector('[data-act=loopmul]').addEventListener('click', () => this.setLoopLen(2));
     this.cueBtn.addEventListener('click', () => this.toggleCue());
     this.keylockBtn.addEventListener('click', () => this.toggleKeylock());
     this.tempoEl.addEventListener('input', () => this.setRate(parseFloat(this.tempoEl.value)));
@@ -468,6 +474,7 @@ class Deck {
       this.key = null;
       this.loopOn = false;
       this.loopBtn.classList.remove('on');
+      this.loopLenEl.hidden = true;
       this.keyEl.textContent = '—';
       this.keyEl.className = 'key';
       this.peaks = computePeaks(buf, this.wave.width);
@@ -784,6 +791,8 @@ class Deck {
     }
     this.applyLoop();
     this.loopBtn.classList.toggle('on', this.loopOn);
+    this.loopLenEl.hidden = !this.loopOn;
+    this._drawnPos = undefined;  // region shading changed while pos() may not have
     this.drawWave();
   }
 
@@ -795,6 +804,20 @@ class Deck {
       this.source.loop = this.loopOn;
       if (this.loopOn) { this.source.loopStart = this.loopStart; this.source.loopEnd = this.loopEnd; }
     }
+  }
+
+  // Halve or double the armed loop in place, keeping its start — the
+  // Pioneer-style loop-length control (1/2, 1, 2, 4 beats ...).
+  setLoopLen(factor) {
+    if (!this.loopOn || !this.grid) return;
+    const beatLen = 60 / this.grid.bpm;
+    const cur = this.loopEnd - this.loopStart;
+    const len = Math.min(Math.max(cur * factor, beatLen / 2), this.buffer.duration - this.loopStart);
+    if (len === cur) return;
+    this.loopEnd = this.loopStart + len;
+    this.applyLoop();
+    this._drawnPos = undefined;
+    this.drawWave();
   }
 
   // Match this deck's tempo and beat phase to the partner deck.
