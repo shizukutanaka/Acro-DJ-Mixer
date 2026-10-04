@@ -123,6 +123,7 @@
       <button class="primary" data-act="play">Play</button>
       <button data-act="cue">Cue</button>
       <button data-act="sync">Sync</button>
+      <button data-act="loop" title="4-beat loop snapped to the beat grid">Loop</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
       <span class="time">0:00 / 0:00</span>
     </div>
@@ -149,6 +150,7 @@
       <button class="primary" data-act="play">Play</button>
       <button data-act="cue">Cue</button>
       <button data-act="sync">Sync</button>
+      <button data-act="loop" title="4-beat loop snapped to the beat grid">Loop</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
       <span class="time">0:00 / 0:00</span>
     </div>
@@ -212,6 +214,7 @@ class WsolaProcessor extends AudioWorkletProcessor {
         if (this.syn) for (const s of this.syn) s.fill(0);
         break;
       case 'rate': this.rate = m.rate; break;
+      case 'loop': this.loopStart = m.on ? m.start : -1; this.loopEnd = m.on ? m.end : -1; break;
       case 'keylock':
         this.keylock = m.on;
         // Hand the live position to the other engine, drop stale synthesis.
@@ -248,6 +251,8 @@ class WsolaProcessor extends AudioWorkletProcessor {
     }
     this.qLen += this.H;
     this.inPos = start + this.H * this.rate;
+    // Loop wrap lives in input-position space; the OLA tail smooths the jump.
+    if (this.loopStart >= 0 && this.inPos >= this.loopEnd) this.inPos = this.loopStart;
   }
   process(inputs, outputs) {
     const out = outputs[0];
@@ -270,8 +275,14 @@ class WsolaProcessor extends AudioWorkletProcessor {
         }
       }
       this.rPos = p0 + n * this.rate;
-      if (this.rPos >= this.len) { this.playing = false; this.port.postMessage({ type: 'ended' }); }
+      if (this.loopStart >= 0 && this.rPos >= this.loopEnd) {
+        this.rPos = this.loopStart + (this.rPos - this.loopEnd);
+      } else if (this.rPos >= this.len) {
+        this.playing = false; this.port.postMessage({ type: 'ended' });
+      }
     } else {
+      // Wrap before generating so a loop ending near the tail can't stall.
+      if (this.loopStart >= 0 && this.inPos >= this.loopEnd) this.inPos = this.loopStart;
       while (this.qLen < n && this.inPos + this.W + this.D < this.len) this.frame();
       for (let c = 0; c < out.length; c++) {
         const q = this.queue[Math.min(c, this.buf.length - 1)], od = out[c];
@@ -282,7 +293,7 @@ class WsolaProcessor extends AudioWorkletProcessor {
         for (const q of this.queue) q.copyWithin(0, this.qHead, this.qHead + this.qLen);
         this.qHead = 0;
       }
-      if (this.inPos + this.W + this.D >= this.len && this.qLen <= 0) {
+      if (this.loopStart < 0 && this.inPos + this.W + this.D >= this.len && this.qLen <= 0) {
         this.playing = false;
         this.port.postMessage({ type: 'ended' });
       }
@@ -330,6 +341,10 @@ class Deck {
     this.node = null;
     this.source = null;
     this.keylockBtn = root.querySelector('[data-act=keylock]');
+    this.loopBtn = root.querySelector('[data-act=loop]');
+    this.loopOn = false;
+    this.loopStart = 0;
+    this.loopEnd = 0;
     this.deckGain = null;
     this.xfGain = null;
     this.peaks = null;
@@ -366,6 +381,7 @@ class Deck {
     this.playBtn.addEventListener('click', () => this.toggle());
     this.el.querySelector('[data-act=cue]').addEventListener('click', () => this.cue());
     this.el.querySelector('[data-act=sync]').addEventListener('click', () => this.syncTo(this.partner));
+    this.loopBtn.addEventListener('click', () => this.toggleLoop());
     this.keylockBtn.addEventListener('click', () => this.toggleKeylock());
     this.tempoEl.addEventListener('input', () => this.setRate(parseFloat(this.tempoEl.value)));
     this.gainEl.addEventListener('input', () => this.setGain(parseFloat(this.gainEl.value)));
@@ -400,6 +416,8 @@ class Deck {
       this.status('');
       this.grid = null;
       this.key = null;
+      this.loopOn = false;
+      this.loopBtn.classList.remove('on');
       this.keyEl.textContent = '—';
       this.keyEl.className = 'key';
       this.peaks = computePeaks(buf, this.wave.width);
@@ -463,9 +481,15 @@ class Deck {
 
   pos() {
     if (!this.buffer) return 0;
-    const p = this.playing
+    let p = this.playing
       ? this.offset + (ctx.currentTime - this.startedAt) * this.rate
       : this.offset;
+    // The engines wrap inside the loop region; mirror that here so the
+    // playhead and any pos() consumers see the true position. (Seeks outside
+    // the loop auto-exit it, keeping this arithmetic exact on both engines.)
+    if (this.loopOn && p >= this.loopEnd) {
+      p = this.loopStart + ((p - this.loopEnd) % (this.loopEnd - this.loopStart));
+    }
     return Math.min(Math.max(p, 0), this.buffer.duration);
   }
 
@@ -485,6 +509,7 @@ class Deck {
       src.buffer = this.buffer;
       src.playbackRate.value = this.rate;
       src.connect(this.deckGain);
+      if (this.loopOn) { src.loop = true; src.loopStart = this.loopStart; src.loopEnd = this.loopEnd; }
       src.onended = () => {
         if (src !== this.source) return;
         if (this.pos() >= this.buffer.duration - 0.02) {
@@ -550,6 +575,8 @@ class Deck {
 
   seekTo(fracSeconds) {
     // Shared by waveform clicks and beat-sync slips.
+    // Seeking outside an armed loop exits it — the deck-standard escape.
+    if (this.loopOn && (fracSeconds < this.loopStart || fracSeconds >= this.loopEnd)) this.toggleLoop();
     this.offset = fracSeconds;
     if (this.engine === 'worklet') {
       this.startedAt = ctx.currentTime;
@@ -609,6 +636,12 @@ class Deck {
         c.fillRect(Math.floor(t / this.buffer.duration * w), 0, 1, h);
       }
     }
+    if (this.loopOn && this.buffer) {
+      const x0 = (this.loopStart / this.buffer.duration) * w;
+      const x1 = (this.loopEnd / this.buffer.duration) * w;
+      c.fillStyle = 'rgba(61,220,132,.16)';
+      c.fillRect(x0, 0, x1 - x0, h);
+    }
     if (this.buffer) {
       const x = (this.pos() / this.buffer.duration) * w;
       c.fillStyle = '#fff';
@@ -649,6 +682,39 @@ class Deck {
     el.textContent = `${this.key.num}${this.key.letter} ${this.key.name}`;
     const other = this.partner && this.partner.key;
     el.className = 'key' + (other ? (harmonic(this.key, other) ? ' ok' : ' clash') : '');
+  }
+
+  // 4-beat loop snapped to the detected beat grid — the DJ default of one
+  // bar. On the worklet the read position wraps; on BufferSource the
+  // native loop points do the same thing.
+  toggleLoop() {
+    if (!this.buffer || !this.grid) { this.status('Need BPM analysis for loop.'); return; }
+    if (!this.loopOn) {
+      // Compute bounds BEFORE loopOn flips: pos() reads loopEnd for wrapping.
+      const beatLen = 60 / this.grid.bpm;
+      const n = Math.floor((this.pos() - this.grid.beatOff) / beatLen);
+      const start = Math.max(0, this.grid.beatOff + n * beatLen);
+      const end = Math.min(start + 4 * beatLen, this.buffer.duration);
+      if (end - start < beatLen) { this.status('Not enough track left for a loop.'); return; }
+      this.loopStart = start;
+      this.loopEnd = end;
+      this.loopOn = true;
+    } else {
+      this.loopOn = false;
+    }
+    this.applyLoop();
+    this.loopBtn.classList.toggle('on', this.loopOn);
+    this.drawWave();
+  }
+
+  applyLoop() {
+    if (this.engine === 'worklet') {
+      this.node.port.postMessage({ type: 'loop', on: this.loopOn,
+        start: this.loopStart * ctx.sampleRate, end: this.loopEnd * ctx.sampleRate });
+    } else if (this.source) {
+      this.source.loop = this.loopOn;
+      if (this.loopOn) { this.source.loopStart = this.loopStart; this.source.loopEnd = this.loopEnd; }
+    }
   }
 
   // Match this deck's tempo and beat phase to the partner deck.
