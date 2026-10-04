@@ -44,6 +44,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Waveform overview** with playhead per deck.
 - **Auto BPM estimate + beat grid** — energy-flux autocorrelation, 60–180 BPM,
   no dependencies; grid ticks drawn on the waveform (see ADR-0001 / ADR-0002).
+  `beatOff` is refined to ~ms precision by an energy-rise search around
+  each comb line (see ADR-0025).
 - **Key detection** — chromagram + Krumhansl–Schmuckler profiles → Camelot
   code shown next to BPM; green = mixes harmonically with the other deck,
   amber = clash (see ADR-0004).
@@ -55,16 +57,47 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   double the armed loop in place (see ADR-0009).
 - **Hot cues** — four pads per deck: click records a marker (amber tick
   on the waveform), click jumps, right-click clears; persisted per track
-  in the library (see ADR-0010). `−1b`/`+1b` beside them beat-jump one
+  in the library (see ADR-0010). Recording snaps to the nearest beat
+  when a grid exists — hardware QUANTIZE (see ADR-0021).
+  `−1b`/`+1b` beside them beat-jump one
   beat of the grid (see ADR-0012).
 - **Headphone cue (PFL)** — `Phones` button taps each deck pre-fader onto
   a cue bus; `Cue out` picks the output device (`setSinkId`, Chrome/Edge).
-  See ADR-0007.
+  See ADR-0007. A thin level meter under the selector shows what the
+  phones are hearing (see ADR-0022). A `Δ ±x% beat` readout below it
+  shows the live beat-phase offset between decks — green when locked
+  (see ADR-0023).
 - **Library** — every loaded track is auto-saved to IndexedDB (audio +
   BPM/key analysis, soft-deletable); `→A`/`→B` reloads instantly with
   cached analysis, survives page reloads. Rows highlight green when the
   track fits a loaded deck (tempo within ±16% sync range + harmonic key)
   — see ADR-0008/0011.
+- **Auto mix** — `Auto` button: at 16 beats before the playing deck
+  ends, the other deck starts on its first beat, tempo-synced, and the
+  crossfader rides across over 8 beats; one click per transition,
+  click again to cancel mid-fade (see ADR-0013). During the fade the
+  outgoing deck is also low-pass swept 20 kHz → ~400 Hz — a
+  "filter out" transition, not a flat crossfade (see ADR-0020).
+- **Pitch bend** — hold `−`/`+` beside the tempo fader to ride the deck
+  ±5 % for manual beat alignment; release restores the fader rate
+  (see ADR-0017).
+- **Color filter** — one knob: left sweeps a low-pass down to ~200 Hz,
+  right sweeps a high-pass up to ~8 kHz, centre is open; live `LP`/`HP`
+  readout, double-click resets (see ADR-0016).
+- **EQ kills** — the H/M/L letters are buttons: click pins the band at
+  −26 dB, click again restores the slider value (see ADR-0015).
+- **Set recording** — `Rec` button captures the master output to a
+  `.webm` (opus) download via `MediaRecorder` on a MediaStream tap
+  (see ADR-0014).
+- **Auto-gain** — each loaded track's K-weighted mono RMS (38 Hz
+  high-pass + +4 dB high shelf, approximating BS.1770 perceived
+  loudness) is measured from the same downmix as BPM/key analysis and
+  the deck gain is set so it lands near −15 dBFS; attenuation only,
+  slider shows and can override (see ADR-0019/0024).
+- **Master limiter** — a fast `DynamicsCompressor` at the end of the
+  chain (threshold −3 dB, ratio 20) keeps two-deck sums and EQ boosts
+  from clipping; `GR −x.x dB` shows under the meter while it rides
+  peaks (see ADR-0018).
 - **Master level meter** and master gain.
 - **Keyboard** — `Q`/`P` toggle deck A/B, `←`/`→` move the crossfader,
   `0` centers it.
@@ -76,7 +109,7 @@ Single file (`index.html`), vanilla JS + Web Audio API:
 ```
 WSOLA worklet (keylock) or BufferSource (fallback)
         ┬─> cueSend ──> cue bus ──> <audio setSinkId> (headphone cue)
-        └─> deckGain ──> EQ(low→mid→high) ──> xfGain ──> masterGain ──> analyser ──> destination
+        └─> deckGain ──> EQ(low→mid→high) ──> filter ──> xfGain ──> masterGain ──> limiter ──> analyser ──> destination
 ```
 
 Per deck, instantiated lazily on first play (browser autoplay policy requires a
@@ -102,8 +135,10 @@ Ordered by value per the ADR's automation layer:
    `id`/`created_at`/`updated_at`/`deleted_at`/`version` per record.
 4b. ~~Hot cues.~~ Done (ADR-0010) — four per deck, persisted in the
    library. Beat-jump added in ADR-0012.
-5. Stem separation (ML model, worker pipeline).
-6. Recommendation / auto-mix assistance.
+5. Stem separation (ML model, worker pipeline — the only remaining
+   roadmap item).
+6. ~~Recommendation / auto-mix assistance.~~ Done — harmonic-fit
+   highlighting (ADR-0011) + one-click auto transitions (ADR-0013).
 
 ## Security
 
