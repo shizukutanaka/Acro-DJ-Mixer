@@ -1154,7 +1154,10 @@ class Deck {
     this.delayFb = ac.createGain();
     this.delayFb.gain.value = 0.35;
     this.delayWet = ac.createGain();
-    this.delayWet.gain.value = parseFloat(this.echoEl.value);
+    // Starts parked: setEcho (called at the end of the build) applies
+    // the knob for the selected FX — initializing to the raw value
+    // would leak echo into the mix when fxSel isn't echo or FX is off.
+    this.delayWet.gain.value = 0;
     this.filter.connect(this.delay);
     this.delay.connect(this.delayFb);
     this.delayFb.connect(this.delay);
@@ -1232,6 +1235,7 @@ class Deck {
     this.gateDepth.connect(this.gate.gain);
     this.gateOsc.start();
     this._syncDelay();
+    this.setEcho(parseFloat(this.echoEl.value));   // normalize wet paths for the current fxSel/fxOn
     this.xfGain.connect(masterGain);
     try {
       if (!wsolaModuleReady) { await ac.audioWorklet.addModule(WSOLA_URL); wsolaModuleReady = true; }
@@ -2626,6 +2630,7 @@ autoBtn.addEventListener('click', e => {
   if (autoMix.fade) {                                     // cancel mid-fade
     const f = autoMix.fade; autoMix.fade = null;
     f.from.setFilter(parseFloat(f.from.filterEl.value));  // restore knob position
+    if (f.echoed) f.from.setEcho(parseFloat(f.from.echoEl.value));   // delay send back to the knob
     if (f.to && f.to.eq) f.to.setBand('low', parseFloat(f.to.eqEls.low.value));    // restore bass swap
     autoBtn.textContent = 'Auto';
     return;
@@ -2660,9 +2665,18 @@ function autoMixTick() {
       const target = parseFloat(f.to.eqEls.low.value) * 26;
       f.to.eq.low.gain.setTargetAtTime(-26 + (target + 26) * k, ctx.currentTime, 0.01);
     }
+    // Echo-out: in the fade's last 2 beats lift the outgoing deck's
+    // delay wet send so the tail rings past the closed fader — the
+    // classic send-off. fxSel-independent: the delay line always
+    // exists; we just borrow its send (restored to the knob after).
+    if (f.from.delayWet && !f.echoed && f.dur - (ctx.currentTime - f.t0) < 2 * f.beat) {
+      f.echoed = true;
+      f.from.delayWet.gain.setTargetAtTime(0.5, ctx.currentTime, 0.05);
+    }
     if (k >= 1) {
       autoMix.fade = null;
       f.from.setFilter(parseFloat(f.from.filterEl.value));   // restore knob
+      if (f.echoed) f.from.setEcho(parseFloat(f.from.echoEl.value));   // delay send back to the knob
       if (f.to && f.to.eq) f.to.setBand('low', parseFloat(f.to.eqEls.low.value));   // restore bass
       f.from.pause();   // faded out — let it stop rather than play silently
       // Continuous radio: load the next library track into the vacated
@@ -2687,7 +2701,7 @@ function autoMixTick() {
     to.seekTo(to.grid ? to.grid.beatOff : 0);
     if (d.grid && to.grid) to.syncTo(d);
     to.play();
-    autoMix.fade = { from: d, to, t0: ctx.currentTime, dur: autoMix.len * beat,
+    autoMix.fade = { from: d, to, t0: ctx.currentTime, dur: autoMix.len * beat, beat,
                      fromX: d === deckA ? 0 : 1, toX: d === deckA ? 1 : 0 };
   }
 }
