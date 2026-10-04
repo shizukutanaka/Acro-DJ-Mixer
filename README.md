@@ -285,7 +285,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Sampler** — `Smpl` row: 4 one-shot pads into the master chain.
   Click loads a file, click again fires (retrigger restarts),
   shift-click clears — jingles and drops without spending a deck
-  (see ADR-0118). Keys `1`–`4` fire the pads (see ADR-0119).
+  (see ADR-0118). Keys `1`–`4` fire the pads (see ADR-0119);
+  the slider beside them trims the shared sample level
+  (see ADR-0120).
 - **Wheel nudge** — scrolling over any fader or knob steps it one
   detent (EQ, filter, FX, gain, master, crossfader); the tempo
   slider keeps its finer ±0.1% trim (see ADR-0109, ADR-0112).
