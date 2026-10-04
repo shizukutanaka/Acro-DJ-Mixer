@@ -103,6 +103,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   (see ADR-0044).
 - **Track-end warning** — the time readout flashes red during the
   last 30 s of a track, CDJ-style (see ADR-0045).
+- **Key sync** — `Key` button transposes the deck to the smallest
+  shift that mixes harmonically with the other deck; the key readout
+  colours by the effective (transposed) key (see ADR-0046).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
