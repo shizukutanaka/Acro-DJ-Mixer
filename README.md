@@ -121,6 +121,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Cue mix** — `Cue mix` slider blends the master output into the
   headphone bus alongside pre-fader cue, like a monitor knob
   (see ADR-0051).
+- **Bar.beat counter** — the readout beside BPM shows where on the
+  grid the playhead sits (`9.3` = bar 9, beat 3), matching the bar
+  ticks on the waveform (see ADR-0052).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
