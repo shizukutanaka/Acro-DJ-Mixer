@@ -303,8 +303,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   from clipping; `GR −x.x dB` shows under the meter while it rides
   peaks (see ADR-0018).
 - **Master level meter** — post-limiter output with a decaying
-  peak-hold tick like the channel meters (see ADR-0106) — and
-  master gain.
+  peak-hold tick like the channel meters (see ADR-0106), plus a
+  K-weighted momentary LU readout beside the GR text (~400 ms window;
+  −14 LU is the streaming target; see ADR-0139) — and master gain.
 - **Sampler** — `Smpl` row: 4 one-shot pads into the master chain.
   Click loads a file, click again fires (retrigger restarts),
   alt-click stops the ringing voice, shift-click clears — jingles
