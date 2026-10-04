@@ -124,6 +124,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Bar.beat counter** — the readout beside BPM shows where on the
   grid the playhead sits (`9.3` = bar 9, beat 3), matching the bar
   ticks on the waveform (see ADR-0052).
+- **Bar jump** — `Shift` + `−1b`/`+1b` jumps a whole bar (4 beats)
+  instead of one beat, for phrase-sized moves (see ADR-0053).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
