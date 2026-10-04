@@ -662,7 +662,18 @@ class Deck {
     this.el.querySelector('[data-act=tap]').addEventListener('click', () => this.tapTempo());
     this.el.querySelector('[data-act=nudgeback]').addEventListener('click', () => this.nudgeGrid(-0.01));
     this.el.querySelector('[data-act=nudgefwd]').addEventListener('click', () => this.nudgeGrid(0.01));
-    this.wave.addEventListener('click', e => this.seekFromEvent(e));
+    // Jog scrub: press anywhere seeks, and holding the button drags
+    // the playhead continuously — CDJ-style searching by feel.
+    let scrubbing = false;
+    this.wave.addEventListener('pointerdown', e => {
+      scrubbing = true;
+      this.wave.setPointerCapture(e.pointerId);
+      this.seekFromEvent(e);
+    });
+    this.wave.addEventListener('pointermove', e => { if (scrubbing) this.seekFromEvent(e); });
+    for (const ev of ['pointerup', 'pointercancel']) {
+      this.wave.addEventListener(ev, () => { scrubbing = false; });
+    }
     // CDJ TIME mode: click the readout to flip elapsed <-> remaining.
     this.remain = false;
     this.timeEl.style.cursor = 'pointer';
