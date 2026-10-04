@@ -174,6 +174,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   (see ADR-0072).
 - **Cue marker** — the deck cue point (auto-cue or track start) shows
   as a cyan tick on the waveform (see ADR-0074).
+- **Beat sync** — `Shift+Sync` slips beat phase only, leaving the
+  tempo fader alone (see ADR-0075).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
