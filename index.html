@@ -159,7 +159,7 @@
       <button data-act="cue">Cue</button>
       <button data-act="sync">Sync</button>
       <button data-act="dbl" title="Instant doubles — load this track into the other deck at the same point and tempo">×2</button><button data-act="brake" title="Vinyl brake — pause spins down, play spins up">Brake</button>
-      <button data-act="loop" title="4-beat loop snapped to the beat grid">Loop</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been">Roll</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button></span>
+      <button data-act="loop" title="4-beat loop snapped to the beat grid">Loop</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been">Roll</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier">◂</button><button data-act="loopfwd" title="Move the loop one length later">▸</button></span>
       <button data-act="cueout" title="Headphone cue — preview this deck on the cue output">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
       <span class="time">0:00 / 0:00</span>
@@ -198,7 +198,7 @@
       <button data-act="cue">Cue</button>
       <button data-act="sync">Sync</button>
       <button data-act="dbl" title="Instant doubles — load this track into the other deck at the same point and tempo">×2</button><button data-act="brake" title="Vinyl brake — pause spins down, play spins up">Brake</button>
-      <button data-act="loop" title="4-beat loop snapped to the beat grid">Loop</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been">Roll</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button></span>
+      <button data-act="loop" title="4-beat loop snapped to the beat grid">Loop</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been">Roll</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier">◂</button><button data-act="loopfwd" title="Move the loop one length later">▸</button></span>
       <button data-act="cueout" title="Headphone cue — preview this deck on the cue output">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
       <span class="time">0:00 / 0:00</span>
@@ -520,6 +520,8 @@ class Deck {
     this.rollBtn = rollBtn;
     this.el.querySelector('[data-act=loopdiv]').addEventListener('click', () => this.setLoopLen(0.5));
     this.el.querySelector('[data-act=loopmul]').addEventListener('click', () => this.setLoopLen(2));
+    this.el.querySelector('[data-act=loopback]').addEventListener('click', () => this.moveLoop(-1));
+    this.el.querySelector('[data-act=loopfwd]').addEventListener('click', () => this.moveLoop(1));
     this.cueBtn.addEventListener('click', () => this.toggleCue());
     this.pads.forEach((pad, i) => {
       pad.addEventListener('click', () => this.padCue(i));
@@ -1354,6 +1356,21 @@ class Deck {
     const len = Math.min(Math.max(cur * factor, beatLen / 2), this.buffer.duration - this.loopStart);
     if (len === cur) return;
     this.loopEnd = this.loopStart + len;
+    this.applyLoop();
+    this._drawnPos = undefined;
+    this.drawWave();
+    this.tagLib({ loop: [this.loopStart, this.loopEnd] });
+  }
+
+  // LOOP MOVE: slide the armed loop by its own length — the CDJ move
+  // for adjusting a loop across phrase boundaries without re-arming.
+  moveLoop(dir) {
+    if (!this.loopOn || !this.buffer) return;
+    const len = this.loopEnd - this.loopStart;
+    const start = Math.min(Math.max(this.loopStart + dir * len, 0), this.buffer.duration - len);
+    if (start === this.loopStart) return;
+    this.loopStart = start;
+    this.loopEnd = start + len;
     this.applyLoop();
     this._drawnPos = undefined;
     this.drawWave();

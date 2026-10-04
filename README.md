@@ -115,6 +115,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Crossfader reverse** — `Rev` beside the curve select mirrors the
   fader's A/B assignment (hamster switch for scratching; works with
   both curves and auto mix) (see ADR-0049).
+- **Loop move** — `◂`/`▸` beside the loop length buttons slide the
+  armed loop by its own length (CDJ LOOP MOVE), persisted like the
+  bounds (see ADR-0050).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
