@@ -1173,6 +1173,7 @@ class Deck {
     this._loopIn = null;
     this.loopLenEl.hidden = true;
     this.loopBtn.classList.remove('on', 'armed');
+    this.loopBtn.textContent = 'Loop';
     this.el.querySelector('.dropzone').textContent = 'Drop track or click to load';
     this.bpmEl.textContent = '—';
     this.el.querySelector('.barcount').textContent = '—';
@@ -1724,6 +1725,13 @@ class Deck {
       this.source.loop = this.loopOn;
       if (this.loopOn) { this.source.loopStart = this.loopStart; this.source.loopEnd = this.loopEnd; }
     }
+    // Button carries the armed length — beats on a grid, seconds
+    // without — so the loop size is readable without the waveform.
+    this.loopBtn.textContent = this.loopOn
+      ? 'Loop ' + (this.grid
+          ? ((this.loopEnd - this.loopStart) / (60 / this.grid.bpm)).toFixed(1) + 'b'
+          : (this.loopEnd - this.loopStart).toFixed(1) + 's')
+      : 'Loop';
   }
 
   // Halve or double the armed loop in place, keeping its start — the
