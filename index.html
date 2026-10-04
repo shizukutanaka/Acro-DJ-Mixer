@@ -139,7 +139,7 @@
 <body>
 <header>
   <h1>Acro DJ Mixer</h1>
-  <span class="hint">Drop an audio file on each deck. Keys: <b>Q</b>/<b>P</b> play deck A/B · <b>←</b>/<b>→</b> crossfade · <b>0</b> center</span>
+  <span class="hint">Drop an audio file on each deck. Keys: <b>Q</b>/<b>P</b> play A/B · <b>Z–V</b>/<b>B–,</b> pads A/B · <b>E</b>/<b>I</b> sync · <b>R</b>/<b>U</b> loop · <b>←</b>/<b>→</b> crossfade · <b>0</b> center</span>
 </header>
 <main>
   <section class="deck a" id="deck-a">
@@ -1581,12 +1581,27 @@ renderLibrary();
 
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' && e.target.type === 'text') return;
+  if (e.target.tagName === 'SELECT') return;
   switch (e.key) {
     case 'q': case 'Q': deckA.toggle(); break;
     case 'p': case 'P': deckB.toggle(); break;
     case 'ArrowLeft': xfader.value = Math.max(0, parseFloat(xfader.value) - 0.05); applyCrossfade(); break;
     case 'ArrowRight': xfader.value = Math.min(1, parseFloat(xfader.value) + 0.05); applyCrossfade(); break;
     case '0': xfader.value = 0.5; applyCrossfade(); break;
+    // Deck A: Z X C V = pads 1-4, E = sync, R = loop
+    case 'z': case 'Z': deckA.padCue(0); break;
+    case 'x': case 'X': deckA.padCue(1); break;
+    case 'c': case 'C': deckA.padCue(2); break;
+    case 'v': case 'V': deckA.padCue(3); break;
+    case 'e': case 'E': deckA.syncTo(deckB); break;
+    case 'r': case 'R': deckA.toggleLoop(); break;
+    // Deck B: B N M , = pads 1-4, I = sync, U = loop
+    case 'b': case 'B': deckB.padCue(0); break;
+    case 'n': case 'N': deckB.padCue(1); break;
+    case 'm': case 'M': deckB.padCue(2); break;
+    case ',': deckB.padCue(3); break;
+    case 'i': case 'I': deckB.syncTo(deckA); break;
+    case 'u': case 'U': deckB.toggleLoop(); break;
   }
 });
 
