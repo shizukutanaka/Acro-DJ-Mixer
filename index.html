@@ -119,6 +119,8 @@
   .hotcues .jump { display: inline-flex; gap: 4px; margin-left: auto; }
   .hotcues .jump button { font-size: 11px; padding: 3px 7px; }
   .eq .kill { font-size: 10px; padding: 1px 4px; min-width: 16px; }
+  .bend button { font-size: 11px; padding: 1px 6px; }
+  .bend button.on { border-color: var(--acc); color: var(--acc); }
   .eq .kill.on { border-color: #ff5a5a; color: #ff5a5a; }
   .lib-row.fit .name { color: #3ddc84; }
   .lib-row.fit .name::before { content: '● '; font-size: 9px; vertical-align: 1px; }
@@ -148,7 +150,7 @@
       <span class="time">0:00 / 0:00</span>
     </div>
     <div class="hotcues"><button class="pad" data-pad="0" title="Hot cue — click sets a marker, click jumps, right-click clears">1</button><button class="pad" data-pad="1" title="Hot cue — click sets a marker, click jumps, right-click clears">2</button><button class="pad" data-pad="2" title="Hot cue — click sets a marker, click jumps, right-click clears">3</button><button class="pad" data-pad="3" title="Hot cue — click sets a marker, click jumps, right-click clears">4</button><span class="jump"><button data-act="jumpback" title="Jump back one beat (1 s without BPM)">−1b</button><button data-act="jumpfwd" title="Jump forward one beat (1 s without BPM)">+1b</button></span></div>
-    <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1"><output>+0.0%</output></div>
+    <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1"><output>+0.0%</output><span class="bend"><button data-act="benddn" title="Pitch bend — hold to slow the deck 5%">−</button><button data-act="bendup" title="Pitch bend — hold to speed the deck 5%">+</button></span></div>
     <div class="row eq"><label>EQ</label><span class="band"><button class="kill" data-kill="high" title="Kill high — instant −26 dB cut, click again to restore">H</button><input type="range" data-eq="high" min="-1" max="1" step="0.01" value="0" title="High shelf 4 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="mid" title="Kill mid — instant −26 dB cut, click again to restore">M</button><input type="range" data-eq="mid" min="-1" max="1" step="0.01" value="0" title="Mid 1 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="low" title="Kill low — instant −26 dB cut, click again to restore">L</button><input type="range" data-eq="low" min="-1" max="1" step="0.01" value="0" title="Low shelf 250 Hz, ±26 dB — double-click resets"></span></div>
     <div class="row"><label>Filter</label><input type="range" data-act="filter" min="-1" max="1" step="0.01" value="0" title="Color filter — left sweeps low-pass, right sweeps high-pass, center is open. Double-click resets"><output>open</output></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1"><output>100%</output></div>
@@ -180,7 +182,7 @@
       <span class="time">0:00 / 0:00</span>
     </div>
     <div class="hotcues"><button class="pad" data-pad="0" title="Hot cue — click sets a marker, click jumps, right-click clears">1</button><button class="pad" data-pad="1" title="Hot cue — click sets a marker, click jumps, right-click clears">2</button><button class="pad" data-pad="2" title="Hot cue — click sets a marker, click jumps, right-click clears">3</button><button class="pad" data-pad="3" title="Hot cue — click sets a marker, click jumps, right-click clears">4</button><span class="jump"><button data-act="jumpback" title="Jump back one beat (1 s without BPM)">−1b</button><button data-act="jumpfwd" title="Jump forward one beat (1 s without BPM)">+1b</button></span></div>
-    <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1"><output>+0.0%</output></div>
+    <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1"><output>+0.0%</output><span class="bend"><button data-act="benddn" title="Pitch bend — hold to slow the deck 5%">−</button><button data-act="bendup" title="Pitch bend — hold to speed the deck 5%">+</button></span></div>
     <div class="row eq"><label>EQ</label><span class="band"><button class="kill" data-kill="high" title="Kill high — instant −26 dB cut, click again to restore">H</button><input type="range" data-eq="high" min="-1" max="1" step="0.01" value="0" title="High shelf 4 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="mid" title="Kill mid — instant −26 dB cut, click again to restore">M</button><input type="range" data-eq="mid" min="-1" max="1" step="0.01" value="0" title="Mid 1 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="low" title="Kill low — instant −26 dB cut, click again to restore">L</button><input type="range" data-eq="low" min="-1" max="1" step="0.01" value="0" title="Low shelf 250 Hz, ±26 dB — double-click resets"></span></div>
     <div class="row"><label>Filter</label><input type="range" data-act="filter" min="-1" max="1" step="0.01" value="0" title="Color filter — left sweeps low-pass, right sweeps high-pass, center is open. Double-click resets"><output>open</output></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1"><output>100%</output></div>
@@ -399,6 +401,7 @@ class Deck {
     this.offset = 0;      // seconds into track where playback resumes
     this.startedAt = 0;   // ctx.currentTime at last play
     this.rate = 1;
+    this.bendMul = 1;    // pitch-bend multiplier, 0.95/1.05 while held
     this.keylock = false;
     this.engine = null;   // 'worklet' (WSOLA, keylock) or 'buffer' (file:// fallback)
     this.node = null;
@@ -467,6 +470,25 @@ class Deck {
     this.el.querySelector('[data-act=jumpfwd]').addEventListener('click', () => this.beatJump(1));
     this.keylockBtn.addEventListener('click', () => this.toggleKeylock());
     this.tempoEl.addEventListener('input', () => this.setRate(parseFloat(this.tempoEl.value)));
+    // Pitch bend: hold bends the deck ±5%, release restores. The bend
+    // multiplies the engine rate only — the slider keeps the base tempo.
+    for (const [act, f] of [['benddn', 0.95], ['bendup', 1.05]]) {
+      const btn = this.el.querySelector(`[data-act=${act}]`);
+      btn.addEventListener('pointerdown', e => {
+        e.preventDefault();
+        this.bendMul = f;
+        this.setRate(this.rate);   // re-applies engine rate + rebases pos()
+        btn.classList.add('on');
+      });
+      for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) {
+        btn.addEventListener(ev, () => {
+          if (this.bendMul === 1) return;
+          this.bendMul = 1;
+          this.setRate(this.rate);
+          btn.classList.remove('on');
+        });
+      }
+    }
     this.gainEl.addEventListener('input', () => this.setGain(parseFloat(this.gainEl.value)));
     for (const [band, el] of Object.entries(this.eqEls)) {
       el.addEventListener('input', () => this.setBand(band, parseFloat(el.value)));
@@ -605,7 +627,7 @@ class Deck {
   pos() {
     if (!this.buffer) return 0;
     let p = this.playing
-      ? this.offset + (ctx.currentTime - this.startedAt) * this.rate
+      ? this.offset + (ctx.currentTime - this.startedAt) * this.rate * this.bendMul
       : this.offset;
     // The engines wrap inside the loop region; mirror that here so the
     // playhead and any pos() consumers see the true position. (Seeks outside
@@ -630,7 +652,7 @@ class Deck {
     } else {
       const src = ac.createBufferSource();
       src.buffer = this.buffer;
-      src.playbackRate.value = this.rate;
+      src.playbackRate.value = this.rate * this.bendMul;
       src.connect(this.deckGain);
       src.connect(this.cueSend);
       if (this.loopOn) { src.loop = true; src.loopStart = this.loopStart; src.loopEnd = this.loopEnd; }
@@ -682,8 +704,9 @@ class Deck {
   setRate(r) {
     if (this.playing) { this.offset = this.pos(); this.startedAt = ctx.currentTime; }
     this.rate = r;
-    if (this.engine === 'worklet') this.node.port.postMessage({ type: 'rate', rate: r });
-    else if (this.source) this.source.playbackRate.value = r;
+    const eff = r * this.bendMul;   // bend multiplies engine rate, not the slider
+    if (this.engine === 'worklet') this.node.port.postMessage({ type: 'rate', rate: eff });
+    else if (this.source) this.source.playbackRate.value = eff;
     this.tempoOut.textContent = (r >= 1 ? '+' : '') + ((r - 1) * 100).toFixed(1) + '%';
   }
 

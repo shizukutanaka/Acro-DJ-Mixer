@@ -69,6 +69,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
   click again to cancel mid-fade (see ADR-0013).
+- **Pitch bend** — hold `−`/`+` beside the tempo fader to ride the deck
+  ±5 % for manual beat alignment; release restores the fader rate
+  (see ADR-0017).
 - **Color filter** — one knob: left sweeps a low-pass down to ~200 Hz,
   right sweeps a high-pass up to ~8 kHz, centre is open; live `LP`/`HP`
   readout, double-click resets (see ADR-0016).
