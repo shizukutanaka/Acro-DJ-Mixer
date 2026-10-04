@@ -549,6 +549,11 @@ class Deck {
       this.libId = meta ? meta.libId : null;
       this._libP = null;
       this._libPatch = null;
+      // Auto-gain: one downmix feeds level normalization plus (uncached)
+      // BPM/key analysis. Attenuation only — boosting a quiet track
+      // would just lean on the limiter.
+      const mono = monoResample(buf);   // promise — estimators await it internally
+      this.applyAutoGain(await mono);
       if (meta && meta.bpm) {
         // Cached analysis from the library — instant, no recompute.
         this.grid = { bpm: meta.bpm, beatOff: meta.beatOff || 0 };
@@ -557,7 +562,6 @@ class Deck {
         this.refreshKey();
         if (this.partner) this.partner.refreshKey();
       } else {
-        const mono = monoResample(buf); // one downmix feeds both analyses
         this.estimateBpm(mono);
         this.estimateKey(mono);
       }
@@ -741,6 +745,19 @@ class Deck {
       this.stopPlayback();
       if (wasPlaying) this.play();
     }
+  }
+
+  // Auto-gain on load: attenuate the deck gain so the track's mono RMS
+  // lands near the common target (-15 dBFS). Clamp to [0.25, 1] — a
+  // quiet track stays quiet (user can push the fader) instead of being
+  // pumped into the limiter.
+  applyAutoGain(mono) {
+    let sum = 0;
+    for (let i = 0; i < mono.length; i++) sum += mono[i] * mono[i];
+    const rms = Math.sqrt(sum / mono.length);
+    const g = rms < 1e-4 ? 1 : Math.min(1, Math.max(0.25, 0.18 / rms));
+    this.gainEl.value = g;
+    this.setGain(g);
   }
 
   setGain(g) {
