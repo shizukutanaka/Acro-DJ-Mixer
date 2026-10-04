@@ -256,7 +256,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   chain (threshold −3 dB, ratio 20) keeps two-deck sums and EQ boosts
   from clipping; `GR −x.x dB` shows under the meter while it rides
   peaks (see ADR-0018).
-- **Master level meter** and master gain.
+- **Master level meter** — post-limiter output with a decaying
+  peak-hold tick like the channel meters (see ADR-0106) — and
+  master gain.
 - **Keyboard** — `Q`/`P` toggle deck A/B, `←`/`→` move the crossfader,
   `0` centers it, `↑`/`↓` ride the master level; mirrored pad/sync/loop
   keys: deck A `Z X C V` `E` `R`, deck B `B N M ,` `I` `U`

@@ -186,7 +186,7 @@
 
   <section class="mixer">
     <h2>Mixer</h2>
-    <div class="meter"><i id="meter-fill"></i></div>
+    <div class="meter" title="Master level (post-limiter; tick = peak hold)"><i id="meter-fill"></i><b id="meter-peak"></b></div>
     <div class="gr" id="gr" title="Limiter gain reduction"></div>
     <div class="row"><label>A</label><input type="range" id="xfader" min="0" max="1" step="0.005" value="0.5" title="Crossfader — double-click resets to centre; pushing fully into a stopped deck starts it"><label>B</label><select id="xfcurve" title="Crossfader curve — Smooth fades gradually, Cut reaches full in the first/last 10% for scratching"><option value="smooth">Smooth</option><option value="cut">Cut</option></select><button id="xfrev" title="HAMSTER — swap which side of the crossfader feeds A and B, for scratching">Rev</button><button id="qtz" class="on" title="Quantize — hot cues and loops snap to the beat grid; click to place them freehand">Qtz</button></div>
     <div class="row"><label>Master</label><input type="range" id="master" min="0" max="1" step="0.01" value="0.9" title="Master level — double-click resets to 90%"><output id="master-out">90%</output></div>
@@ -2523,6 +2523,8 @@ document.addEventListener('keydown', e => {
 // ----- Render loop: playheads, time readouts, master meter -----
 
 const meterFill = document.getElementById('meter-fill');
+const meterPeakEl = document.getElementById('meter-peak');
+let meterPeak = 0;
 const grEl = document.getElementById('gr');
 const cueFill = document.getElementById('cuemeter-fill');
 const phaseEl = document.getElementById('phase');
@@ -2598,6 +2600,8 @@ function tick() {
       if (v > peak) peak = v;
     }
     meterFill.style.width = Math.min(peak * 100, 100).toFixed(1) + '%';
+    meterPeak = Math.max(peak, meterPeak - 0.012);
+    meterPeakEl.style.left = Math.min(meterPeak * 100, 98).toFixed(1) + '%';
     const gr = limiter ? limiter.reduction : 0;
     grEl.textContent = gr < -0.5 ? 'GR ' + gr.toFixed(1) + ' dB' : '';
     if (cueAnalyser) {
