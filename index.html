@@ -2574,9 +2574,15 @@ recBtn.addEventListener('click', () => {
       const blob = new Blob(recChunks, { type: 'audio/webm' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = 'acro-set-' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.webm';
+      const fname = 'acro-set-' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.webm';
+      a.download = fname;
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+      // The set itself becomes a library row: replay it, arm a loop
+      // on it, resample it — same material as any loaded track.
+      Library.addFromFile(new File([blob], fname, { type: 'audio/webm' }),
+        (performance.now() - recStart) / 1000)
+        .catch(err => console.warn('library save failed:', err));
       recorder = null;
       recBtn.classList.remove('on');
       clearInterval(recTick);
