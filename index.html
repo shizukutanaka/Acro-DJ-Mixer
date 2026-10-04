@@ -2618,6 +2618,13 @@ function tick() {
   }
   autoMixTick();
   wakeSync();
+  // Tab title = now playing, so a background tab or continuous auto-mix
+  // still tells you what's on the floor.
+  {
+    const live = [deckA, deckB].find(d => d.playing && d.fileName);
+    const t = live ? '▶ ' + live.side.toUpperCase() + ': ' + live.fileName + ' — Acro DJ Mixer' : 'Acro DJ Mixer';
+    if (document.title !== t) document.title = t;
+  }
   for (const d of [deckA, deckB]) {
     if (d.chAnalyser && d.chFill) {
       d.chAnalyser.getByteTimeDomainData(meterBuf);
