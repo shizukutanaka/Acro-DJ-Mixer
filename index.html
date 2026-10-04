@@ -751,11 +751,30 @@ class Deck {
     // DJM BEAT FX ON/OFF: punch the selected effect in and out
     // without touching the level knob — the knob position is kept.
     this.fxOn = true;
-    this.el.querySelector('[data-act=fxon]').addEventListener('click', e => {
-      this.fxOn = !this.fxOn;
-      e.target.classList.toggle('on', this.fxOn);
+    const fxBtn = this.el.querySelector('[data-act=fxon]');
+    const setFxOn = on => {
+      this.fxOn = on;
+      fxBtn.classList.toggle('on', on);
       this.setEcho(parseFloat(this.echoEl.value));
+    };
+    fxBtn.addEventListener('click', () => {
+      if (fxBtn._suppress) { fxBtn._suppress = false; return; }  // click after a momentary hold
+      setFxOn(!this.fxOn);
     });
+    // Momentary FX punch (same idiom as momentary EQ kills): when the
+    // FX is latched OFF, holding the button >=250 ms engages it until
+    // release — the one-stab echo-out/reverb-wash gesture. Tap = latch.
+    fxBtn.addEventListener('pointerdown', () => {
+      if (this.fxOn) return;   // latched on — the click will turn it off
+      fxBtn._momTimer = setTimeout(() => { fxBtn._mom = true; setFxOn(true); }, 250);
+    });
+    const fxMomEnd = () => {
+      clearTimeout(fxBtn._momTimer);
+      if (fxBtn._mom) { fxBtn._mom = false; fxBtn._suppress = true; setFxOn(false); }
+    };
+    fxBtn.addEventListener('pointerup', fxMomEnd);
+    fxBtn.addEventListener('pointercancel', fxMomEnd);
+    fxBtn.title = 'Beat FX on/off — click toggles, hold = momentary punch (knob position kept)';
     this.el.querySelector('[data-act=fxtap]').addEventListener('change', e => {
       this.setFxTap(e.target.value === 'post');
     });
