@@ -110,7 +110,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   http) — fixes an almost-compatible harmonic mix (see ADR-0042).
 - **Mini overview** — a whole-track strip under each waveform shows
   peaks, the loop band, the playhead, and the zoom viewport box, so
-  orientation survives zooming (see ADR-0162).
+  orientation survives zooming (see ADR-0162); clicking it seeks
+  straight to that fraction of the track (see ADR-0164).
 - **Waveform zoom** — scroll over a waveform to zoom ×1.5–32 around
   the playhead; the window follows playback, click still seeks inside
   the visible slice (see ADR-0043).
