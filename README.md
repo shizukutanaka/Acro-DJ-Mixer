@@ -143,6 +143,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Reloop** — `↺` beside `Loop` re-enters the last exited loop with
   its exact bounds; seeking out of a loop is also reloop-able
   (see ADR-0059).
+- **Slip cues** — `Slip` makes pad presses momentary: hold to play the
+  cue, release to snap back to where the track would have been
+  (see ADR-0060).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
