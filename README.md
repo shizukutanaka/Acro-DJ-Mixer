@@ -260,8 +260,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   peaks (see ADR-0018).
 - **Master level meter** and master gain.
 - **Keyboard** — `Q`/`P` toggle deck A/B, `←`/`→` move the crossfader,
-  `0` centers it; mirrored pad/sync/loop keys: deck A `Z X C V` `E` `R`,
-  deck B `B N M ,` `I` `U` (see ADR-0031).
+  `0` centers it, `↑`/`↓` ride the master level; mirrored pad/sync/loop
+  keys: deck A `Z X C V` `E` `R`, deck B `B N M ,` `I` `U`
+  (see ADR-0031, ADR-0101).
 
 ## Architecture
 

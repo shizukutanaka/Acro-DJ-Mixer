@@ -2501,8 +2501,10 @@ document.addEventListener('keydown', e => {
   switch (e.key) {
     case 'q': case 'Q': deckA.toggle(); break;
     case 'p': case 'P': deckB.toggle(); break;
-    case 'ArrowLeft': xfader.value = Math.max(0, parseFloat(xfader.value) - 0.05); applyCrossfade(); break;
-    case 'ArrowRight': xfader.value = Math.min(1, parseFloat(xfader.value) + 0.05); applyCrossfade(); break;
+    case 'ArrowLeft': xfader.value = Math.max(0, parseFloat(xfader.value) - 0.05); applyCrossfade(); e.preventDefault(); break;
+    case 'ArrowRight': xfader.value = Math.min(1, parseFloat(xfader.value) + 0.05); applyCrossfade(); e.preventDefault(); break;
+    case 'ArrowDown': master.value = Math.max(0, parseFloat(master.value) - 0.05); master.dispatchEvent(new Event('input')); e.preventDefault(); break;
+    case 'ArrowUp': master.value = Math.min(1, parseFloat(master.value) + 0.05); master.dispatchEvent(new Event('input')); e.preventDefault(); break;
     case '0': xfader.value = 0.5; applyCrossfade(); break;
     // Deck A: Z X C V = pads 1-4, E = sync, R = loop
     case 'z': case 'Z': deckA.padCue(0); break;
