@@ -23,12 +23,19 @@ python3 -m http.server 8000
 # then open http://localhost:8000
 ```
 
+Option 1 (`file://`) plays fine, but browsers block `AudioWorklet` module
+loads on an opaque origin — so key lock is unavailable and decks fall back
+to classic varispeed tempo. Use option 2 for the full feature set.
+
 ## Features
 
 - **Two decks** — load audio by click or drag & drop (MP3/WAV/OGG/FLAC/M4A,
   whatever the browser's `decodeAudioData` supports).
 - **Transport** — play/pause, cue-to-start, click waveform to seek.
 - **Tempo** — ±16% playback-rate slider per deck.
+- **Key lock** — preserve pitch while tempo changes (WSOLA time-stretching
+  in an `AudioWorklet`, see ADR-0003). Requires http(s); on `file://` the
+  button is disabled and tempo stays varispeed.
 - **Gain** — per-deck channel fader.
 - **Crossfader** — equal-power law for constant loudness through the middle.
 - **Waveform overview** with playhead per deck.
@@ -45,18 +52,21 @@ python3 -m http.server 8000
 Single file (`index.html`), vanilla JS + Web Audio API:
 
 ```
-BufferSource ──> deckGain ──> xfGain ──> masterGain ──> analyser ──> destination
+WSOLA worklet (keylock) or BufferSource (fallback)
+        ──> deckGain ──> xfGain ──> masterGain ──> analyser ──> destination
 ```
 
 Per deck, instantiated lazily on first play (browser autoplay policy requires a
-user gesture before the `AudioContext` starts).
+user gesture before the `AudioContext` starts). The playback engine is chosen
+once per deck at first load: `AudioWorklet` when the module can load
+(http/https), `AudioBufferSourceNode` otherwise.
 
 ## Roadmap (deliberately not built yet)
 
 Ordered by value per the ADR's automation layer:
 
 1. ~~Beat-grid phase alignment + a sync button.~~ Done (ADR-0002).
-2. Keylock / master tempo (needs WSOLA or a phase vocoder).
+2. ~~Keylock / master tempo.~~ Done (ADR-0003) — WSOLA in an AudioWorklet.
 3. Key detection + harmonic-mixing hints.
 4. Track library with persistence (`id`, `created_at`, `updated_at`,
    `deleted_at`, `version` per table when a store lands).
