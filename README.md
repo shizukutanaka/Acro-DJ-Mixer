@@ -184,6 +184,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   Enter commits, Esc cancels (see ADR-0079).
 - **Library preview** — `▶` on a library row auditions the track on the
   headphone cue bus without loading a deck (see ADR-0080).
+- **Beat FX select** — the FX knob drives `Echo` or `Flng` (LFO-swept
+  comb); only the selected effect sounds (see ADR-0081).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,

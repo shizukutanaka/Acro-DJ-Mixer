@@ -175,7 +175,7 @@
     <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1" title="Tempo — double-click resets to ±0%"><output>+0.0%</output><span class="bend"><button data-act="benddn" title="Pitch bend — hold to slow the deck 5%">−</button><button data-act="bendup" title="Pitch bend — hold to speed the deck 5%">+</button></span><select data-act="range" title="Tempo range — ±8% fine, ±16% standard, ±50% wide"><option value="0.08">±8</option><option value="0.16" selected>±16</option><option value="0.50">±50</option></select></div>
     <div class="row eq"><label>EQ</label><span class="band"><button class="kill" data-kill="high" title="Kill high — instant −26 dB cut, click again to restore">H</button><input type="range" data-eq="high" min="-1" max="1" step="0.01" value="0" title="High shelf 4 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="mid" title="Kill mid — instant −26 dB cut, click again to restore">M</button><input type="range" data-eq="mid" min="-1" max="1" step="0.01" value="0" title="Mid 1 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="low" title="Kill low — instant −26 dB cut, click again to restore">L</button><input type="range" data-eq="low" min="-1" max="1" step="0.01" value="0" title="Low shelf 250 Hz, ±26 dB — double-click resets"></span></div>
     <div class="row"><label>Filter</label><input type="range" data-act="filter" min="-1" max="1" step="0.01" value="0" title="Color filter — left sweeps low-pass, right sweeps high-pass, center is open. Double-click resets"><output>open</output></div>
-    <div class="row"><label>Echo</label><input type="range" data-act="echo" min="0" max="1" step="0.01" value="0" title="Beat delay — 3/4-beat echo synced to the deck grid; 0 is dry. Double-click resets"><output>dry</output></div>
+    <div class="row"><label>FX</label><select data-act="fx" title="Beat FX — which effect the level knob drives"><option value="echo">Echo</option><option value="flange">Flng</option></select><input type="range" data-act="echo" min="0" max="1" step="0.01" value="0" title="Beat delay — 3/4-beat echo synced to the deck grid; 0 is dry. Double-click resets"><output>dry</output></div>
     <div class="row"><label>Stem</label><select data-act="stem" title="Mid/side split — Vocal keeps the centre channel (acapella), Inst keeps the sides (vocal-removed)"><option value="off">Full</option><option value="voc">Vocal</option><option value="inst">Inst</option></select></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1" title="Channel gain — double-click resets to unity"><output>100%</output></div>
     <div class="row"><span class="bpm">BPM <b>—</b></span><span class="barcount" title="Bar.beat position on the beat grid — where the phrase is">—</span><span class="beatlamp" title="Beat indicator — pulses each beat, accent on the downbeat"></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients (shift = one beat earlier)">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients (shift = one beat later)">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="stctl" title="Transpose — shift the deck's key in semitones (needs key lock / http)"><button data-act="pitchdn">−</button><b class="st">±0</b><button data-act="pitchup">+</button></span><button data-act="keysync" title="Key sync — transpose to a key that mixes harmonically with the other deck">Key</button><span class="status"></span></div>
@@ -216,7 +216,7 @@
     <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1" title="Tempo — double-click resets to ±0%"><output>+0.0%</output><span class="bend"><button data-act="benddn" title="Pitch bend — hold to slow the deck 5%">−</button><button data-act="bendup" title="Pitch bend — hold to speed the deck 5%">+</button></span><select data-act="range" title="Tempo range — ±8% fine, ±16% standard, ±50% wide"><option value="0.08">±8</option><option value="0.16" selected>±16</option><option value="0.50">±50</option></select></div>
     <div class="row eq"><label>EQ</label><span class="band"><button class="kill" data-kill="high" title="Kill high — instant −26 dB cut, click again to restore">H</button><input type="range" data-eq="high" min="-1" max="1" step="0.01" value="0" title="High shelf 4 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="mid" title="Kill mid — instant −26 dB cut, click again to restore">M</button><input type="range" data-eq="mid" min="-1" max="1" step="0.01" value="0" title="Mid 1 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="low" title="Kill low — instant −26 dB cut, click again to restore">L</button><input type="range" data-eq="low" min="-1" max="1" step="0.01" value="0" title="Low shelf 250 Hz, ±26 dB — double-click resets"></span></div>
     <div class="row"><label>Filter</label><input type="range" data-act="filter" min="-1" max="1" step="0.01" value="0" title="Color filter — left sweeps low-pass, right sweeps high-pass, center is open. Double-click resets"><output>open</output></div>
-    <div class="row"><label>Echo</label><input type="range" data-act="echo" min="0" max="1" step="0.01" value="0" title="Beat delay — 3/4-beat echo synced to the deck grid; 0 is dry. Double-click resets"><output>dry</output></div>
+    <div class="row"><label>FX</label><select data-act="fx" title="Beat FX — which effect the level knob drives"><option value="echo">Echo</option><option value="flange">Flng</option></select><input type="range" data-act="echo" min="0" max="1" step="0.01" value="0" title="Beat delay — 3/4-beat echo synced to the deck grid; 0 is dry. Double-click resets"><output>dry</output></div>
     <div class="row"><label>Stem</label><select data-act="stem" title="Mid/side split — Vocal keeps the centre channel (acapella), Inst keeps the sides (vocal-removed)"><option value="off">Full</option><option value="voc">Vocal</option><option value="inst">Inst</option></select></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1" title="Channel gain — double-click resets to unity"><output>100%</output></div>
     <div class="row"><span class="bpm">BPM <b>—</b></span><span class="barcount" title="Bar.beat position on the beat grid — where the phrase is">—</span><span class="beatlamp" title="Beat indicator — pulses each beat, accent on the downbeat"></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients (shift = one beat earlier)">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients (shift = one beat later)">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="stctl" title="Transpose — shift the deck's key in semitones (needs key lock / http)"><button data-act="pitchdn">−</button><b class="st">±0</b><button data-act="pitchup">+</button></span><button data-act="keysync" title="Key sync — transpose to a key that mixes harmonically with the other deck">Key</button><span class="status"></span></div>
@@ -624,6 +624,8 @@ class Deck {
       const r = Math.min(Math.max(this.rate, 1 - this.tempoRange), 1 + this.tempoRange);
       if (r !== this.rate) { this.tempoEl.value = r; this.setRate(r); }
     });
+    this.fxSel = this.el.querySelector('[data-act=fx]');
+    this.fxSel.addEventListener('change', () => this.setEcho(parseFloat(this.echoEl.value)));
     this.echoEl.addEventListener('input', () => this.setEcho(parseFloat(this.echoEl.value)));
     this.echoEl.addEventListener('dblclick', () => { this.echoEl.value = 0; this.setEcho(0); });
     // Pitch bend: hold bends the deck ±5%, release restores. The bend
@@ -924,6 +926,27 @@ class Deck {
     this.delayFb.connect(this.delay);
     this.delay.connect(this.delayWet);
     this.delayWet.connect(this.xfGain);
+    // Flanger (BEAT FX companion): short LFO-swept delay with feedback —
+    // comb sweep rather than repeats. Shares the level knob; the fx
+    // select decides which wet path it drives.
+    this.flDelay = ac.createDelay(0.02);
+    this.flDelay.delayTime.value = 0.002;
+    this.flFb = ac.createGain();
+    this.flFb.gain.value = 0.5;
+    this.flWet = ac.createGain();
+    this.flWet.gain.value = 0;
+    this.filter.connect(this.flDelay);
+    this.flDelay.connect(this.flFb);
+    this.flFb.connect(this.flDelay);
+    this.flDelay.connect(this.flWet);
+    this.flWet.connect(this.xfGain);
+    this.flLfo = ac.createOscillator();
+    this.flLfo.frequency.value = 0.4;
+    this.flLfoDepth = ac.createGain();
+    this.flLfoDepth.gain.value = 0.0015;
+    this.flLfo.connect(this.flLfoDepth);
+    this.flLfoDepth.connect(this.flDelay.delayTime);
+    this.flLfo.start();
     this._syncDelay();
     this.xfGain.connect(masterGain);
     try {
@@ -1040,7 +1063,11 @@ class Deck {
   // Echo wet level 0–1: dry is fully off, wet echoes sit under the
   // dry signal (feedback is fixed at 0.35 — the dub sweet spot).
   setEcho(v) {
-    if (this.delayWet) this.delayWet.gain.setTargetAtTime(v * 0.7, ctx.currentTime, 0.02);
+    // CDJ BEAT FX style: the knob drives the selected effect only —
+    // the other wet path is parked at zero.
+    const onFlange = this.fxSel && this.fxSel.value === 'flange';
+    if (this.delayWet) this.delayWet.gain.setTargetAtTime(onFlange ? 0 : v * 0.7, ctx.currentTime, 0.02);
+    if (this.flWet) this.flWet.gain.setTargetAtTime(onFlange ? v * 0.7 : 0, ctx.currentTime, 0.02);
     this.echoEl.nextElementSibling.textContent = v <= 0.01 ? 'dry' : Math.round(v * 100) + '%';
   }
 
