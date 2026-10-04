@@ -32,8 +32,10 @@ python3 -m http.server 8000
 - **Gain** — per-deck channel fader.
 - **Crossfader** — equal-power law for constant loudness through the middle.
 - **Waveform overview** with playhead per deck.
-- **Auto BPM estimate** — energy-flux autocorrelation, 60–180 BPM, no
-  dependencies (see ADR-0001 for why this is the one "AI" feature in scope).
+- **Auto BPM estimate + beat grid** — energy-flux autocorrelation, 60–180 BPM,
+  no dependencies; grid ticks drawn on the waveform (see ADR-0001 / ADR-0002).
+- **Sync** — one click matches a deck's tempo and beat phase to the other deck
+  (tempo limited to the ±16% slider range, like hardware).
 - **Master level meter** and master gain.
 - **Keyboard** — `Q`/`P` toggle deck A/B, `←`/`→` move the crossfader,
   `0` centers it.
@@ -53,7 +55,7 @@ user gesture before the `AudioContext` starts).
 
 Ordered by value per the ADR's automation layer:
 
-1. Beat-grid phase alignment + a sync button.
+1. ~~Beat-grid phase alignment + a sync button.~~ Done (ADR-0002).
 2. Keylock / master tempo (needs WSOLA or a phase vocoder).
 3. Key detection + harmonic-mixing hints.
 4. Track library with persistence (`id`, `created_at`, `updated_at`,
