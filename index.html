@@ -184,7 +184,7 @@
     <div class="row"><label>Filter</label><input type="range" data-act="filter" min="-1" max="1" step="0.01" value="0" title="Color filter — left sweeps low-pass, right sweeps high-pass, center is open. Double-click resets"><output>open</output></div>
     <div class="row"><label>FX</label><select data-act="fx" title="Beat FX — which effect the level knob drives"><option value="echo">Echo</option><option value="flange">Flng</option><option value="trans">Trans</option><option value="noise">Noise</option><option value="crush">Crush</option><option value="rev">Verb</option></select><select data-act="fxbeat" title="Echo time in beats — DJM BEAT parameter"><option value="0.25">¼</option><option value="0.5">½</option><option value="0.75" selected>¾</option><option value="1">1</option></select><button data-act="fxon" class="on" title="FX on/off — punch the selected effect in and out, knob position is kept (DJM BEAT FX ON/OFF)">FX</button><select data-act="fxtap" title="FX send tap — pre = sends keep ringing when you drop the fader (echo-out); post = sends follow the crossfader, tails die with the side (fader FX)"><option value="pre">pre</option><option value="post">post</option></select><input type="range" data-act="echo" min="0" max="1" step="0.01" value="0" title="Beat delay — 3/4-beat echo synced to the deck grid; 0 is dry. Double-click resets"><output>dry</output></div>
     <div class="row"><label>Stem</label><select data-act="stem" title="Mid/side split — Vocal keeps the centre channel (acapella), Inst keeps the sides (vocal-removed)"><option value="off">Full</option><option value="voc">Vocal</option><option value="inst">Inst</option></select></div>
-    <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1" title="Channel gain — double-click resets to unity"><output>100%</output></div>
+    <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1" title="Channel gain — double-click resets to unity"><output>100%</output><button data-act="mute" title="Deck mute — hold to silence the channel; playback keeps running underneath so release lands back on beat (channel on/off)">Mut</button></div>
     <div class="row"><span class="bpm">BPM <b>—</b></span><span class="barcount" title="Bar.beat position on the beat grid — where the phrase is">—</span><span class="beatlamp" title="Beat indicator — pulses each beat, accent on the downbeat"></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients (shift = one beat earlier)">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients (shift = one beat later)">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="stctl" title="Transpose — shift the deck's key in semitones (needs key lock / http); double-click ±N to reset"><button data-act="pitchdn">−</button><b class="st">±0</b><button data-act="pitchup">+</button></span><button data-act="keysync" title="Key sync — transpose to a key that mixes harmonically with the other deck">Key</button><span class="status"></span></div>
   </section>
 
@@ -229,7 +229,7 @@
     <div class="row"><label>Filter</label><input type="range" data-act="filter" min="-1" max="1" step="0.01" value="0" title="Color filter — left sweeps low-pass, right sweeps high-pass, center is open. Double-click resets"><output>open</output></div>
     <div class="row"><label>FX</label><select data-act="fx" title="Beat FX — which effect the level knob drives"><option value="echo">Echo</option><option value="flange">Flng</option><option value="trans">Trans</option><option value="noise">Noise</option><option value="crush">Crush</option><option value="rev">Verb</option></select><select data-act="fxbeat" title="Echo time in beats — DJM BEAT parameter"><option value="0.25">¼</option><option value="0.5">½</option><option value="0.75" selected>¾</option><option value="1">1</option></select><button data-act="fxon" class="on" title="FX on/off — punch the selected effect in and out, knob position is kept (DJM BEAT FX ON/OFF)">FX</button><select data-act="fxtap" title="FX send tap — pre = sends keep ringing when you drop the fader (echo-out); post = sends follow the crossfader, tails die with the side (fader FX)"><option value="pre">pre</option><option value="post">post</option></select><input type="range" data-act="echo" min="0" max="1" step="0.01" value="0" title="Beat delay — 3/4-beat echo synced to the deck grid; 0 is dry. Double-click resets"><output>dry</output></div>
     <div class="row"><label>Stem</label><select data-act="stem" title="Mid/side split — Vocal keeps the centre channel (acapella), Inst keeps the sides (vocal-removed)"><option value="off">Full</option><option value="voc">Vocal</option><option value="inst">Inst</option></select></div>
-    <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1" title="Channel gain — double-click resets to unity"><output>100%</output></div>
+    <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1" title="Channel gain — double-click resets to unity"><output>100%</output><button data-act="mute" title="Deck mute — hold to silence the channel; playback keeps running underneath so release lands back on beat (channel on/off)">Mut</button></div>
     <div class="row"><span class="bpm">BPM <b>—</b></span><span class="barcount" title="Bar.beat position on the beat grid — where the phrase is">—</span><span class="beatlamp" title="Beat indicator — pulses each beat, accent on the downbeat"></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients (shift = one beat earlier)">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients (shift = one beat later)">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="stctl" title="Transpose — shift the deck's key in semitones (needs key lock / http); double-click ±N to reset"><button data-act="pitchdn">−</button><b class="st">±0</b><button data-act="pitchup">+</button></span><button data-act="keysync" title="Key sync — transpose to a key that mixes harmonically with the other deck">Key</button><span class="status"></span></div>
   </section>
 </main>
@@ -771,6 +771,17 @@ class Deck {
     }
     this.gainEl.addEventListener('input', () => this.setGain(parseFloat(this.gainEl.value)));
     this.gainEl.addEventListener('dblclick', () => { this.gainEl.value = 1; this.setGain(1); });
+    // Momentary deck mute: playback keeps running underneath, so the
+    // release lands back on beat — pause would freeze the position.
+    const mutBtn = this.el.querySelector('[data-act=mute]');
+    const mutSet = on => {
+      if (!this.muteGain) return;
+      this.muteGain.gain.cancelScheduledValues(ctx.currentTime);
+      this.muteGain.gain.setTargetAtTime(on ? 0 : 1, ctx.currentTime, on ? 0.003 : 0.005);
+      mutBtn.classList.toggle('on', on);
+    };
+    mutBtn.addEventListener('pointerdown', e => { e.preventDefault(); mutSet(true); });
+    for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) mutBtn.addEventListener(ev, () => mutSet(false));
     for (const [band, el] of Object.entries(this.eqEls)) {
       el.addEventListener('input', () => this.setBand(band, parseFloat(el.value)));
       el.addEventListener('dblclick', () => { el.value = 0; this.setBand(band, 0); });
@@ -1044,6 +1055,10 @@ class Deck {
     this.deckGain = ac.createGain();
     this.xfGain = ac.createGain();
     this.deckGain.gain.value = parseFloat(this.gainEl.value);
+    // Channel on/off: a separate mute stage after the gain knob so the
+    // knob position survives the silence.
+    this.muteGain = ac.createGain();
+    this.muteGain.gain.value = 1;
     const x = xfPos();
     this.xfGain.gain.value = this.side === 'a' ? Math.cos(x * Math.PI / 2) : Math.sin(x * Math.PI / 2);
     // DJ-style 3-band EQ (post-fader): lowshelf 250 Hz / peaking 1 kHz /
@@ -1066,7 +1081,8 @@ class Deck {
     this.msplit = ac.createChannelSplitter(2);
     this.mmerge = ac.createChannelMerger(2);
     this.mg = [ac.createGain(), ac.createGain(), ac.createGain(), ac.createGain()];
-    this.deckGain.connect(this.msplit);
+    this.deckGain.connect(this.muteGain);
+    this.muteGain.connect(this.msplit);
     this.msplit.connect(this.mg[0], 0); // L -> out L
     this.msplit.connect(this.mg[1], 0); // L -> out R
     this.msplit.connect(this.mg[2], 1); // R -> out L
