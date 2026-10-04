@@ -266,6 +266,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Master level meter** — post-limiter output with a decaying
   peak-hold tick like the channel meters (see ADR-0106) — and
   master gain.
+- **Wheel nudge** — scrolling over any fader or knob steps it one
+  detent (EQ, filter, FX, gain, master, crossfader); the tempo
+  slider keeps its finer ±0.1% trim (see ADR-0109, ADR-0112).
 - **Keyboard** — `Q`/`P` toggle deck A/B, `←`/`→` move the crossfader,
   `0` centers it, `↑`/`↓` ride the master level; mirrored pad/sync/loop
   keys: deck A `Z X C V` `E` `R`, deck B `B N M ,` `I` `U`
