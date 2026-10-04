@@ -161,6 +161,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   (centre), or Master (90%) to snap back to default (see ADR-0066).
 - **Mic input** — `Mic` button sums a `getUserMedia` microphone into
   the master before the limiter, so it is recorded too (see ADR-0067).
+- **Fader start** — pushing the crossfader fully into a stopped deck's
+  side starts it (see ADR-0068).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
