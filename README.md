@@ -185,7 +185,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Library preview** — `▶` on a library row auditions the track on the
   headphone cue bus without loading a deck (see ADR-0080).
 - **Beat FX select** — the FX knob drives `Echo` or `Flng` (LFO-swept
-  comb); only the selected effect sounds (see ADR-0081).
+  comb) or  (beat-synced gate chop); only the selected effect
+  sounds (see ADR-0081, ADR-0097).
 - **Rec timer** — the Rec button counts `M:SS` while recording so a
   forgotten take can't hide (see ADR-0082).
 - **Cue clear** — `Shift`+pad click deletes a hot cue (right-click
