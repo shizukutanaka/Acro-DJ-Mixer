@@ -75,7 +75,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   BPM/key analysis, soft-deletable); `→A`/`→B` reloads instantly with
   cached analysis, survives page reloads. Rows highlight green when the
   track fits a loaded deck (tempo within ±16% sync range + harmonic key)
-  — see ADR-0008/0011.
+  — see ADR-0008/0011. Filter box narrows rows by name as you type
+  (see ADR-0032).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
