@@ -85,6 +85,7 @@
   .deck.b button.primary { border-color: var(--accent-b); }
   .time { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12px; margin-left: auto; }
   .time.urgent { color: #ff5a5a; animation: endblink 0.8s steps(2) infinite; }
+  button.armed { border-color: #ffbe3c; color: #ffbe3c; animation: endblink 0.5s steps(2) infinite; }
   @keyframes endblink { 50% { opacity: 0.25; } }
   .row { display: flex; align-items: center; gap: 10px; }
   .row label { width: 58px; color: var(--muted); font-size: 12px; }
@@ -160,7 +161,7 @@
       <button data-act="cue">Cue</button>
       <button data-act="sync">Sync</button>
       <button data-act="dbl" title="Instant doubles — load this track into the other deck at the same point and tempo">×2</button><button data-act="brake" title="Vinyl brake — pause spins down, play spins up">Brake</button>
-      <button data-act="loop" title="4-beat loop snapped to the beat grid">Loop</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been">Roll</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier">◂</button><button data-act="loopfwd" title="Move the loop one length later">▸</button></span>
+      <button data-act="loop" title="4-beat loop snapped to the beat grid (shift = free-size in/out)">Loop</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been">Roll</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier">◂</button><button data-act="loopfwd" title="Move the loop one length later">▸</button></span>
       <button data-act="cueout" title="Headphone cue — preview this deck on the cue output">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
       <span class="time">0:00 / 0:00</span>
@@ -201,7 +202,7 @@
       <button data-act="cue">Cue</button>
       <button data-act="sync">Sync</button>
       <button data-act="dbl" title="Instant doubles — load this track into the other deck at the same point and tempo">×2</button><button data-act="brake" title="Vinyl brake — pause spins down, play spins up">Brake</button>
-      <button data-act="loop" title="4-beat loop snapped to the beat grid">Loop</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been">Roll</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier">◂</button><button data-act="loopfwd" title="Move the loop one length later">▸</button></span>
+      <button data-act="loop" title="4-beat loop snapped to the beat grid (shift = free-size in/out)">Loop</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been">Roll</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier">◂</button><button data-act="loopfwd" title="Move the loop one length later">▸</button></span>
       <button data-act="cueout" title="Headphone cue — preview this deck on the cue output">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
       <span class="time">0:00 / 0:00</span>
@@ -474,6 +475,7 @@ class Deck {
     this.loopBtn = root.querySelector('[data-act=loop]');
     this.loopLenEl = root.querySelector('.looplen');
     this.loopOn = false;
+    this._loopIn = null;
     this.loopStart = 0;
     this.loopEnd = 0;
     this.cueBtn = root.querySelector('[data-act=cueout]');
@@ -527,7 +529,7 @@ class Deck {
     this.el.querySelector('[data-act=cue]').addEventListener('click', () => this.cue());
     this.el.querySelector('[data-act=sync]').addEventListener('click', () => this.syncTo(this.partner));
     this.el.querySelector('[data-act=dbl]').addEventListener('click', () => this.instantDouble());
-    this.loopBtn.addEventListener('click', () => this.toggleLoop());
+    this.loopBtn.addEventListener('click', e => this.toggleLoop(e.shiftKey));
     const rollBtn = this.el.querySelector('[data-act=roll]');
     rollBtn.addEventListener('pointerdown', e => { e.preventDefault(); this.startRoll(); });
     for (const ev of ['pointerup', 'pointerleave', 'pointercancel'])
@@ -687,6 +689,8 @@ class Deck {
       this.key = null;
       this.loopOn = false;
       this.loopBtn.classList.remove('on');
+      this.loopBtn.classList.remove('armed');
+      this._loopIn = null;
       this.loopLenEl.hidden = true;
       this.keyEl.textContent = '—';
       this.keyEl.className = 'key';
@@ -1294,9 +1298,25 @@ class Deck {
   // 4-beat loop snapped to the detected beat grid — the DJ default of one
   // bar. Without a grid it falls back to a 4 s free loop from the press
   // point (beatLen = 1 s), which is also what moveLoop then slides by.
-  toggleLoop() {
+  toggleLoop(manual) {
     if (!this.buffer) return;
-    if (!this.loopOn) {
+    if (manual && !this.loopOn) {
+      // Shift+Loop = free-size loop: first press marks IN, second marks
+      // OUT at whatever length lies between them.
+      if (this._loopIn == null) {
+        this._loopIn = this.pos();
+        this.loopBtn.classList.add('armed');
+        return;
+      }
+      const start = this._loopIn;
+      const end = Math.min(this.pos(), this.buffer.duration);
+      this._loopIn = null;
+      this.loopBtn.classList.remove('armed');
+      if (end - start < 0.05) { this.status('Too short for a loop.'); return; }
+      this.loopStart = start;
+      this.loopEnd = end;
+      this.loopOn = true;
+    } else if (!this.loopOn) {
       // Compute bounds BEFORE loopOn flips: pos() reads loopEnd for wrapping.
       const beatLen = this.grid ? 60 / this.grid.bpm : 1;
       const n = this.grid ? Math.floor((this.pos() - this.grid.beatOff) / beatLen) : 0;
@@ -1310,6 +1330,8 @@ class Deck {
     } else {
       this.loopOn = false;
     }
+    this._loopIn = null;
+    this.loopBtn.classList.remove('armed');
     this.applyLoop();
     this.loopBtn.classList.toggle('on', this.loopOn);
     this.loopLenEl.hidden = !this.loopOn;

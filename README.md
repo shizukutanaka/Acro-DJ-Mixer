@@ -137,6 +137,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Manual loop** — tracks with no detected grid can still loop:
   `Loop` arms a 4-second free loop from the press point, and halve /
   double / move all work (see ADR-0057).
+- **Free-size loop** — `Shift` + `Loop` marks the IN point, a second
+  press marks OUT: any-length loops (button blinks while armed)
+  (see ADR-0058).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
