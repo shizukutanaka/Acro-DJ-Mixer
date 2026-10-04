@@ -169,6 +169,7 @@
       <button data-act="loop" title="4-beat loop snapped to the beat grid (shift = free-size in/out)">Loop</button><button data-act="reloop" title="Reloop — re-enter the last loop you exited">↺</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been">Roll</button><button data-act="slip" title="Slip — held pads play the cue momentarily, release resumes where the track would have been">Slip</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier">◂</button><button data-act="loopfwd" title="Move the loop one length later">▸</button></span>
       <button data-act="cueout" title="Headphone cue — preview this deck on the cue output">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
+      <button data-act="eject" title="Eject — unload the track, reset the deck">⏏</button>
       <span class="time">0:00 / 0:00</span>
     </div>
     <div class="hotcues"><button class="pad" data-pad="0" title="Hot cue — click sets a marker, click jumps, shift-click or right-click clears">1</button><button class="pad" data-pad="1" title="Hot cue — click sets a marker, click jumps, shift-click or right-click clears">2</button><button class="pad" data-pad="2" title="Hot cue — click sets a marker, click jumps, shift-click or right-click clears">3</button><button class="pad" data-pad="3" title="Hot cue — click sets a marker, click jumps, shift-click or right-click clears">4</button><span class="jump"><button data-act="jumpback" title="Jump back one beat (shift = one bar; 1 s without BPM)">−1b</button><button data-act="jumpfwd" title="Jump forward one beat (shift = one bar; 1 s without BPM)">+1b</button><button data-act="nextbar" title="Jump to the next bar downbeat — drop on the one">▸bar</button></span></div>
@@ -210,6 +211,7 @@
       <button data-act="loop" title="4-beat loop snapped to the beat grid (shift = free-size in/out)">Loop</button><button data-act="reloop" title="Reloop — re-enter the last loop you exited">↺</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been">Roll</button><button data-act="slip" title="Slip — held pads play the cue momentarily, release resumes where the track would have been">Slip</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier">◂</button><button data-act="loopfwd" title="Move the loop one length later">▸</button></span>
       <button data-act="cueout" title="Headphone cue — preview this deck on the cue output">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
+      <button data-act="eject" title="Eject — unload the track, reset the deck">⏏</button>
       <span class="time">0:00 / 0:00</span>
     </div>
     <div class="hotcues"><button class="pad" data-pad="0" title="Hot cue — click sets a marker, click jumps, shift-click or right-click clears">1</button><button class="pad" data-pad="1" title="Hot cue — click sets a marker, click jumps, shift-click or right-click clears">2</button><button class="pad" data-pad="2" title="Hot cue — click sets a marker, click jumps, shift-click or right-click clears">3</button><button class="pad" data-pad="3" title="Hot cue — click sets a marker, click jumps, shift-click or right-click clears">4</button><span class="jump"><button data-act="jumpback" title="Jump back one beat (shift = one bar; 1 s without BPM)">−1b</button><button data-act="jumpfwd" title="Jump forward one beat (shift = one bar; 1 s without BPM)">+1b</button><button data-act="nextbar" title="Jump to the next bar downbeat — drop on the one">▸bar</button></span></div>
@@ -602,6 +604,7 @@ class Deck {
     this.el.querySelector('[data-act=jumpfwd]').addEventListener('click', e => this.beatJump(e.shiftKey ? 4 : 1));
     this.el.querySelector('[data-act=nextbar]').addEventListener('click', () => this.jumpBar());
     this.keylockBtn.addEventListener('click', () => this.toggleKeylock());
+    this.el.querySelector('[data-act=eject]').addEventListener('click', () => this.eject());
     this.spinMul = 1;
     this.brake = false;
     this.brakeBtn = this.el.querySelector('[data-act=brake]');
@@ -1030,6 +1033,46 @@ class Deck {
     this.playBtn.textContent = 'Pause';
     if (this.brake) { this.spinMul = 1e-3; this._applySpinRate(); this._spin(1, 0.5); }
     else this.spinMul = 1;
+  }
+
+  // Eject: unload the track and return the deck to its empty state.
+  // Deck control settings (tempo, EQ, keylock...) survive — the
+  // hand-position doctrine is about controls, not the loaded media.
+  eject() {
+    if (!this.buffer) return;
+    // Bail out of an in-flight auto-mix fade touching this deck first.
+    if (autoMix.fade && (autoMix.fade.from === this || autoMix.fade.to === this)) {
+      const f = autoMix.fade; autoMix.fade = null;
+      f.from.setFilter(parseFloat(f.from.filterEl.value));
+      if (f.to && f.to.eq) f.to.setBand('low', parseFloat(f.to.eqEls.low.value));
+    }
+    this.stopPlayback();
+    if (this.engine === 'worklet' && this.node)
+      this.node.port.postMessage({ type: 'loop', on: false });
+    this.buffer = null;
+    this.peaks = null;
+    this.fileName = this._fileObj = null;
+    this.grid = null;
+    this.key = null;
+    this.cueIn = 0;
+    this.offset = 0;
+    this.cues = [null, null, null, null];
+    this.pads.forEach(p => { p.classList.remove('set'); p.title = 'Hot cue — click sets a marker, click jumps, shift-click or right-click clears'; });
+    this.loopOn = false;
+    this._prevLoop = null;
+    this._loopIn = null;
+    this.loopLenEl.hidden = true;
+    this.loopBtn.classList.remove('on', 'armed');
+    this.el.querySelector('.dropzone').textContent = 'Drop track or click to load';
+    this.bpmEl.textContent = '—';
+    this.el.querySelector('.barcount').textContent = '—';
+    this.el.querySelector('.key').textContent = '—';
+    this.el.querySelector('.key').classList.remove('good');
+    this.timeEl.textContent = '0:00 / 0:00';
+    this.playBtn.textContent = 'Play';
+    this._drawnPos = undefined;
+    this.drawWave();
+    this.status('Ejected.');
   }
 
   stopPlayback() {
