@@ -182,6 +182,27 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   detection locked onto the off-beat (see ADR-0078).
 - **BPM edit** — click the BPM readout to type the tempo directly;
   Enter commits, Esc cancels (see ADR-0079).
+- **Library preview** — `▶` on a library row auditions the track on the
+  headphone cue bus without loading a deck (see ADR-0080).
+- **Beat FX select** — the FX knob drives `Echo` or `Flng` (LFO-swept
+  comb); only the selected effect sounds (see ADR-0081).
+- **Rec timer** — the Rec button counts `M:SS` while recording so a
+  forgotten take can't hide (see ADR-0082).
+- **Cue clear** — `Shift`+pad click deletes a hot cue (right-click
+  still works) — trackpad-friendly (see ADR-0083).
+- **Eject** — `⏏` unloads the track and resets deck readouts;
+  control settings survive (see ADR-0084).
+- **Channel assign** — `A/Thru/B` select routes each deck to a
+  crossfader side or bypasses it; fader-start follows the assign
+  (see ADR-0085).
+- **Continuous auto-mix** — after each auto fade the vacated deck
+  auto-loads the next library track and stays armed (see ADR-0086).
+- **Phones volume** — a level knob for the whole cue bus, independent
+  of the cue/PGM blend (see ADR-0087).
+- **Wake lock** — the screen can't sleep while a deck is playing,
+  so a set never dies to the OS idle timer (see ADR-0088).
+- **Bar-quantized play** — `Shift+Play` snaps to the next downbeat
+  and starts: drop on the one in a single click (see ADR-0089).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,

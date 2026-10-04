@@ -162,20 +162,22 @@
     <canvas class="wave" width="640" height="90" title="Click to seek — scroll to zoom around the playhead"></canvas>
     <div class="meter chm" title="Channel level (post-EQ, pre-crossfader)"><i></i></div>
     <div class="transport">
-      <button class="primary" data-act="play">Play</button>
+      <button class="primary" data-act="play" title="Play / pause — shift = start on the next bar downbeat">Play</button>
       <button data-act="cue" title="Cue — jump to cue point (hold while stopped to audition from it)">Cue</button>
       <button data-act="sync" title="Sync — match tempo and beat phase to the other deck (shift = phase only, keep your tempo)">Sync</button>
       <button data-act="dbl" title="Instant doubles — load this track into the other deck at the same point and tempo">×2</button><button data-act="brake" title="Vinyl brake — pause spins down, play spins up">Brake</button>
       <button data-act="loop" title="4-beat loop snapped to the beat grid (shift = free-size in/out)">Loop</button><button data-act="reloop" title="Reloop — re-enter the last loop you exited">↺</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been">Roll</button><button data-act="slip" title="Slip — held pads play the cue momentarily, release resumes where the track would have been">Slip</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier">◂</button><button data-act="loopfwd" title="Move the loop one length later">▸</button></span>
       <button data-act="cueout" title="Headphone cue — preview this deck on the cue output">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
+      <button data-act="eject" title="Eject — unload the track, reset the deck">⏏</button>
+      <select data-act="assign" title="Channel assign — which crossfader side feeds this channel (Thru ignores the fader)"><option value="a">A</option><option value="thru">Thru</option><option value="b">B</option></select>
       <span class="time">0:00 / 0:00</span>
     </div>
-    <div class="hotcues"><button class="pad" data-pad="0" title="Hot cue — click sets a marker, click jumps, right-click clears">1</button><button class="pad" data-pad="1" title="Hot cue — click sets a marker, click jumps, right-click clears">2</button><button class="pad" data-pad="2" title="Hot cue — click sets a marker, click jumps, right-click clears">3</button><button class="pad" data-pad="3" title="Hot cue — click sets a marker, click jumps, right-click clears">4</button><span class="jump"><button data-act="jumpback" title="Jump back one beat (shift = one bar; 1 s without BPM)">−1b</button><button data-act="jumpfwd" title="Jump forward one beat (shift = one bar; 1 s without BPM)">+1b</button><button data-act="nextbar" title="Jump to the next bar downbeat — drop on the one">▸bar</button></span></div>
+    <div class="hotcues"><button class="pad" data-pad="0" title="Hot cue — click sets a marker, click jumps, shift-click or right-click clears">1</button><button class="pad" data-pad="1" title="Hot cue — click sets a marker, click jumps, shift-click or right-click clears">2</button><button class="pad" data-pad="2" title="Hot cue — click sets a marker, click jumps, shift-click or right-click clears">3</button><button class="pad" data-pad="3" title="Hot cue — click sets a marker, click jumps, shift-click or right-click clears">4</button><span class="jump"><button data-act="jumpback" title="Jump back one beat (shift = one bar; 1 s without BPM)">−1b</button><button data-act="jumpfwd" title="Jump forward one beat (shift = one bar; 1 s without BPM)">+1b</button><button data-act="nextbar" title="Jump to the next bar downbeat — drop on the one">▸bar</button></span></div>
     <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1" title="Tempo — double-click resets to ±0%"><output>+0.0%</output><span class="bend"><button data-act="benddn" title="Pitch bend — hold to slow the deck 5%">−</button><button data-act="bendup" title="Pitch bend — hold to speed the deck 5%">+</button></span><select data-act="range" title="Tempo range — ±8% fine, ±16% standard, ±50% wide"><option value="0.08">±8</option><option value="0.16" selected>±16</option><option value="0.50">±50</option></select></div>
     <div class="row eq"><label>EQ</label><span class="band"><button class="kill" data-kill="high" title="Kill high — instant −26 dB cut, click again to restore">H</button><input type="range" data-eq="high" min="-1" max="1" step="0.01" value="0" title="High shelf 4 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="mid" title="Kill mid — instant −26 dB cut, click again to restore">M</button><input type="range" data-eq="mid" min="-1" max="1" step="0.01" value="0" title="Mid 1 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="low" title="Kill low — instant −26 dB cut, click again to restore">L</button><input type="range" data-eq="low" min="-1" max="1" step="0.01" value="0" title="Low shelf 250 Hz, ±26 dB — double-click resets"></span></div>
     <div class="row"><label>Filter</label><input type="range" data-act="filter" min="-1" max="1" step="0.01" value="0" title="Color filter — left sweeps low-pass, right sweeps high-pass, center is open. Double-click resets"><output>open</output></div>
-    <div class="row"><label>Echo</label><input type="range" data-act="echo" min="0" max="1" step="0.01" value="0" title="Beat delay — 3/4-beat echo synced to the deck grid; 0 is dry. Double-click resets"><output>dry</output></div>
+    <div class="row"><label>FX</label><select data-act="fx" title="Beat FX — which effect the level knob drives"><option value="echo">Echo</option><option value="flange">Flng</option></select><input type="range" data-act="echo" min="0" max="1" step="0.01" value="0" title="Beat delay — 3/4-beat echo synced to the deck grid; 0 is dry. Double-click resets"><output>dry</output></div>
     <div class="row"><label>Stem</label><select data-act="stem" title="Mid/side split — Vocal keeps the centre channel (acapella), Inst keeps the sides (vocal-removed)"><option value="off">Full</option><option value="voc">Vocal</option><option value="inst">Inst</option></select></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1" title="Channel gain — double-click resets to unity"><output>100%</output></div>
     <div class="row"><span class="bpm">BPM <b>—</b></span><span class="barcount" title="Bar.beat position on the beat grid — where the phrase is">—</span><span class="beatlamp" title="Beat indicator — pulses each beat, accent on the downbeat"></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients (shift = one beat earlier)">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients (shift = one beat later)">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="stctl" title="Transpose — shift the deck's key in semitones (needs key lock / http)"><button data-act="pitchdn">−</button><b class="st">±0</b><button data-act="pitchup">+</button></span><button data-act="keysync" title="Key sync — transpose to a key that mixes harmonically with the other deck">Key</button><span class="status"></span></div>
@@ -189,10 +191,11 @@
     <div class="row"><label>Master</label><input type="range" id="master" min="0" max="1" step="0.01" value="0.9" title="Master level — double-click resets to 90%"><output id="master-out">90%</output></div>
     <div class="row"><label>Cue&nbsp;out</label><select id="cueout" title="Output device for the headphone cue bus"><option value="">System output</option></select></div>
     <div class="row"><label>Cue&nbsp;mix</label><input type="range" id="cuemix" min="0" max="1" step="0.01" value="0" title="Cue mix — left is cue (PFL) only, right blends the master output into the phones"><output>cue</output></div>
+    <div class="row"><label>Phones</label><input type="range" id="cuevol" min="0" max="1" step="0.01" value="1" title="Headphone volume — level of the whole cue bus (cue + PGM blend)"><output>100%</output></div>
     <div class="row"><label>Phones</label><button id="mono" title="Mono — fold the master down to one channel to check mono compatibility (club PAs are often mono)">Mono</button><button id="splitcue" title="Split cue — headphone cue (PFL) in the left ear, master PGM in the right">Split</button></div>
     <div class="meter cuem" title="Cue bus level"><i id="cuemeter-fill"></i></div>
     <div class="phase" id="phase" title="Beat-phase offset between decks"></div>
-    <div class="row"><button id="automix" title="Auto mix — near the end of the playing track the other deck starts synced and the crossfader rides over (8 beats; shift = long 32-beat fade)">Auto</button><button id="recbtn" title="Record the master output — click again to stop and download a .webm">Rec</button><button id="mic" title="Microphone — live input summed into the master pre-limiter (use headphones — open speakers will feed back)">Mic</button></div>
+    <div class="row"><button id="automix" title="Auto mix — near the end of the playing track the other deck starts synced and the crossfader rides over (8 beats; shift = long 32-beat fade). Keeps going: the empty deck auto-loads the next library track">Auto</button><button id="recbtn" title="Record the master output — click again to stop and download a .webm">Rec</button><button id="mic" title="Microphone — live input summed into the master pre-limiter (use headphones — open speakers will feed back)">Mic</button></div>
     <div class="kbd-hint">Equal-power crossfade.<br>Auto BPM is an estimate — trust your ears.</div>
   </section>
 
@@ -203,20 +206,22 @@
     <canvas class="wave" width="640" height="90" title="Click to seek — scroll to zoom around the playhead"></canvas>
     <div class="meter chm" title="Channel level (post-EQ, pre-crossfader)"><i></i></div>
     <div class="transport">
-      <button class="primary" data-act="play">Play</button>
+      <button class="primary" data-act="play" title="Play / pause — shift = start on the next bar downbeat">Play</button>
       <button data-act="cue" title="Cue — jump to cue point (hold while stopped to audition from it)">Cue</button>
       <button data-act="sync" title="Sync — match tempo and beat phase to the other deck (shift = phase only, keep your tempo)">Sync</button>
       <button data-act="dbl" title="Instant doubles — load this track into the other deck at the same point and tempo">×2</button><button data-act="brake" title="Vinyl brake — pause spins down, play spins up">Brake</button>
       <button data-act="loop" title="4-beat loop snapped to the beat grid (shift = free-size in/out)">Loop</button><button data-act="reloop" title="Reloop — re-enter the last loop you exited">↺</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been">Roll</button><button data-act="slip" title="Slip — held pads play the cue momentarily, release resumes where the track would have been">Slip</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier">◂</button><button data-act="loopfwd" title="Move the loop one length later">▸</button></span>
       <button data-act="cueout" title="Headphone cue — preview this deck on the cue output">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
+      <button data-act="eject" title="Eject — unload the track, reset the deck">⏏</button>
+      <select data-act="assign" title="Channel assign — which crossfader side feeds this channel (Thru ignores the fader)"><option value="a">A</option><option value="thru">Thru</option><option value="b">B</option></select>
       <span class="time">0:00 / 0:00</span>
     </div>
-    <div class="hotcues"><button class="pad" data-pad="0" title="Hot cue — click sets a marker, click jumps, right-click clears">1</button><button class="pad" data-pad="1" title="Hot cue — click sets a marker, click jumps, right-click clears">2</button><button class="pad" data-pad="2" title="Hot cue — click sets a marker, click jumps, right-click clears">3</button><button class="pad" data-pad="3" title="Hot cue — click sets a marker, click jumps, right-click clears">4</button><span class="jump"><button data-act="jumpback" title="Jump back one beat (shift = one bar; 1 s without BPM)">−1b</button><button data-act="jumpfwd" title="Jump forward one beat (shift = one bar; 1 s without BPM)">+1b</button><button data-act="nextbar" title="Jump to the next bar downbeat — drop on the one">▸bar</button></span></div>
+    <div class="hotcues"><button class="pad" data-pad="0" title="Hot cue — click sets a marker, click jumps, shift-click or right-click clears">1</button><button class="pad" data-pad="1" title="Hot cue — click sets a marker, click jumps, shift-click or right-click clears">2</button><button class="pad" data-pad="2" title="Hot cue — click sets a marker, click jumps, shift-click or right-click clears">3</button><button class="pad" data-pad="3" title="Hot cue — click sets a marker, click jumps, shift-click or right-click clears">4</button><span class="jump"><button data-act="jumpback" title="Jump back one beat (shift = one bar; 1 s without BPM)">−1b</button><button data-act="jumpfwd" title="Jump forward one beat (shift = one bar; 1 s without BPM)">+1b</button><button data-act="nextbar" title="Jump to the next bar downbeat — drop on the one">▸bar</button></span></div>
     <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1" title="Tempo — double-click resets to ±0%"><output>+0.0%</output><span class="bend"><button data-act="benddn" title="Pitch bend — hold to slow the deck 5%">−</button><button data-act="bendup" title="Pitch bend — hold to speed the deck 5%">+</button></span><select data-act="range" title="Tempo range — ±8% fine, ±16% standard, ±50% wide"><option value="0.08">±8</option><option value="0.16" selected>±16</option><option value="0.50">±50</option></select></div>
     <div class="row eq"><label>EQ</label><span class="band"><button class="kill" data-kill="high" title="Kill high — instant −26 dB cut, click again to restore">H</button><input type="range" data-eq="high" min="-1" max="1" step="0.01" value="0" title="High shelf 4 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="mid" title="Kill mid — instant −26 dB cut, click again to restore">M</button><input type="range" data-eq="mid" min="-1" max="1" step="0.01" value="0" title="Mid 1 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="low" title="Kill low — instant −26 dB cut, click again to restore">L</button><input type="range" data-eq="low" min="-1" max="1" step="0.01" value="0" title="Low shelf 250 Hz, ±26 dB — double-click resets"></span></div>
     <div class="row"><label>Filter</label><input type="range" data-act="filter" min="-1" max="1" step="0.01" value="0" title="Color filter — left sweeps low-pass, right sweeps high-pass, center is open. Double-click resets"><output>open</output></div>
-    <div class="row"><label>Echo</label><input type="range" data-act="echo" min="0" max="1" step="0.01" value="0" title="Beat delay — 3/4-beat echo synced to the deck grid; 0 is dry. Double-click resets"><output>dry</output></div>
+    <div class="row"><label>FX</label><select data-act="fx" title="Beat FX — which effect the level knob drives"><option value="echo">Echo</option><option value="flange">Flng</option></select><input type="range" data-act="echo" min="0" max="1" step="0.01" value="0" title="Beat delay — 3/4-beat echo synced to the deck grid; 0 is dry. Double-click resets"><output>dry</output></div>
     <div class="row"><label>Stem</label><select data-act="stem" title="Mid/side split — Vocal keeps the centre channel (acapella), Inst keeps the sides (vocal-removed)"><option value="off">Full</option><option value="voc">Vocal</option><option value="inst">Inst</option></select></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1" title="Channel gain — double-click resets to unity"><output>100%</output></div>
     <div class="row"><span class="bpm">BPM <b>—</b></span><span class="barcount" title="Bar.beat position on the beat grid — where the phrase is">—</span><span class="beatlamp" title="Beat indicator — pulses each beat, accent on the downbeat"></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients (shift = one beat earlier)">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients (shift = one beat later)">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="stctl" title="Transpose — shift the deck's key in semitones (needs key lock / http)"><button data-act="pitchdn">−</button><b class="st">±0</b><button data-act="pitchup">+</button></span><button data-act="keysync" title="Key sync — transpose to a key that mixes harmonically with the other deck">Key</button><span class="status"></span></div>
@@ -237,7 +242,7 @@
 // worklet playback engine -> deckGain -> xfGain -> masterGain -> monoNode -> limiter -> analyser -> destination
 let ctx = null;
 let masterGain, limiter, analyser, monoNode;
-let cueDest = null, cueAudio = null, cueIn = null, cueAnalyser = null, pgmSend = null, cuePan = null, pgmPan = null;
+let cueDest = null, cueAudio = null, cueIn = null, cueAnalyser = null, pgmSend = null, cuePan = null, pgmPan = null, phonesOut = null;
 let micStream = null, micSrc = null, micGain = null;
 let wsolaModuleReady = false;
 
@@ -424,9 +429,13 @@ function cueBus() {
     cueIn = ac.createGain();
     // Panners sit between the sends and the bus: centre normally, the
     // Split button pans cue hard-L and PGM hard-R (one-ear monitoring).
+    // Phones master level: cue and PGM both sum through phonesOut so
+    // one knob sets the headphone loudness whatever the blend is.
+    phonesOut = ac.createGain();
+    phonesOut.connect(cueDest);
     cuePan = ac.createStereoPanner();
     cueIn.connect(cuePan);
-    cuePan.connect(cueDest);
+    cuePan.connect(phonesOut);
     cueAnalyser = ac.createAnalyser();
     cueAnalyser.fftSize = 256;
     cueIn.connect(cueAnalyser);
@@ -437,7 +446,7 @@ function cueBus() {
     masterGain.connect(pgmSend);
     pgmPan = ac.createStereoPanner();
     pgmSend.connect(pgmPan);
-    pgmPan.connect(cueDest);
+    pgmPan.connect(phonesOut);
     cueAudio = new Audio();
     cueAudio.srcObject = cueDest.stream;
     cueAudio.play().catch(() => {});
@@ -547,7 +556,12 @@ class Deck {
       const f = e.dataTransfer.files && e.dataTransfer.files[0];
       if (f) this.load(f);
     });
-    this.playBtn.addEventListener('click', () => this.toggle());
+    this.playBtn.addEventListener('click', e => {
+      // Shift = drop on the one: snap to the next bar downbeat before
+      // starting, so an entry lands phrase-aligned without jogging.
+      if (!this.playing && e.shiftKey && this.grid && this.buffer) this.jumpBar();
+      this.toggle();
+    });
     const cueBtnEl = this.el.querySelector('[data-act=cue]');
     cueBtnEl.addEventListener('click', () => this.cue());
     // Cue preview (CDJ CUE hold): while stopped, holding the button
@@ -582,9 +596,12 @@ class Deck {
     this.el.querySelector('[data-act=loopfwd]').addEventListener('click', () => this.moveLoop(1));
     this.cueBtn.addEventListener('click', () => this.toggleCue());
     this.pads.forEach((pad, i) => {
-      pad.addEventListener('click', () => { if (!this.slip) this.padCue(i); });
+      pad.addEventListener('click', e => {
+        if (e.shiftKey) { this.clearPad(i); return; }   // shift-click clears — no right-click needed
+        if (!this.slip) this.padCue(i);
+      });
       pad.addEventListener('contextmenu', e => { e.preventDefault(); this.clearPad(i); });
-      pad.addEventListener('pointerdown', () => this.slipCueStart(i));
+      pad.addEventListener('pointerdown', e => { if (!e.shiftKey) this.slipCueStart(i); });
       for (const ev of ['pointerup', 'pointerleave', 'pointercancel'])
         pad.addEventListener(ev, () => this.slipCueEnd());
     });
@@ -599,6 +616,10 @@ class Deck {
     this.el.querySelector('[data-act=jumpfwd]').addEventListener('click', e => this.beatJump(e.shiftKey ? 4 : 1));
     this.el.querySelector('[data-act=nextbar]').addEventListener('click', () => this.jumpBar());
     this.keylockBtn.addEventListener('click', () => this.toggleKeylock());
+    this.el.querySelector('[data-act=eject]').addEventListener('click', () => this.eject());
+    this.assignSel = this.el.querySelector('[data-act=assign]');
+    this.assignSel.value = this.side;
+    this.assignSel.addEventListener('change', applyCrossfade);
     this.spinMul = 1;
     this.brake = false;
     this.brakeBtn = this.el.querySelector('[data-act=brake]');
@@ -624,6 +645,8 @@ class Deck {
       const r = Math.min(Math.max(this.rate, 1 - this.tempoRange), 1 + this.tempoRange);
       if (r !== this.rate) { this.tempoEl.value = r; this.setRate(r); }
     });
+    this.fxSel = this.el.querySelector('[data-act=fx]');
+    this.fxSel.addEventListener('change', () => this.setEcho(parseFloat(this.echoEl.value)));
     this.echoEl.addEventListener('input', () => this.setEcho(parseFloat(this.echoEl.value)));
     this.echoEl.addEventListener('dblclick', () => { this.echoEl.value = 0; this.setEcho(0); });
     // Pitch bend: hold bends the deck ±5%, release restores. The bend
@@ -924,6 +947,27 @@ class Deck {
     this.delayFb.connect(this.delay);
     this.delay.connect(this.delayWet);
     this.delayWet.connect(this.xfGain);
+    // Flanger (BEAT FX companion): short LFO-swept delay with feedback —
+    // comb sweep rather than repeats. Shares the level knob; the fx
+    // select decides which wet path it drives.
+    this.flDelay = ac.createDelay(0.02);
+    this.flDelay.delayTime.value = 0.002;
+    this.flFb = ac.createGain();
+    this.flFb.gain.value = 0.5;
+    this.flWet = ac.createGain();
+    this.flWet.gain.value = 0;
+    this.filter.connect(this.flDelay);
+    this.flDelay.connect(this.flFb);
+    this.flFb.connect(this.flDelay);
+    this.flDelay.connect(this.flWet);
+    this.flWet.connect(this.xfGain);
+    this.flLfo = ac.createOscillator();
+    this.flLfo.frequency.value = 0.4;
+    this.flLfoDepth = ac.createGain();
+    this.flLfoDepth.gain.value = 0.0015;
+    this.flLfo.connect(this.flLfoDepth);
+    this.flLfoDepth.connect(this.flDelay.delayTime);
+    this.flLfo.start();
     this._syncDelay();
     this.xfGain.connect(masterGain);
     try {
@@ -1006,6 +1050,46 @@ class Deck {
     else this.spinMul = 1;
   }
 
+  // Eject: unload the track and return the deck to its empty state.
+  // Deck control settings (tempo, EQ, keylock...) survive — the
+  // hand-position doctrine is about controls, not the loaded media.
+  eject() {
+    if (!this.buffer) return;
+    // Bail out of an in-flight auto-mix fade touching this deck first.
+    if (autoMix.fade && (autoMix.fade.from === this || autoMix.fade.to === this)) {
+      const f = autoMix.fade; autoMix.fade = null;
+      f.from.setFilter(parseFloat(f.from.filterEl.value));
+      if (f.to && f.to.eq) f.to.setBand('low', parseFloat(f.to.eqEls.low.value));
+    }
+    this.stopPlayback();
+    if (this.engine === 'worklet' && this.node)
+      this.node.port.postMessage({ type: 'loop', on: false });
+    this.buffer = null;
+    this.peaks = null;
+    this.fileName = this._fileObj = null;
+    this.grid = null;
+    this.key = null;
+    this.cueIn = 0;
+    this.offset = 0;
+    this.cues = [null, null, null, null];
+    this.pads.forEach(p => { p.classList.remove('set'); p.title = 'Hot cue — click sets a marker, click jumps, shift-click or right-click clears'; });
+    this.loopOn = false;
+    this._prevLoop = null;
+    this._loopIn = null;
+    this.loopLenEl.hidden = true;
+    this.loopBtn.classList.remove('on', 'armed');
+    this.el.querySelector('.dropzone').textContent = 'Drop track or click to load';
+    this.bpmEl.textContent = '—';
+    this.el.querySelector('.barcount').textContent = '—';
+    this.el.querySelector('.key').textContent = '—';
+    this.el.querySelector('.key').classList.remove('good');
+    this.timeEl.textContent = '0:00 / 0:00';
+    this.playBtn.textContent = 'Play';
+    this._drawnPos = undefined;
+    this.drawWave();
+    this.status('Ejected.');
+  }
+
   stopPlayback() {
     this.playing = false;
     if (this.engine === 'worklet') {
@@ -1040,7 +1124,11 @@ class Deck {
   // Echo wet level 0–1: dry is fully off, wet echoes sit under the
   // dry signal (feedback is fixed at 0.35 — the dub sweet spot).
   setEcho(v) {
-    if (this.delayWet) this.delayWet.gain.setTargetAtTime(v * 0.7, ctx.currentTime, 0.02);
+    // CDJ BEAT FX style: the knob drives the selected effect only —
+    // the other wet path is parked at zero.
+    const onFlange = this.fxSel && this.fxSel.value === 'flange';
+    if (this.delayWet) this.delayWet.gain.setTargetAtTime(onFlange ? 0 : v * 0.7, ctx.currentTime, 0.02);
+    if (this.flWet) this.flWet.gain.setTargetAtTime(onFlange ? v * 0.7 : 0, ctx.currentTime, 0.02);
     this.echoEl.nextElementSibling.textContent = v <= 0.01 ? 'dry' : Math.round(v * 100) + '%';
   }
 
@@ -1370,7 +1458,7 @@ class Deck {
     if (this.cues[i] == null) {
       this.cues[i] = this.quantize(this.pos());
       this.pads[i].classList.add('set');
-      this.pads[i].title = 'Hot cue ' + fmt(this.cues[i]) + ' — click jumps, right-click clears';
+      this.pads[i].title = 'Hot cue ' + fmt(this.cues[i]) + ' — click jumps, shift-click clears';
       this.tagLib({ cues: this.cues });
       this._drawnPos = undefined;
       this.drawWave();
@@ -1952,6 +2040,26 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 
 let libQuery = '';
 
+// Library preview (rekordbox-style): audition a row's audio on the
+// headphone cue bus without touching a deck — the "is this the right
+// track" check before committing a load.
+let previewSrc = null, previewId = null;
+async function previewTrack(id) {
+  const wasPlaying = previewId === id;
+  if (previewSrc) { try { previewSrc.stop(); } catch (_) {} previewSrc.disconnect(); previewSrc = previewId = null; }
+  if (wasPlaying) return;   // second click on the same row = stop
+  const rec = await Library.get(id);
+  if (!rec || !rec.blob) return;
+  const ac = audio(); cueBus();
+  const buf = await ac.decodeAudioData(await rec.blob.arrayBuffer());
+  previewSrc = ac.createBufferSource();
+  previewSrc.buffer = buf;
+  previewSrc.connect(cueIn);
+  previewSrc.onended = () => { if (previewSrc) { previewSrc.disconnect(); previewSrc = null; previewId = null; } };
+  previewSrc.start();
+  previewId = id;
+}
+
 async function renderLibrary() {
   const rowsEl = document.getElementById('lib-rows');
   let rows;
@@ -1978,7 +2086,7 @@ async function renderLibrary() {
     <span>${t.bpm ? Math.round(t.bpm) : '—'} BPM</span>
     <span>${t.key ? esc(t.key.num + t.key.letter + ' ' + t.key.name) : '—'}</span>
     <span>${fmt(t.duration || 0)}</span>
-    <span><button data-to="a" title="Load into Deck A">→A</button><button data-to="b" title="Load into Deck B">→B</button><button class="lib-del" data-del title="Remove from library">×</button></span>
+    <span><button data-prev title="Preview — audition the track on the headphone cue bus without loading a deck">▶</button><button data-to="a" title="Load into Deck A">→A</button><button data-to="b" title="Load into Deck B">→B</button><button class="lib-del" data-del title="Remove from library">×</button></span>
   </div>`; }).join('');
 }
 
@@ -2006,16 +2114,22 @@ document.getElementById('xfrev').addEventListener('click', e => {
 });
 function applyCrossfade() {
   const x = xfPos();
+  let ga, gb;
   if (xfcurve.value === 'cut') {
     // Scratch curve: each side reaches full level within 10% of travel,
     // so chops/transforms hit instantly; the middle sums both at full.
-    deckA.setXf(Math.min(1, (1 - x) / 0.1));
-    deckB.setXf(Math.min(1, x / 0.1));
-    return;
+    ga = Math.min(1, (1 - x) / 0.1);
+    gb = Math.min(1, x / 0.1);
+  } else {
+    // Equal-power law keeps perceived loudness constant through the middle.
+    ga = Math.cos(x * Math.PI / 2);
+    gb = Math.sin(x * Math.PI / 2);
   }
-  // Equal-power law keeps perceived loudness constant through the middle.
-  deckA.setXf(Math.cos(x * Math.PI / 2));
-  deckB.setXf(Math.sin(x * Math.PI / 2));
+  // Channel assign (DJM CH ASSIGN): a deck may sit on the A side, the B
+  // side, or Thru — bypassing the fader entirely.
+  const pick = sel => sel === 'a' ? ga : sel === 'b' ? gb : 1;
+  deckA.setXf(pick(deckA.assignSel.value));
+  deckB.setXf(pick(deckB.assignSel.value));
 }
 xfader.addEventListener('input', applyCrossfade);
 // Fader start (CDJ FADER START): sweeping the fader fully into a
@@ -2026,8 +2140,10 @@ xfader.addEventListener('input', applyCrossfade);
 let xfPrev = xfPos();
 xfader.addEventListener('input', () => {
   const x = xfPos();
-  if (xfPrev >= 0.05 && x < 0.05 && deckA.buffer && !deckA.playing && deckA.pos() < deckA.buffer.duration) deckA.play();
-  if (xfPrev <= 0.95 && x > 0.95 && deckB.buffer && !deckB.playing && deckB.pos() < deckB.buffer.duration) deckB.play();
+  // Only a deck assigned to that side hears the edge — a Thru deck
+  // ignores the fader entirely, on hardware and here.
+  if (xfPrev >= 0.05 && x < 0.05 && deckA.assignSel.value === 'a' && deckA.buffer && !deckA.playing && deckA.pos() < deckA.buffer.duration) deckA.play();
+  if (xfPrev <= 0.95 && x > 0.95 && deckB.assignSel.value === 'b' && deckB.buffer && !deckB.playing && deckB.pos() < deckB.buffer.duration) deckB.play();
   xfPrev = x;
 });
 xfader.addEventListener('dblclick', () => { xfader.value = 0.5; applyCrossfade(); });
@@ -2044,7 +2160,7 @@ const autoBtn = document.getElementById('automix');
 // ----- Set recording -----
 // MediaStream tap on the master (same pattern as the cue bus) ->
 // MediaRecorder -> .webm download on stop.
-let recDest = null, recorder = null, recChunks = [];
+let recDest = null, recorder = null, recChunks = [], recStart = 0, recTick = null;
 const recBtn = document.getElementById('recbtn');
 recBtn.addEventListener('click', () => {
   audio();  // the click is a gesture — safe to create/resume the ctx
@@ -2062,9 +2178,19 @@ recBtn.addEventListener('click', () => {
       setTimeout(() => URL.revokeObjectURL(a.href), 10000);
       recorder = null;
       recBtn.classList.remove('on');
+      clearInterval(recTick);
+      recTick = null;
+      recBtn.textContent = 'Rec';
     };
     recorder.start(1000);
     recBtn.classList.add('on');
+    // Running timer on the button — the "is it actually recording?"
+    // glance, and the catch for a forgotten still-running take.
+    recStart = performance.now();
+    recTick = setInterval(() => {
+      const t = Math.floor((performance.now() - recStart) / 1000);
+      recBtn.textContent = `Rec ${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
+    }, 1000);
   } else {
     recorder.stop();
   }
@@ -2107,11 +2233,15 @@ function autoMixTick() {
     }
     if (k >= 1) {
       autoMix.fade = null;
-      autoMix.on = false;
-      autoBtn.classList.remove('on');
       f.from.setFilter(parseFloat(f.from.filterEl.value));   // restore knob
       if (f.to && f.to.eq) f.to.setBand('low', parseFloat(f.to.eqEls.low.value));   // restore bass
       f.from.pause();   // faded out — let it stop rather than play silently
+      // Continuous radio: load the next library track into the vacated
+      // deck and keep Auto armed — the playlist walks the library until
+      // it runs out of next tracks or Auto is clicked off.
+      autoNext(f.from, f.to).then(loaded => {
+        if (!loaded) { autoMix.on = false; autoBtn.classList.remove('on'); }
+      });
     }
     return;
   }
@@ -2127,6 +2257,22 @@ function autoMixTick() {
     autoMix.fade = { from: d, to, t0: ctx.currentTime, dur: autoMix.len * beat,
                      fromX: d === deckA ? 0 : 1, toX: d === deckA ? 1 : 0 };
   }
+}
+
+// Next-in-line for continuous auto-mix: the library row after the one
+// now playing (updated_at order, same as the visible list). Wraps
+// around so a small library still loops; refuses when the next row
+// IS the playing track (library of one) or nothing's left.
+async function autoNext(vacated, playing) {
+  try {
+    const rows = (await Library.all()).filter(t => !t.deleted_at).sort((a, b) => b.updated_at - a.updated_at);
+    if (!rows.length) return false;
+    const cur = rows.findIndex(t => t.id === playing.libId);
+    const next = rows[(cur + 1) % rows.length];
+    if (!next || next.id === playing.libId) return false;
+    await Library.loadInto(vacated, next.id);
+    return true;
+  } catch (_) { return false; }
 }
 
 // Mic input: summed into the master at monoNode — pre-limiter and
@@ -2178,6 +2324,11 @@ masterEl.addEventListener('dblclick', () => {
   masterEl.dispatchEvent(new Event('input'));
 });
 
+document.getElementById('cuevol').addEventListener('input', e => {
+  const v = parseFloat(e.target.value);
+  e.target.nextElementSibling.textContent = Math.round(v * 100) + '%';
+  if (phonesOut && ctx) phonesOut.gain.setTargetAtTime(v, ctx.currentTime, 0.02);
+});
 document.getElementById('cuemix').addEventListener('input', e => {
   const m = parseFloat(e.target.value);
   e.target.nextElementSibling.textContent = m <= 0.01 ? 'cue' : Math.round(m * 100) + '%';
@@ -2230,6 +2381,7 @@ document.getElementById('lib-rows').addEventListener('click', e => {
   if (!row) return;
   const id = Number(row.dataset.id);
   if (e.target.dataset.del !== undefined) Library.remove(id);
+  else if (e.target.dataset.prev !== undefined) previewTrack(id);
   else if (e.target.dataset.to) Library.loadInto(e.target.dataset.to === 'a' ? deckA : deckB, id);
 });
 renderLibrary();
@@ -2267,6 +2419,24 @@ const grEl = document.getElementById('gr');
 const cueFill = document.getElementById('cuemeter-fill');
 const phaseEl = document.getElementById('phase');
 const meterBuf = new Uint8Array(256);
+// Screen wake lock: a laptop sleeping mid-set is the worst failure
+// mode a DJ app can have — hold the lock while any deck plays, drop
+// it when everything's stopped.
+let wakeLock = null;
+async function wakeSync() {
+  const want = deckA.playing || deckB.playing;
+  if (want && !wakeLock && navigator.wakeLock) {
+    try { wakeLock = await navigator.wakeLock.request('screen'); } catch (_) {}
+  } else if (!want && wakeLock) {
+    try { await wakeLock.release(); } catch (_) {}
+    wakeLock = null;
+  }
+}
+document.addEventListener('visibilitychange', () => {
+  // The OS releases the lock when the tab hides — reclaim on return.
+  if (document.visibilityState === 'visible') { wakeLock = null; wakeSync(); }
+});
+
 function tick() {
   for (const d of [deckA, deckB]) {
     if (!d.buffer) continue;
@@ -2294,6 +2464,7 @@ function tick() {
     }
   }
   autoMixTick();
+  wakeSync();
   for (const d of [deckA, deckB]) {
     if (d.chAnalyser && d.chFill) {
       d.chAnalyser.getByteTimeDomainData(meterBuf);
