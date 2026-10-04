@@ -2618,14 +2618,20 @@ smpSlots.forEach((_, i) => {
   const b = document.createElement('button');
   b.className = 'smp';
   b.textContent = '+';
-  b.title = 'Sampler — click loads a one-shot, click again plays it, shift-click clears';
+  b.title = 'Sampler — click loads a one-shot, click again plays it, alt-click stops playback, shift-click clears';
   b.addEventListener('click', e => {
     const slot = smpSlots[i];
+    if (e.altKey) {
+      // Stop a ringing one-shot without firing another pad (choke)
+      // or clearing the slot (shift) — like killing an SP pad's voice.
+      if (slot && slot.src) { try { slot.src.stop(); } catch (_) {} b.classList.remove('on'); slot.src = null; }
+      return;
+    }
     if (e.shiftKey) {
       if (slot && slot.src) { try { slot.src.stop(); } catch (_) {} }
       smpSlots[i] = null;
       b.textContent = '+'; b.classList.remove('set', 'on');
-      b.title = 'Sampler — click loads a one-shot, click again plays it, shift-click clears';
+      b.title = 'Sampler — click loads a one-shot, click again plays it, alt-click stops playback, shift-click clears';
       return;
     }
     if (!slot) { smpPending = i; smpFile.value = ''; smpFile.click(); return; }
