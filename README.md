@@ -150,6 +150,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   the next bar downbeat, so drops hit "the one" (see ADR-0061).
 - **Tempo reset** — double-click the tempo slider for an exact ±0.0%,
   like the hardware TEMPO RESET (see ADR-0062).
+- **Cue preview** — hold `Cue` while stopped to audition from the cue
+  point; release pauses and snaps back (see ADR-0063).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,

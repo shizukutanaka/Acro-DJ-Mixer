@@ -158,7 +158,7 @@
     <div class="meter chm" title="Channel level (post-EQ, pre-crossfader)"><i></i></div>
     <div class="transport">
       <button class="primary" data-act="play">Play</button>
-      <button data-act="cue">Cue</button>
+      <button data-act="cue" title="Cue — jump to cue point (hold while stopped to audition from it)">Cue</button>
       <button data-act="sync">Sync</button>
       <button data-act="dbl" title="Instant doubles — load this track into the other deck at the same point and tempo">×2</button><button data-act="brake" title="Vinyl brake — pause spins down, play spins up">Brake</button>
       <button data-act="loop" title="4-beat loop snapped to the beat grid (shift = free-size in/out)">Loop</button><button data-act="reloop" title="Reloop — re-enter the last loop you exited">↺</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been">Roll</button><button data-act="slip" title="Slip — held pads play the cue momentarily, release resumes where the track would have been">Slip</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier">◂</button><button data-act="loopfwd" title="Move the loop one length later">▸</button></span>
@@ -199,7 +199,7 @@
     <div class="meter chm" title="Channel level (post-EQ, pre-crossfader)"><i></i></div>
     <div class="transport">
       <button class="primary" data-act="play">Play</button>
-      <button data-act="cue">Cue</button>
+      <button data-act="cue" title="Cue — jump to cue point (hold while stopped to audition from it)">Cue</button>
       <button data-act="sync">Sync</button>
       <button data-act="dbl" title="Instant doubles — load this track into the other deck at the same point and tempo">×2</button><button data-act="brake" title="Vinyl brake — pause spins down, play spins up">Brake</button>
       <button data-act="loop" title="4-beat loop snapped to the beat grid (shift = free-size in/out)">Loop</button><button data-act="reloop" title="Reloop — re-enter the last loop you exited">↺</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been">Roll</button><button data-act="slip" title="Slip — held pads play the cue momentarily, release resumes where the track would have been">Slip</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier">◂</button><button data-act="loopfwd" title="Move the loop one length later">▸</button></span>
@@ -527,7 +527,25 @@ class Deck {
       if (f) this.load(f);
     });
     this.playBtn.addEventListener('click', () => this.toggle());
-    this.el.querySelector('[data-act=cue]').addEventListener('click', () => this.cue());
+    const cueBtnEl = this.el.querySelector('[data-act=cue]');
+    cueBtnEl.addEventListener('click', () => this.cue());
+    // Cue preview (CDJ CUE hold): while stopped, holding the button
+    // plays from the cue point; releasing pauses and snaps back.
+    this._cuePreview = false;
+    cueBtnEl.addEventListener('pointerdown', () => {
+      if (this.playing || !this.buffer) return;
+      this._cuePreview = true;
+      this.cue();
+      this.play();
+    });
+    for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) {
+      cueBtnEl.addEventListener(ev, () => {
+        if (!this._cuePreview) return;
+        this._cuePreview = false;
+        this.pause();
+        this.cue();
+      });
+    }
     this.el.querySelector('[data-act=sync]').addEventListener('click', () => this.syncTo(this.partner));
     this.el.querySelector('[data-act=dbl]').addEventListener('click', () => this.instantDouble());
     this.loopBtn.addEventListener('click', e => this.toggleLoop(e.shiftKey));
