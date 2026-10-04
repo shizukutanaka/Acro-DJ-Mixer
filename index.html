@@ -889,10 +889,20 @@ class Deck {
   // Hot cues: empty pad records the current position, set pad jumps to
   // it (keeps play state; out-of-loop jumps exit the loop via seekTo).
   // Cues persist on the library record so they survive reloads.
+  // Snap a time to the nearest grid beat — hardware QUANTIZE for cue
+  // points. Without a grid the time is used raw (same contract as
+  // beatJump's 1 s fallback).
+  quantize(t) {
+    if (!this.grid || !this.buffer) return t;
+    const beat = 60 / this.grid.bpm;
+    const q = this.grid.beatOff + Math.round((t - this.grid.beatOff) / beat) * beat;
+    return Math.min(Math.max(q, 0), this.buffer.duration);
+  }
+
   padCue(i) {
     if (!this.buffer) return;
     if (this.cues[i] == null) {
-      this.cues[i] = this.pos();
+      this.cues[i] = this.quantize(this.pos());
       this.pads[i].classList.add('set');
       this.pads[i].title = 'Hot cue ' + fmt(this.cues[i]) + ' — click jumps, right-click clears';
       this.tagLib({ cues: this.cues });

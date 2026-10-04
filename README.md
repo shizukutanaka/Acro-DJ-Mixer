@@ -55,7 +55,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   double the armed loop in place (see ADR-0009).
 - **Hot cues** — four pads per deck: click records a marker (amber tick
   on the waveform), click jumps, right-click clears; persisted per track
-  in the library (see ADR-0010). `−1b`/`+1b` beside them beat-jump one
+  in the library (see ADR-0010). Recording snaps to the nearest beat
+  when a grid exists — hardware QUANTIZE (see ADR-0021).
+  `−1b`/`+1b` beside them beat-jump one
   beat of the grid (see ADR-0012).
 - **Headphone cue (PFL)** — `Phones` button taps each deck pre-fader onto
   a cue bus; `Cue out` picks the output device (`setSinkId`, Chrome/Edge).
