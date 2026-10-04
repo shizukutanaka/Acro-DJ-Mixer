@@ -87,10 +87,11 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Set recording** — `Rec` button captures the master output to a
   `.webm` (opus) download via `MediaRecorder` on a MediaStream tap
   (see ADR-0014).
-- **Auto-gain** — each loaded track's mono RMS is measured (same
-  downmix as BPM/key analysis) and the deck gain is set so it lands
-  near −15 dBFS; attenuation only, slider shows and can override
-  (see ADR-0019).
+- **Auto-gain** — each loaded track's K-weighted mono RMS (38 Hz
+  high-pass + +4 dB high shelf, approximating BS.1770 perceived
+  loudness) is measured from the same downmix as BPM/key analysis and
+  the deck gain is set so it lands near −15 dBFS; attenuation only,
+  slider shows and can override (see ADR-0019/0024).
 - **Master limiter** — a fast `DynamicsCompressor` at the end of the
   chain (threshold −3 dB, ratio 20) keeps two-deck sums and EQ boosts
   from clipping; `GR −x.x dB` shows under the meter while it rides

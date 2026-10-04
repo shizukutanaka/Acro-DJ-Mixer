@@ -762,14 +762,15 @@ class Deck {
     }
   }
 
-  // Auto-gain on load: attenuate the deck gain so the track's mono RMS
-  // lands near the common target (-15 dBFS). Clamp to [0.25, 1] — a
-  // quiet track stays quiet (user can push the fader) instead of being
-  // pumped into the limiter.
+  // Auto-gain on load: attenuate the deck gain so the track's
+  // K-weighted mono RMS lands near the common target (-15 dBFS).
+  // Clamp to [0.25, 1] — a quiet track stays quiet (user can push the
+  // fader) instead of being pumped into the limiter.
   applyAutoGain(mono) {
+    const kw = kWeight(mono);
     let sum = 0;
-    for (let i = 0; i < mono.length; i++) sum += mono[i] * mono[i];
-    const rms = Math.sqrt(sum / mono.length);
+    for (let i = 0; i < kw.length; i++) sum += kw[i] * kw[i];
+    const rms = Math.sqrt(sum / kw.length);
     const g = rms < 1e-4 ? 1 : Math.min(1, Math.max(0.25, 0.18 / rms));
     this.gainEl.value = g;
     this.setGain(g);
@@ -1056,6 +1057,41 @@ function computePeaks(buf, buckets) {
 }
 
 const ANALYSIS_SR = 11025;
+
+// K-weighting (ITU-R BS.1770 approx): RLB high-pass at 38 Hz, then a
+// +4 dB high shelf at ~1.68 kHz — applied as plain JS biquads over the
+// mono downmix so auto-gain tracks perceived loudness, not raw level.
+function biquadCoeffs(type, f0, Q, dB, fs) {
+  const w0 = 2 * Math.PI * f0 / fs, cos = Math.cos(w0), sin = Math.sin(w0);
+  const alpha = sin / (2 * Q);
+  let b0, b1, b2, a0 = 1 + alpha, a1 = -2 * cos, a2 = 1 - alpha;
+  if (type === 'highpass') {
+    b0 = (1 + cos) / 2; b1 = -(1 + cos); b2 = b0;
+  } else { // highshelf (RBJ cookbook; S = 1 implicit in alpha)
+    const A = Math.pow(10, dB / 40), ap = A + 1, am = A - 1;
+    const s = 2 * Math.sqrt(A) * alpha;
+    b0 = A * (ap + am * cos + s); b1 = -2 * A * (am + ap * cos); b2 = A * (ap + am * cos - s);
+    a0 = ap - am * cos + s;       a1 = 2 * (am - ap * cos);    a2 = ap - am * cos - s;
+  }
+  return [b0 / a0, b1 / a0, b2 / a0, a1 / a0, a2 / a0];
+}
+
+function biquadFilter(x, c) {
+  const [b0, b1, b2, a1, a2] = c;
+  const y = new Float32Array(x.length);
+  let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+  for (let i = 0; i < x.length; i++) {
+    const xi = x[i], yi = b0 * xi + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
+    y[i] = yi; x2 = x1; x1 = xi; y2 = y1; y1 = yi;
+  }
+  return y;
+}
+
+function kWeight(x) {
+  const hp = biquadCoeffs('highpass', 38, 0.5, 0, ANALYSIS_SR);
+  const sh = biquadCoeffs('highshelf', 1681, Math.SQRT1_2, 4, ANALYSIS_SR);
+  return biquadFilter(biquadFilter(x, hp), sh);
+}
 
 // Shared mono downmix for all analysis — one OfflineAudioContext render feeds
 // BPM and key estimation alike.
