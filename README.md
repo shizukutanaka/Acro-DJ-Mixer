@@ -168,10 +168,14 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Cue colors** — each hot-cue pad owns a color, mirrored by its
   waveform marker (see ADR-0070).
 - **Prep badges** — library rows show `⚑N` saved cues and `∞` for a
-  stored loop (see ADR-0071).
+  stored loop (see ADR-0071). A trailing  counts actual plays
+  (see ADR-0095).
 - **Library export/import** — `⤓` downloads BPM, key, cues and loops
   as JSON; `⤒` merges them onto tracks matched by name+size
   (see ADR-0072).
+- **Setlist** — every track actually played is logged in order;
+  `Setlist` downloads the session's playlist as a dated .txt
+  (see ADR-0093).
 - **Cue marker** — the deck cue point (auto-cue or track start) shows
   as a cyan tick on the waveform (see ADR-0074).
 - **Beat sync** — `Shift+Sync` slips beat phase only, leaving the
@@ -187,6 +191,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Beat FX select** — the FX knob drives `Echo` or `Flng` (LFO-swept
   comb) or  (beat-synced gate chop); only the selected effect
   sounds (see ADR-0081, ADR-0097).
+- **Beat division** — the `¼/½/¾/1` select sets echo time in beats,
+  the DJM BEAT parameter (see ADR-0094).
 - **Rec timer** — the Rec button counts `M:SS` while recording so a
   forgotten take can't hide (see ADR-0082).
 - **Cue clear** — `Shift`+pad click deletes a hot cue (right-click
