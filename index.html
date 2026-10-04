@@ -192,7 +192,7 @@
     <div class="row"><label>Phones</label><button id="mono" title="Mono — fold the master down to one channel to check mono compatibility (club PAs are often mono)">Mono</button><button id="splitcue" title="Split cue — headphone cue (PFL) in the left ear, master PGM in the right">Split</button></div>
     <div class="meter cuem" title="Cue bus level"><i id="cuemeter-fill"></i></div>
     <div class="phase" id="phase" title="Beat-phase offset between decks"></div>
-    <div class="row"><button id="automix" title="Auto mix — when the playing deck reaches its last 16 beats, the other deck starts synced and the crossfader rides over for 8 beats">Auto</button><button id="recbtn" title="Record the master output — click again to stop and download a .webm">Rec</button><button id="mic" title="Microphone — live input summed into the master pre-limiter (use headphones — open speakers will feed back)">Mic</button></div>
+    <div class="row"><button id="automix" title="Auto mix — near the end of the playing track the other deck starts synced and the crossfader rides over (8 beats; shift = long 32-beat fade)">Auto</button><button id="recbtn" title="Record the master output — click again to stop and download a .webm">Rec</button><button id="mic" title="Microphone — live input summed into the master pre-limiter (use headphones — open speakers will feed back)">Mic</button></div>
     <div class="kbd-hint">Equal-power crossfade.<br>Auto BPM is an estimate — trust your ears.</div>
   </section>
 
@@ -1976,7 +1976,7 @@ xfcurve.addEventListener('change', applyCrossfade);
 // other deck starts on its first grid beat, syncs, and the crossfader
 // rides across over 8 beats. Disarms after each fade; clicking during a
 // fade cancels it and leaves the xfader where it is.
-const autoMix = { on: false, fade: null };
+const autoMix = { on: false, fade: null, len: 8 };   // len = fade length in beats (shift+Auto = 32)
 const autoBtn = document.getElementById('automix');
 
 // ----- Set recording -----
@@ -2007,12 +2007,13 @@ recBtn.addEventListener('click', () => {
     recorder.stop();
   }
 });
-autoBtn.addEventListener('click', () => {
+autoBtn.addEventListener('click', e => {
   if (autoMix.fade) {                                     // cancel mid-fade
     const f = autoMix.fade; autoMix.fade = null;
     f.from.setFilter(parseFloat(f.from.filterEl.value));  // restore knob position
     return;
   }
+  autoMix.len = e.shiftKey ? 32 : 8;                      // shift arms a long 32-beat fade
   autoMix.on = !autoMix.on;
   autoBtn.classList.toggle('on', autoMix.on);
 });
@@ -2048,11 +2049,11 @@ function autoMixTick() {
     const to = d.partner;
     if (!d.playing || !d.buffer || d.loopOn || to.playing || !to.buffer) continue;
     const beat = d.grid ? 60 / d.grid.bpm : 1;
-    if (d.buffer.duration - d.pos() > 16 * beat) continue;
+    if (d.buffer.duration - d.pos() > 2 * autoMix.len * beat) continue;
     to.seekTo(to.grid ? to.grid.beatOff : 0);
     if (d.grid && to.grid) to.syncTo(d);
     to.play();
-    autoMix.fade = { from: d, t0: ctx.currentTime, dur: 8 * beat,
+    autoMix.fade = { from: d, t0: ctx.currentTime, dur: autoMix.len * beat,
                      fromX: d === deckA ? 0 : 1, toX: d === deckA ? 1 : 0 };
   }
 }
