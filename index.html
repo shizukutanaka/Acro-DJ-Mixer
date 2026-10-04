@@ -160,6 +160,7 @@
     <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1"><output>+0.0%</output><span class="bend"><button data-act="benddn" title="Pitch bend — hold to slow the deck 5%">−</button><button data-act="bendup" title="Pitch bend — hold to speed the deck 5%">+</button></span></div>
     <div class="row eq"><label>EQ</label><span class="band"><button class="kill" data-kill="high" title="Kill high — instant −26 dB cut, click again to restore">H</button><input type="range" data-eq="high" min="-1" max="1" step="0.01" value="0" title="High shelf 4 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="mid" title="Kill mid — instant −26 dB cut, click again to restore">M</button><input type="range" data-eq="mid" min="-1" max="1" step="0.01" value="0" title="Mid 1 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="low" title="Kill low — instant −26 dB cut, click again to restore">L</button><input type="range" data-eq="low" min="-1" max="1" step="0.01" value="0" title="Low shelf 250 Hz, ±26 dB — double-click resets"></span></div>
     <div class="row"><label>Filter</label><input type="range" data-act="filter" min="-1" max="1" step="0.01" value="0" title="Color filter — left sweeps low-pass, right sweeps high-pass, center is open. Double-click resets"><output>open</output></div>
+    <div class="row"><label>Stem</label><select data-act="stem" title="Mid/side split — Vocal keeps the centre channel (acapella), Inst keeps the sides (vocal-removed)"><option value="off">Full</option><option value="voc">Vocal</option><option value="inst">Inst</option></select></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1"><output>100%</output></div>
     <div class="row"><span class="bpm">BPM <b>—</b></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="status"></span></div>
   </section>
@@ -195,6 +196,7 @@
     <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1"><output>+0.0%</output><span class="bend"><button data-act="benddn" title="Pitch bend — hold to slow the deck 5%">−</button><button data-act="bendup" title="Pitch bend — hold to speed the deck 5%">+</button></span></div>
     <div class="row eq"><label>EQ</label><span class="band"><button class="kill" data-kill="high" title="Kill high — instant −26 dB cut, click again to restore">H</button><input type="range" data-eq="high" min="-1" max="1" step="0.01" value="0" title="High shelf 4 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="mid" title="Kill mid — instant −26 dB cut, click again to restore">M</button><input type="range" data-eq="mid" min="-1" max="1" step="0.01" value="0" title="Mid 1 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="low" title="Kill low — instant −26 dB cut, click again to restore">L</button><input type="range" data-eq="low" min="-1" max="1" step="0.01" value="0" title="Low shelf 250 Hz, ±26 dB — double-click resets"></span></div>
     <div class="row"><label>Filter</label><input type="range" data-act="filter" min="-1" max="1" step="0.01" value="0" title="Color filter — left sweeps low-pass, right sweeps high-pass, center is open. Double-click resets"><output>open</output></div>
+    <div class="row"><label>Stem</label><select data-act="stem" title="Mid/side split — Vocal keeps the centre channel (acapella), Inst keeps the sides (vocal-removed)"><option value="off">Full</option><option value="voc">Vocal</option><option value="inst">Inst</option></select></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1"><output>100%</output></div>
     <div class="row"><span class="bpm">BPM <b>—</b></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="status"></span></div>
   </section>
@@ -462,6 +464,7 @@ class Deck {
     this.killEls = { low: root.querySelector('[data-kill=low]'), mid: root.querySelector('[data-kill=mid]'), high: root.querySelector('[data-kill=high]') };
     this.filter = null;  // color-filter biquad, created lazily with the graph
     this.filterEl = root.querySelector('[data-act=filter]');
+    this.stemSel = root.querySelector('[data-act=stem]');
     this.filterOut = this.filterEl.nextElementSibling;
     this.bind();
   }
@@ -524,6 +527,7 @@ class Deck {
     }
     this.filterEl.addEventListener('input', () => this.setFilter(parseFloat(this.filterEl.value)));
     this.filterEl.addEventListener('dblclick', () => { this.filterEl.value = 0; this.setFilter(0); });
+    this.stemSel.addEventListener('change', () => this.setStem(this.stemSel.value));
     this.wave.addEventListener('click', e => this.seekFromEvent(e));
   }
 
@@ -616,7 +620,22 @@ class Deck {
     this.cueSend = ac.createGain();
     this.cueSend.gain.value = this.cueOn ? 1 : 0;
     this.cueSend.connect(cueBus());
-    this.deckGain.connect(this.eq.low);
+    // Mid/side stem stage: fixed splitter->merger topology, mode only
+    // reweights the four matrix gains — click-free mode switches.
+    this.msplit = ac.createChannelSplitter(2);
+    this.mmerge = ac.createChannelMerger(2);
+    this.mg = [ac.createGain(), ac.createGain(), ac.createGain(), ac.createGain()];
+    this.deckGain.connect(this.msplit);
+    this.msplit.connect(this.mg[0], 0); // L -> out L
+    this.msplit.connect(this.mg[1], 0); // L -> out R
+    this.msplit.connect(this.mg[2], 1); // R -> out L
+    this.msplit.connect(this.mg[3], 1); // R -> out R
+    this.mg[0].connect(this.mmerge, 0, 0);
+    this.mg[1].connect(this.mmerge, 0, 1);
+    this.mg[2].connect(this.mmerge, 0, 0);
+    this.mg[3].connect(this.mmerge, 0, 1);
+    this.setStem(this.stemSel.value, true);
+    this.mmerge.connect(this.eq.low);
     this.eq.low.connect(this.eq.mid);
     this.eq.mid.connect(this.eq.high);
     this.eq.high.connect(this.filter);
@@ -779,6 +798,20 @@ class Deck {
   setGain(g) {
     if (this.deckGain) this.deckGain.gain.setTargetAtTime(g, ctx.currentTime, 0.01);
     this.el.querySelector('[data-act=gain] ~ output').textContent = Math.round(g * 100) + '%';
+  }
+
+  // Mid/side matrix weights: off = passthrough, voc = (L+R)/2 to both
+  // channels (centre/acapella), inst = (L-R)/2 to both (vocal-removed).
+  setStem(mode, init = false) {
+    if (!this.mg) return;
+    const w = mode === 'voc' ? [0.5, 0.5, 0.5, 0.5]
+            : mode === 'inst' ? [0.5, 0.5, -0.5, -0.5]
+            : [1, 0, 0, 1];
+    const t = audio().currentTime;
+    this.mg.forEach((g, i) => {
+      if (init) g.gain.value = w[i];
+      else g.gain.setTargetAtTime(w[i], t, 0.03);
+    });
   }
 
   // Color filter: v<0 sweeps a low-pass 20 kHz -> ~200 Hz, v>0 sweeps a

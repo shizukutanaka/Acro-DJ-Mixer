@@ -89,6 +89,10 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Set recording** — `Rec` button captures the master output to a
   `.webm` (opus) download via `MediaRecorder` on a MediaStream tap
   (see ADR-0014).
+- **Stem split** — per-deck `Full / Vocal / Inst` mid/side matrix:
+  `Vocal` keeps the centre channel (acapella extraction), `Inst` keeps
+  the sides (vocal-removed). Fixed splitter→matrix→merger topology,
+  click-free mode switches, zero dependencies (see ADR-0026).
 - **Auto-gain** — each loaded track's K-weighted mono RMS (38 Hz
   high-pass + +4 dB high shelf, approximating BS.1770 perceived
   loudness) is measured from the same downmix as BPM/key analysis and
