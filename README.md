@@ -173,6 +173,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Library export/import** — `⤓` downloads BPM, key, cues and loops
   as JSON; `⤒` merges them onto tracks matched by name+size
   (see ADR-0072).
+- **Setlist** — every track actually played is logged in order;
+  `Setlist` downloads the session's playlist as a dated .txt
+  (see ADR-0093).
 - **Cue marker** — the deck cue point (auto-cue or track start) shows
   as a cyan tick on the waveform (see ADR-0074).
 - **Beat sync** — `Shift+Sync` slips beat phase only, leaving the
