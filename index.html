@@ -194,7 +194,7 @@
     <div class="row"><label>Cue&nbsp;mix</label><input type="range" id="cuemix" min="0" max="1" step="0.01" value="0" title="Cue mix — left is cue (PFL) only, right blends the master output into the phones"><output>cue</output></div>
     <div class="row"><label>Phones</label><input type="range" id="cuevol" min="0" max="1" step="0.01" value="1" title="Headphone volume — level of the whole cue bus (cue + PGM blend)"><output>100%</output></div>
     <div class="row"><label>Phones</label><button id="mono" title="Mono — fold the master down to one channel to check mono compatibility (club PAs are often mono)">Mono</button><button id="splitcue" title="Split cue — headphone cue (PFL) in the left ear, master PGM in the right">Split</button></div>
-    <div class="meter cuem" title="Cue bus level"><i id="cuemeter-fill"></i></div>
+    <div class="meter cuem" title="Cue bus level (tick = peak hold)"><i id="cuemeter-fill"></i><b id="cuemeter-peak"></b></div>
     <div class="phase" id="phase" title="Beat-phase offset between decks"></div>
     <div class="row"><button id="automix" title="Auto mix — near the end of the playing track the other deck starts synced and the crossfader rides over (8 beats; shift = long 32-beat fade). Keeps going: the empty deck auto-loads the next library track">Auto</button><button id="recbtn" title="Record the master output — click again to stop and download a .webm">Rec</button><button id="mic" title="Microphone — live input summed into the master pre-limiter (use headphones — open speakers will feed back)">Mic</button></div>
     <div class="kbd-hint">Equal-power crossfade.<br>Auto BPM is an estimate — trust your ears.</div>
@@ -2527,6 +2527,8 @@ const meterPeakEl = document.getElementById('meter-peak');
 let meterPeak = 0;
 const grEl = document.getElementById('gr');
 const cueFill = document.getElementById('cuemeter-fill');
+const cuePeakEl = document.getElementById('cuemeter-peak');
+let cuePeak = 0;
 const phaseEl = document.getElementById('phase');
 const meterBuf = new Uint8Array(256);
 // Screen wake lock: a laptop sleeping mid-set is the worst failure
@@ -2612,6 +2614,8 @@ function tick() {
         if (v > cp) cp = v;
       }
       cueFill.style.width = Math.min(cp * 100, 100).toFixed(1) + '%';
+      cuePeak = Math.max(cp, cuePeak - 0.012);
+      cuePeakEl.style.left = Math.min(cuePeak * 100, 98).toFixed(1) + '%';
     }
     // Beat-phase offset between the decks: how far off-grid the two
     // playheads are, wrapped to [-0.5, +0.5) of a beat.
