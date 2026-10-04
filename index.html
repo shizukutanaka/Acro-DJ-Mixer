@@ -3185,6 +3185,38 @@ document.addEventListener('keydown', e => {
   }
 });
 
+// ----- Web MIDI: any connected controller drives the surface -----
+// Note-ons: 60-67 deck A pads, 68-75 deck B pads, 36-39 sampler
+// pads, 44/45 play A/B. CCs: 1 = crossfader, 7 = master,
+// 20/21 = channel gain A/B — the default CC names every
+// budget controller ships with, so most units work unmapped.
+function midiMsg(e) {
+  const [st, n, v] = e.data;
+  const kind = st & 0xf0;
+  if (kind === 0x90 && v > 0) {               // note on
+    if (n >= 60 && n < 68) deckA.padCue(n - 60);
+    else if (n >= 68 && n < 76) deckB.padCue(n - 68);
+    else if (n >= 36 && n < 40) { const pad = smpPadsEl.children[n - 36]; if (pad) pad.click(); }
+    else if (n === 44) deckA.toggle();
+    else if (n === 45) deckB.toggle();
+  } else if (kind === 0xb0) {                 // control change
+    const f = v / 127;
+    if (n === 1) { xfader.value = f; applyCrossfade(); }
+    else if (n === 7) { master.value = f; master.dispatchEvent(new Event('input')); }
+    else if (n === 20) { deckA.gainEl.value = f; deckA.setGain(f); }
+    else if (n === 21) { deckB.gainEl.value = f; deckB.setGain(f); }
+  }
+}
+if (navigator.requestMIDIAccess) {
+  const midiBind = acc => {
+    for (const inp of acc.inputs.values()) inp.onmidimessage = midiMsg;
+  };
+  navigator.requestMIDIAccess().then(acc => {
+    midiBind(acc);
+    acc.onstatechange = () => midiBind(acc);   // hot-plug: rebind on connect/disconnect
+  }).catch(() => {});                          // no permission / no MIDI support — stay silent
+}
+
 // ----- Render loop: playheads, time readouts, master meter -----
 
 const micBtn = document.getElementById('mic');
