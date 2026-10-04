@@ -845,6 +845,7 @@ class Deck {
       this.fileName = fileObj.name;
       this._fileObj = fileObj;
       this._setLogged = false;   // a fresh track re-earns its setlist entry
+      this._playCounted = false;   // a fresh track re-earns its play
       this.el.querySelector('.dropzone').textContent = fileObj.name;
       this.playBtn.textContent = 'Play';
       this.status(this.cueIn > 0.05 ? 'auto-cue +' + this.cueIn.toFixed(1) + 's' : '');
@@ -1049,6 +1050,16 @@ class Deck {
     if (!this._setLogged && this.fileName) {
       this._setLogged = true;
       setLog.push({ name: this.fileName, deck: this.side, at: new Date() });
+    }
+    if (!this._playCounted && this.fileName) {
+      this._playCounted = true;
+      // Play count lives on the library record so digging shows
+      // which tracks actually got rinsed.
+      (this.libId != null ? Promise.resolve(this.libId) : this._libP)
+        ?.then(async id => {
+          const rec = await Library.get(id);
+          if (rec) this.tagLib({ plays: (rec.plays || 0) + 1 });
+        });
     }
     const ac = audio();
     if (this.engine === 'worklet') {
@@ -2109,7 +2120,7 @@ async function renderLibrary() {
     .map(([name]) => name);
   rowsEl.innerHTML = rows.map(t => { const f = fit(t);
     const nC = (t.cues || []).filter(c => c != null).length;
-    const prep = nC || t.loop ? ` <span class="prep" title="Saved prep — hot cues / armed loop">${nC ? '⚑' + nC : ''}${t.loop ? ' ∞' : ''}</span>` : '';
+    const prep = nC || t.loop || t.plays ? ` <span class="prep" title="Saved prep / plays">${nC ? '⚑' + nC : ''}${t.loop ? ' ∞' : ''}${t.plays ? ' ×' + t.plays : ''}</span>` : '';
     return `<div class="lib-row${f.length ? ' fit' : ''}" data-id="${t.id}">
     <span class="name" title="${esc(t.name)}${f.length ? ' — fits deck ' + f.join('/') + ' (key + tempo)' : ''}">${esc(t.name)}${prep}</span>
     <span>${t.bpm ? Math.round(t.bpm) : '—'} BPM</span>
