@@ -68,7 +68,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
-  click again to cancel mid-fade (see ADR-0013).
+  click again to cancel mid-fade (see ADR-0013). During the fade the
+  outgoing deck is also low-pass swept 20 kHz → ~400 Hz — a
+  "filter out" transition, not a flat crossfade (see ADR-0020).
 - **Pitch bend** — hold `−`/`+` beside the tempo fader to ride the deck
   ±5 % for manual beat alignment; release restores the fader rate
   (see ADR-0017).

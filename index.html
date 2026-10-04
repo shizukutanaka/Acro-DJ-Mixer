@@ -1341,7 +1341,11 @@ recBtn.addEventListener('click', () => {
   }
 });
 autoBtn.addEventListener('click', () => {
-  if (autoMix.fade) { autoMix.fade = null; return; }   // cancel mid-fade
+  if (autoMix.fade) {                                     // cancel mid-fade
+    const f = autoMix.fade; autoMix.fade = null;
+    f.from.setFilter(parseFloat(f.from.filterEl.value));  // restore knob position
+    return;
+  }
   autoMix.on = !autoMix.on;
   autoBtn.classList.toggle('on', autoMix.on);
 });
@@ -1352,10 +1356,22 @@ function autoMixTick() {
     const k = Math.min((ctx.currentTime - f.t0) / f.dur, 1);
     xfader.value = f.fromX + (f.toX - f.fromX) * k;
     applyCrossfade();
+    // Filter-out the outgoing deck alongside the fade: LP sweep 20 kHz
+    // -> ~400 Hz. The knob stays put; the node returns to it on
+    // completion or cancel.
+    if (f.from.filter) {
+      const freq = 20000 * Math.pow(10, -1.7 * k);
+      f.from.filter.type = 'lowpass';
+      f.from.filter.frequency.setTargetAtTime(freq, ctx.currentTime, 0.01);
+      if (f.from.filterOut) {
+        f.from.filterOut.textContent = 'LP ' + (freq >= 1000 ? (freq / 1000).toFixed(1) + 'kHz' : Math.round(freq) + 'Hz');
+      }
+    }
     if (k >= 1) {
       autoMix.fade = null;
       autoMix.on = false;
       autoBtn.classList.remove('on');
+      f.from.setFilter(parseFloat(f.from.filterEl.value));   // restore knob
       f.from.pause();   // faded out — let it stop rather than play silently
     }
     return;
