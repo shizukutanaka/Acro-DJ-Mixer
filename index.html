@@ -2306,11 +2306,13 @@ autoBtn.addEventListener('click', e => {
     const f = autoMix.fade; autoMix.fade = null;
     f.from.setFilter(parseFloat(f.from.filterEl.value));  // restore knob position
     if (f.to && f.to.eq) f.to.setBand('low', parseFloat(f.to.eqEls.low.value));    // restore bass swap
+    autoBtn.textContent = 'Auto';
     return;
   }
   autoMix.len = e.shiftKey ? 32 : 8;                      // shift arms a long 32-beat fade
   autoMix.on = !autoMix.on;
   autoBtn.classList.toggle('on', autoMix.on);
+  if (!autoMix.on) autoBtn.textContent = 'Auto';
 });
 
 function autoMixTick() {
@@ -2346,16 +2348,20 @@ function autoMixTick() {
       // deck and keep Auto armed — the playlist walks the library until
       // it runs out of next tracks or Auto is clicked off.
       autoNext(f.from, f.to).then(loaded => {
-        if (!loaded) { autoMix.on = false; autoBtn.classList.remove('on'); }
+        if (!loaded) { autoMix.on = false; autoBtn.classList.remove('on'); autoBtn.textContent = 'Auto'; }
       });
     }
+    autoBtn.textContent = 'Auto ' + Math.round(k * 100) + '%';
     return;
   }
   if (!autoMix.on || !ctx) return;
+  autoBtn.textContent = 'Auto';
   for (const d of [deckA, deckB]) {
     const to = d.partner;
     if (!d.playing || !d.buffer || d.loopOn || to.playing || !to.buffer) continue;
     const beat = d.grid ? 60 / d.grid.bpm : 1;
+    // Countdown on the button: beats until the fade fires.
+    autoBtn.textContent = 'Auto ' + Math.max(0, Math.ceil((d.buffer.duration - d.pos()) / beat - 2 * autoMix.len)) + 'b';
     if (d.buffer.duration - d.pos() > 2 * autoMix.len * beat) continue;
     to.seekTo(to.grid ? to.grid.beatOff : 0);
     if (d.grid && to.grid) to.syncTo(d);
