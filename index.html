@@ -1952,6 +1952,26 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 
 let libQuery = '';
 
+// Library preview (rekordbox-style): audition a row's audio on the
+// headphone cue bus without touching a deck — the "is this the right
+// track" check before committing a load.
+let previewSrc = null, previewId = null;
+async function previewTrack(id) {
+  const wasPlaying = previewId === id;
+  if (previewSrc) { try { previewSrc.stop(); } catch (_) {} previewSrc.disconnect(); previewSrc = previewId = null; }
+  if (wasPlaying) return;   // second click on the same row = stop
+  const rec = await Library.get(id);
+  if (!rec || !rec.blob) return;
+  const ac = audio(); cueBus();
+  const buf = await ac.decodeAudioData(await rec.blob.arrayBuffer());
+  previewSrc = ac.createBufferSource();
+  previewSrc.buffer = buf;
+  previewSrc.connect(cueIn);
+  previewSrc.onended = () => { if (previewSrc) { previewSrc.disconnect(); previewSrc = null; previewId = null; } };
+  previewSrc.start();
+  previewId = id;
+}
+
 async function renderLibrary() {
   const rowsEl = document.getElementById('lib-rows');
   let rows;
@@ -1978,7 +1998,7 @@ async function renderLibrary() {
     <span>${t.bpm ? Math.round(t.bpm) : '—'} BPM</span>
     <span>${t.key ? esc(t.key.num + t.key.letter + ' ' + t.key.name) : '—'}</span>
     <span>${fmt(t.duration || 0)}</span>
-    <span><button data-to="a" title="Load into Deck A">→A</button><button data-to="b" title="Load into Deck B">→B</button><button class="lib-del" data-del title="Remove from library">×</button></span>
+    <span><button data-prev title="Preview — audition the track on the headphone cue bus without loading a deck">▶</button><button data-to="a" title="Load into Deck A">→A</button><button data-to="b" title="Load into Deck B">→B</button><button class="lib-del" data-del title="Remove from library">×</button></span>
   </div>`; }).join('');
 }
 
@@ -2230,6 +2250,7 @@ document.getElementById('lib-rows').addEventListener('click', e => {
   if (!row) return;
   const id = Number(row.dataset.id);
   if (e.target.dataset.del !== undefined) Library.remove(id);
+  else if (e.target.dataset.prev !== undefined) previewTrack(id);
   else if (e.target.dataset.to) Library.loadInto(e.target.dataset.to === 'a' ? deckA : deckB, id);
 });
 renderLibrary();

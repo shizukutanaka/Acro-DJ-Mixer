@@ -182,6 +182,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   detection locked onto the off-beat (see ADR-0078).
 - **BPM edit** — click the BPM readout to type the tempo directly;
   Enter commits, Esc cancels (see ADR-0079).
+- **Library preview** — `▶` on a library row auditions the track on the
+  headphone cue bus without loading a deck (see ADR-0080).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
