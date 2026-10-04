@@ -296,8 +296,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   master gain.
 - **Sampler** — `Smpl` row: 4 one-shot pads into the master chain.
   Click loads a file, click again fires (retrigger restarts),
-  shift-click clears — jingles and drops without spending a deck
-  (see ADR-0118). Keys `1`–`4` fire the pads (see ADR-0119);
+  alt-click stops the ringing voice, shift-click clears — jingles
+  and drops without spending a deck (see ADR-0118/ADR-0132). Keys `1`–`4` fire the pads (see ADR-0119);
   the slider beside them trims the shared sample level
   (see ADR-0120). Pads are single-voice: firing one chokes the
   others (see ADR-0121).
