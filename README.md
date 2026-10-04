@@ -176,6 +176,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   as a cyan tick on the waveform (see ADR-0074).
 - **Beat sync** — `Shift+Sync` slips beat phase only, leaving the
   tempo fader alone (see ADR-0075).
+- **Waveform scrub** — hold and drag on the waveform to jog the
+  playhead continuously (see ADR-0076).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
