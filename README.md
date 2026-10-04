@@ -98,6 +98,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Waveform zoom** — scroll over a waveform to zoom ×1.5–32 around
   the playhead; the window follows playback, click still seeks inside
   the visible slice (see ADR-0043).
+- **Auto-cue** — loading a track skips lead-in silence: the playhead
+  starts at the first sample over −50 dBFS and `Cue` returns there
+  (see ADR-0044).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,

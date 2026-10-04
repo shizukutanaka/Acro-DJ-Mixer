@@ -639,13 +639,25 @@ class Deck {
         this.node.port.postMessage({ type: 'load', channels: chans }, chans.map(c => c.buffer));
       }
       this.buffer = buf;
-      this.offset = 0;
+      // Auto-cue: skip lead-in silence — playback and the Cue button
+      // start at the first sample above −50 dBFS (scans max 30 s).
+      this.cueIn = 0;
+      {
+        const ch0 = buf.getChannelData(0);
+        const end = Math.min(ch0.length, buf.sampleRate * 30);
+        for (let i = 0; i < end; i++) {
+          if (Math.abs(ch0[i]) > 0.003) { this.cueIn = i / buf.sampleRate; break; }
+        }
+      }
+      this.offset = this.cueIn;
+      if (this.engine === 'worklet' && this.cueIn > 0)
+        this.node.port.postMessage({ type: 'seek', pos: Math.round(this.cueIn * buf.sampleRate) });
       this.playing = false;
       this.fileName = fileObj.name;
       this._fileObj = fileObj;
       this.el.querySelector('.dropzone').textContent = fileObj.name;
       this.playBtn.textContent = 'Play';
-      this.status('');
+      this.status(this.cueIn > 0.05 ? 'auto-cue +' + this.cueIn.toFixed(1) + 's' : '');
       this.grid = null;
       this.key = null;
       this.loopOn = false;
@@ -932,11 +944,13 @@ class Deck {
   }
 
   cue() {
-    // Classic cue behaviour: return to track start; keep playing state.
+    // Cue returns to the cue-in point: track start, or the first
+    // audible sample when auto-cue skipped lead-in silence.
+    const at = this.cueIn || 0;
     const wasPlaying = this.playing;
     this.stopPlayback();
-    if (this.engine === 'worklet') this.node.port.postMessage({ type: 'seek', pos: 0 });
-    this.offset = 0;
+    if (this.engine === 'worklet') this.node.port.postMessage({ type: 'seek', pos: Math.round(at * this.buffer.sampleRate) });
+    this.offset = at;
     this.playBtn.textContent = 'Play';
     if (wasPlaying) this.play();
   }
