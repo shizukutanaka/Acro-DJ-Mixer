@@ -168,7 +168,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   point; release pauses and snaps back (see ADR-0063).
 - **Split cue** — `Split` on the Phones row pans headphone cue to the
   left ear and master PGM to the right for one-ear monitoring
-  (see ADR-0064).
+  (see ADR-0064). `Cut` beside it is a momentary master mute —
+  hold to chop, release restores (see ADR-0123).
 - **Beat lamp** — the dot beside the bar counter pulses each beat and
   flashes deck-accent on the downbeat (see ADR-0065).
 - **Fader resets** — double-click Gain (unity), the crossfader
