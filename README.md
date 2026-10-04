@@ -105,6 +105,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   slider shows and can override. Measured with full EBU R128 gating
   (−70 LUFS absolute + −10 LU relative), so silent tails/intros don't
   deflate the value (see ADR-0019/0024/0034).
+- **Channel meters** — a thin strip under each waveform shows the
+  deck's post-EQ/filter, pre-crossfader peak level, so gain staging is
+  visible before the fader opens (see ADR-0035).
 - **Master limiter** — a fast `DynamicsCompressor` at the end of the
   chain (threshold −3 dB, ratio 20) keeps two-deck sums and EQ boosts
   from clipping; `GR −x.x dB` shows under the meter while it rides

@@ -92,7 +92,8 @@
   .mixer { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 14px; align-items: center; justify-content: center; }
   .mixer h2 { margin: 0; font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
   .mixer .row { width: 100%; }
-  .meter { width: 100%; height: 10px; background: var(--panel-2); border-radius: 5px; overflow: hidden; }
+  .meter { width: 100%; height: 10px; }
+  .chm { height: 6px; margin-top: 4px; } background: var(--panel-2); border-radius: 5px; overflow: hidden; }
   .meter i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #3ddc84, #ffd23f 70%, #ff5252); transition: width .05s linear; }
   .gr { min-height: 12px; font-size: 10px; color: #ff5252; text-align: right; }
   .cuem { height: 4px; }
@@ -148,6 +149,7 @@
     <div class="dropzone" data-deck="a">Drop track or click to load</div>
     <input type="file" accept="audio/*" hidden>
     <canvas class="wave" width="640" height="90"></canvas>
+    <div class="meter chm" title="Channel level (post-EQ, pre-crossfader)"><i></i></div>
     <div class="transport">
       <button class="primary" data-act="play">Play</button>
       <button data-act="cue">Cue</button>
@@ -184,6 +186,7 @@
     <div class="dropzone" data-deck="b">Drop track or click to load</div>
     <input type="file" accept="audio/*" hidden>
     <canvas class="wave" width="640" height="90"></canvas>
+    <div class="meter chm" title="Channel level (post-EQ, pre-crossfader)"><i></i></div>
     <div class="transport">
       <button class="primary" data-act="play">Play</button>
       <button data-act="cue">Cue</button>
@@ -453,6 +456,7 @@ class Deck {
     this.bpmEl = root.querySelector('.bpm b');
     this.keyEl = root.querySelector('.key');
     this.wave = root.querySelector('canvas.wave');
+    this.chFill = root.querySelector('.chm i');
     this.wctx = this.wave.getContext('2d');
     this.timeEl = root.querySelector('.time');
     this.statusEl = root.querySelector('.status');
@@ -681,6 +685,10 @@ class Deck {
     this.eq.mid.connect(this.eq.high);
     this.eq.high.connect(this.filter);
     this.filter.connect(this.xfGain);
+    // Channel strip meter tap: post-EQ/filter, pre-crossfader.
+    this.chAnalyser = ac.createAnalyser();
+    this.chAnalyser.fftSize = 512;
+    this.filter.connect(this.chAnalyser);
     this.xfGain.connect(masterGain);
     try {
       if (!wsolaModuleReady) { await ac.audioWorklet.addModule(WSOLA_URL); wsolaModuleReady = true; }
@@ -1648,6 +1656,17 @@ function tick() {
     }
   }
   autoMixTick();
+  for (const d of [deckA, deckB]) {
+    if (d.chAnalyser && d.chFill) {
+      d.chAnalyser.getByteTimeDomainData(meterBuf);
+      let p = 0;
+      for (let i = 0; i < meterBuf.length; i++) {
+        const v = Math.abs(meterBuf[i] - 128) / 128;
+        if (v > p) p = v;
+      }
+      d.chFill.style.width = Math.min(p * 100, 100).toFixed(1) + '%';
+    }
+  }
   if (ctx && analyser) {
     analyser.getByteTimeDomainData(meterBuf);
     let peak = 0;
