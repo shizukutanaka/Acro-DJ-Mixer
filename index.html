@@ -2564,6 +2564,19 @@ document.getElementById('lib-rows').addEventListener('click', e => {
 });
 renderLibrary();
 
+// Wheel nudge on every fader/knob: one notch = one input step —
+// mouse resolution where a drag is too coarse. The tempo slider
+// keeps its own finer ±0.001 handler above.
+document.addEventListener('wheel', e => {
+  const el = e.target;
+  if (el.tagName !== 'INPUT' || el.type !== 'range' || el.dataset.act === 'tempo') return;
+  e.preventDefault();
+  const step = parseFloat(el.step) || 0.01;
+  el.value = Math.min(parseFloat(el.max), Math.max(parseFloat(el.min),
+    parseFloat(el.value) - Math.sign(e.deltaY) * step));
+  el.dispatchEvent(new Event('input'));
+}, { passive: false });
+
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' && e.target.type === 'text') return;
   if (e.target.tagName === 'SELECT') return;
