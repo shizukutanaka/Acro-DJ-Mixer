@@ -116,6 +116,8 @@
   .hotcues { display: flex; gap: 4px; margin-top: 6px; }
   .hotcues .pad { flex: 1; font-size: 11px; padding: 3px 0; opacity: .45; }
   .hotcues .pad.set { opacity: 1; background: var(--panel-2); color: var(--text); }
+  .hotcues .jump { display: inline-flex; gap: 4px; margin-left: auto; }
+  .hotcues .jump button { font-size: 11px; padding: 3px 7px; }
   .lib-row.fit .name { color: #3ddc84; }
   .lib-row.fit .name::before { content: '● '; font-size: 9px; vertical-align: 1px; }
   @media (max-width: 760px) {
@@ -143,7 +145,7 @@
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
       <span class="time">0:00 / 0:00</span>
     </div>
-    <div class="hotcues"><button class="pad" data-pad="0" title="Hot cue — click sets a marker, click jumps, right-click clears">1</button><button class="pad" data-pad="1" title="Hot cue — click sets a marker, click jumps, right-click clears">2</button><button class="pad" data-pad="2" title="Hot cue — click sets a marker, click jumps, right-click clears">3</button><button class="pad" data-pad="3" title="Hot cue — click sets a marker, click jumps, right-click clears">4</button></div>
+    <div class="hotcues"><button class="pad" data-pad="0" title="Hot cue — click sets a marker, click jumps, right-click clears">1</button><button class="pad" data-pad="1" title="Hot cue — click sets a marker, click jumps, right-click clears">2</button><button class="pad" data-pad="2" title="Hot cue — click sets a marker, click jumps, right-click clears">3</button><button class="pad" data-pad="3" title="Hot cue — click sets a marker, click jumps, right-click clears">4</button><span class="jump"><button data-act="jumpback" title="Jump back one beat (1 s without BPM)">−1b</button><button data-act="jumpfwd" title="Jump forward one beat (1 s without BPM)">+1b</button></span></div>
     <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1"><output>+0.0%</output></div>
     <div class="row eq"><label>EQ</label><span class="band">H<input type="range" data-eq="high" min="-1" max="1" step="0.01" value="0" title="High shelf 4 kHz, ±26 dB — double-click resets"></span><span class="band">M<input type="range" data-eq="mid" min="-1" max="1" step="0.01" value="0" title="Mid 1 kHz, ±26 dB — double-click resets"></span><span class="band">L<input type="range" data-eq="low" min="-1" max="1" step="0.01" value="0" title="Low shelf 250 Hz, ±26 dB — double-click resets"></span></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1"><output>100%</output></div>
@@ -173,7 +175,7 @@
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
       <span class="time">0:00 / 0:00</span>
     </div>
-    <div class="hotcues"><button class="pad" data-pad="0" title="Hot cue — click sets a marker, click jumps, right-click clears">1</button><button class="pad" data-pad="1" title="Hot cue — click sets a marker, click jumps, right-click clears">2</button><button class="pad" data-pad="2" title="Hot cue — click sets a marker, click jumps, right-click clears">3</button><button class="pad" data-pad="3" title="Hot cue — click sets a marker, click jumps, right-click clears">4</button></div>
+    <div class="hotcues"><button class="pad" data-pad="0" title="Hot cue — click sets a marker, click jumps, right-click clears">1</button><button class="pad" data-pad="1" title="Hot cue — click sets a marker, click jumps, right-click clears">2</button><button class="pad" data-pad="2" title="Hot cue — click sets a marker, click jumps, right-click clears">3</button><button class="pad" data-pad="3" title="Hot cue — click sets a marker, click jumps, right-click clears">4</button><span class="jump"><button data-act="jumpback" title="Jump back one beat (1 s without BPM)">−1b</button><button data-act="jumpfwd" title="Jump forward one beat (1 s without BPM)">+1b</button></span></div>
     <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1"><output>+0.0%</output></div>
     <div class="row eq"><label>EQ</label><span class="band">H<input type="range" data-eq="high" min="-1" max="1" step="0.01" value="0" title="High shelf 4 kHz, ±26 dB — double-click resets"></span><span class="band">M<input type="range" data-eq="mid" min="-1" max="1" step="0.01" value="0" title="Mid 1 kHz, ±26 dB — double-click resets"></span><span class="band">L<input type="range" data-eq="low" min="-1" max="1" step="0.01" value="0" title="Low shelf 250 Hz, ±26 dB — double-click resets"></span></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1"><output>100%</output></div>
@@ -451,6 +453,8 @@ class Deck {
       pad.addEventListener('click', () => this.padCue(i));
       pad.addEventListener('contextmenu', e => { e.preventDefault(); this.clearPad(i); });
     });
+    this.el.querySelector('[data-act=jumpback]').addEventListener('click', () => this.beatJump(-1));
+    this.el.querySelector('[data-act=jumpfwd]').addEventListener('click', () => this.beatJump(1));
     this.keylockBtn.addEventListener('click', () => this.toggleKeylock());
     this.tempoEl.addEventListener('input', () => this.setRate(parseFloat(this.tempoEl.value)));
     this.gainEl.addEventListener('input', () => this.setGain(parseFloat(this.gainEl.value)));
@@ -816,6 +820,14 @@ class Deck {
     this.tagLib({ cues: this.cues });
     this._drawnPos = undefined;
     this.drawWave();
+  }
+
+  // Skip one beat of the detected grid (1 s fallback when unanalyzed) —
+  // seekTo handles clamping and loop-exit.
+  beatJump(dir) {
+    if (!this.buffer) return;
+    const step = this.grid ? 60 / this.grid.bpm : 1;
+    this.seekTo(Math.min(Math.max(this.pos() + dir * step, 0), this.buffer.duration));
   }
 
   // Camelot code + harmonic-compatibility color vs the partner deck.

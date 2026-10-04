@@ -55,7 +55,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   double the armed loop in place (see ADR-0009).
 - **Hot cues** — four pads per deck: click records a marker (amber tick
   on the waveform), click jumps, right-click clears; persisted per track
-  in the library (see ADR-0010).
+  in the library (see ADR-0010). `−1b`/`+1b` beside them beat-jump one
+  beat of the grid (see ADR-0012).
 - **Headphone cue (PFL)** — `Phones` button taps each deck pre-fader onto
   a cue bus; `Cue out` picks the output device (`setSinkId`, Chrome/Edge).
   See ADR-0007.
@@ -100,7 +101,7 @@ Ordered by value per the ADR's automation layer:
 4. ~~Track library with persistence.~~ Done (ADR-0008) — IndexedDB,
    `id`/`created_at`/`updated_at`/`deleted_at`/`version` per record.
 4b. ~~Hot cues.~~ Done (ADR-0010) — four per deck, persisted in the
-   library.
+   library. Beat-jump added in ADR-0012.
 5. Stem separation (ML model, worker pipeline).
 6. Recommendation / auto-mix assistance.
 
