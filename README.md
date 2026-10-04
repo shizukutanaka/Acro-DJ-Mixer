@@ -248,6 +248,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   readout, double-click resets (see ADR-0016).
 - **EQ kills** — the H/M/L letters are buttons: click pins the band at
   −26 dB, click again restores the slider value (see ADR-0015).
+  Holding a letter ≥250 ms kills momentarily — release restores, for
+  one-beat kill stabs (see ADR-0117).
 - **Set recording** — `Rec` button captures the master output to a
   `.webm` (opus) download via `MediaRecorder` on a MediaStream tap
   (see ADR-0014).
