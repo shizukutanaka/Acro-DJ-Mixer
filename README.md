@@ -163,6 +163,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   the master before the limiter, so it is recorded too (see ADR-0067).
 - **Fader start** — pushing the crossfader fully into a stopped deck's
   side starts it (see ADR-0068).
+- **Tempo range** — `±8 / ±16 / ±50` select per deck trades slider
+  resolution for reach, CDJ-style (see ADR-0069).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
