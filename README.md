@@ -233,8 +233,10 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   comb), `Trans` (beat-synced gate chop), `Noise` (swept
   bandpass riser that breathes in time with the BEAT division,
   ADR-0142), `Crush` (staircase lo-fi on the dry path), or
-  `Verb` (generated-IR convolver send); only the selected effect
-  sounds (see ADR-0081, ADR-0097, ADR-0126, ADR-0127, ADR-0128). The
+  `Verb` (generated-IR convolver send), or `Ping` (ping-pong echo —
+  the same delay line with L/R-crossed feedback, repeats hop sides);
+  only the selected effect sounds (see ADR-0081, ADR-0097, ADR-0126,
+  ADR-0127, ADR-0128, ADR-0160). The
   `FX` button punches the effect in/out without touching the knob —
   hold for a momentary stab (see ADR-0133, ADR-0144). The
   `pre`/`post` select moves the send tap — tails that outlive the
