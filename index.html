@@ -154,7 +154,7 @@
       <button class="primary" data-act="play">Play</button>
       <button data-act="cue">Cue</button>
       <button data-act="sync">Sync</button>
-      <button data-act="loop" title="4-beat loop snapped to the beat grid">Loop</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button></span>
+      <button data-act="loop" title="4-beat loop snapped to the beat grid">Loop</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been">Roll</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button></span>
       <button data-act="cueout" title="Headphone cue — preview this deck on the cue output">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
       <span class="time">0:00 / 0:00</span>
@@ -191,7 +191,7 @@
       <button class="primary" data-act="play">Play</button>
       <button data-act="cue">Cue</button>
       <button data-act="sync">Sync</button>
-      <button data-act="loop" title="4-beat loop snapped to the beat grid">Loop</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button></span>
+      <button data-act="loop" title="4-beat loop snapped to the beat grid">Loop</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been">Roll</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button></span>
       <button data-act="cueout" title="Headphone cue — preview this deck on the cue output">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
       <span class="time">0:00 / 0:00</span>
@@ -491,6 +491,11 @@ class Deck {
     this.el.querySelector('[data-act=cue]').addEventListener('click', () => this.cue());
     this.el.querySelector('[data-act=sync]').addEventListener('click', () => this.syncTo(this.partner));
     this.loopBtn.addEventListener('click', () => this.toggleLoop());
+    const rollBtn = this.el.querySelector('[data-act=roll]');
+    rollBtn.addEventListener('pointerdown', e => { e.preventDefault(); this.startRoll(); });
+    for (const ev of ['pointerup', 'pointerleave', 'pointercancel'])
+      rollBtn.addEventListener(ev, () => this.stopRoll());
+    this.rollBtn = rollBtn;
     this.el.querySelector('[data-act=loopdiv]').addEventListener('click', () => this.setLoopLen(0.5));
     this.el.querySelector('[data-act=loopmul]').addEventListener('click', () => this.setLoopLen(2));
     this.cueBtn.addEventListener('click', () => this.toggleCue());
@@ -1084,6 +1089,40 @@ class Deck {
     this.loopBtn.classList.toggle('on', this.loopOn);
     this.loopLenEl.hidden = !this.loopOn;
     this._drawnPos = undefined;  // region shading changed while pos() may not have
+    this.drawWave();
+  }
+
+  // Loop roll (SLIP): while held, a 1-beat loop plays; on release the
+  // deck jumps to where the track would have been without the roll.
+  startRoll() {
+    if (this._roll || !this.playing || !this.buffer || !this.grid) return;
+    const beatLen = 60 / this.grid.bpm;
+    const n = Math.floor((this.pos() - this.grid.beatOff) / beatLen);
+    const start = Math.max(0, this.grid.beatOff + n * beatLen);
+    if (start + beatLen > this.buffer.duration) return;
+    this._roll = { pos: this.pos(), t: ctx.currentTime, saved: this.loopOn ? [this.loopStart, this.loopEnd] : null };
+    this.loopStart = start;
+    this.loopEnd = start + beatLen;
+    this.loopOn = true;
+    this.applyLoop();
+    this.rollBtn.classList.add('on');
+    this._drawnPos = undefined;
+    this.drawWave();
+  }
+
+  stopRoll() {
+    const r = this._roll;
+    if (!r) return;
+    this._roll = null;
+    const slip = r.pos + (ctx.currentTime - r.t) * this.rate;
+    if (r.saved) { [this.loopStart, this.loopEnd] = r.saved; this.loopOn = true; }
+    else this.loopOn = false;
+    this.applyLoop();
+    this.loopBtn.classList.toggle('on', this.loopOn);
+    this.loopLenEl.hidden = !this.loopOn;
+    this.rollBtn.classList.remove('on');
+    if (this.playing) this.seekTo(Math.min(slip, this.buffer.duration - 0.01));
+    this._drawnPos = undefined;
     this.drawWave();
   }
 

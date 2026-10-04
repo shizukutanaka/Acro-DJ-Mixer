@@ -80,6 +80,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Crossfader curve** — `Smooth` (equal-power, default) or `Cut`
   (each side reaches full within 10% of travel for scratch chops; both
   full in the middle), selected next to the fader (see ADR-0036).
+- **Loop roll** — hold `Roll` to loop the current beat, release to
+  resume where the track would have been (slip); an armed loop is
+  restored on release (see ADR-0037).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
