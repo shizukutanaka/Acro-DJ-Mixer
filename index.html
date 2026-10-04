@@ -633,11 +633,11 @@ class Deck {
     this.grid.bpm = bpm;
     this.grid.beatOff = this._taps[this._taps.length - 1].pos;
     this._syncDelay();
-    this.bpmEl.textContent = String(Math.round(bpm));
+    this.bpmEl.textContent = bpm.toFixed(1);
     this.tagLib({ bpm, beatOff: this.grid.beatOff });
     this._drawnPos = undefined;
     this.drawWave();
-    this.status('tap: ' + Math.round(bpm) + ' BPM');
+    this.status('tap: ' + bpm.toFixed(1) + ' BPM');
   }
 
   // Grid nudge: shift beatOff a few ms to eyeball ticks onto transients
@@ -707,7 +707,7 @@ class Deck {
       if (meta && meta.bpm) {
         // Cached analysis from the library — instant, no recompute.
         this.grid = { bpm: meta.bpm, beatOff: meta.beatOff || 0 };
-        this.bpmEl.textContent = String(Math.round(this.grid.bpm));
+        this.bpmEl.textContent = this.grid.bpm.toFixed(1);
         this._syncDelay();
         this.key = meta.key || null;
         this.refreshKey();
@@ -1201,7 +1201,7 @@ class Deck {
     try {
       const grid = estimateBpm(await monoP);
       this.grid = grid;
-      this.bpmEl.textContent = grid ? String(Math.round(grid.bpm)) : '—';
+      this.bpmEl.textContent = grid ? grid.bpm.toFixed(1) : '—';
       if (grid) this.tagLib({ bpm: grid.bpm, beatOff: grid.beatOff });
       this._syncDelay();
       this._drawnPos = undefined;
