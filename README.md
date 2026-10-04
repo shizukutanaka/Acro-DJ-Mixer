@@ -341,6 +341,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   keys: deck A `Z X C V` (cues 1–4) `A S D F` (cues 5–8) `E` `R`,
   deck B `B N M ,` `H J K L` `I` `U` (see ADR-0031, ADR-0101,
   ADR-0157).
+- **Session persistence** — the mixer surface (faders, EQ, filters,
+  FX selection, toggles, sampler and mic trims) is saved on change
+  and restored on reload through the same handlers (see ADR-0158).
 
 ## Architecture
 

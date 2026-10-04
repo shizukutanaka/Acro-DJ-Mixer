@@ -414,7 +414,8 @@ function audio() {
     // monoNode sits between master and limiter as a pass-through; the
     // Mono button flips channelCount to 1, which down-mixes L+R.
     monoNode = ctx.createGain();
-    monoNode.channelCount = 2; monoNode.channelCountMode = 'explicit';
+    monoNode.channelCount = document.getElementById('mono').classList.contains('on') ? 1 : 2;
+    monoNode.channelCountMode = 'explicit';
     // micDuck sits between the deck bus and the mono fold — mic open
     // squeezes the music ~12 dB (broadcast talkover) while the mic
     // itself enters at monoNode, after the duck.
@@ -471,6 +472,7 @@ function cueBus() {
     pgmPan = ac.createStereoPanner();
     pgmSend.connect(pgmPan);
     pgmPan.connect(phonesOut);
+    if (document.getElementById('splitcue').classList.contains('on')) { cuePan.pan.value = -1; pgmPan.pan.value = 1; }
     cueAudio = new Audio();
     cueAudio.srcObject = cueDest.stream;
     cueAudio.play().catch(() => {});
@@ -2937,18 +2939,17 @@ smpFile.addEventListener('change', async e => {
 }
 
 document.getElementById('mono').addEventListener('click', e => {
-  if (!monoNode) return;
-  const on = monoNode.channelCount !== 1;
-  monoNode.channelCount = on ? 1 : 2;
+  // Class is the state — the node applies it at build time too, so a
+  // persisted Mono survives across reloads (session persistence).
+  const on = !e.target.classList.contains('on');
   e.target.classList.toggle('on', on);
+  if (monoNode) monoNode.channelCount = on ? 1 : 2;
 });
 
 document.getElementById('splitcue').addEventListener('click', e => {
-  if (!cuePan || !pgmPan) return;
-  const on = cuePan.pan.value === 0;
-  cuePan.pan.value = on ? -1 : 0;
-  pgmPan.pan.value = on ? 1 : 0;
+  const on = !e.target.classList.contains('on');
   e.target.classList.toggle('on', on);
+  if (cuePan && pgmPan) { cuePan.pan.value = on ? -1 : 0; pgmPan.pan.value = on ? 1 : 0; }
 });
 
 const masterEl = document.getElementById('master');
@@ -3305,6 +3306,87 @@ function tick() {
   requestAnimationFrame(tick);
 }
 requestAnimationFrame(tick);
+
+// ----- Session persistence: the mixer surface remembers itself -----
+// A reload used to nuke every knob and toggle — real mixers don't.
+// Element state is snapshotted on any interaction (throttled) and
+// replayed on load through the same input/change/click handlers, so
+// restored values drive nodes exactly like live input. Deck chain
+// params built later (on track load) read the restored elements too.
+const sessKey = 'acro-session';
+const sessDeckQ = root => sel => root.querySelector(sel);
+function sessSave() {
+  try {
+    const v = {};
+    for (const id of ['xfader','xfcurve','master','cuemix','smp-gain','smp-pitch','mic-gain','mic-low','mic-high']) {
+      const el = document.getElementById(id);
+      v[id] = el.value;
+    }
+    v['smp-loop'] = document.getElementById('smp-loop').checked;
+    const t = {};
+    for (const id of ['xfrev','qtz','mono','splitcue']) t[id] = document.getElementById(id).classList.contains('on');
+    const decks = {};
+    for (const [k, d] of Object.entries({ a: deckA, b: deckB })) {
+      const q = sessDeckQ(d.el);
+      decks[k] = {
+        gain: q('[data-act=gain]').value,
+        eqLow: q('[data-eq=low]').value, eqMid: q('[data-eq=mid]').value, eqHigh: q('[data-eq=high]').value,
+        filter: q('[data-act=filter]').value,
+        echo: q('[data-act=echo]').value,
+        fx: q('[data-act=fx]').value, fxbeat: q('[data-act=fxbeat]').value, fxtap: q('[data-act=fxtap]').value,
+        fxon: q('[data-act=fxon]').classList.contains('on'),
+        assign: q('[data-act=assign]').value, range: q('[data-act=range]').value,
+        slip: q('[data-act=slip]').classList.contains('on'),
+      };
+    }
+    localStorage.setItem(sessKey, JSON.stringify({ v, t, decks }));
+  } catch {}
+}
+let sessTimer = null;
+const sessSoon = () => { clearTimeout(sessTimer); sessTimer = setTimeout(sessSave, 400); };
+for (const ev of ['input', 'change', 'click']) document.addEventListener(ev, sessSoon, true);
+try {
+  const saved = JSON.parse(localStorage.getItem(sessKey) || 'null');
+  if (saved) {
+    for (const id of ['xfader','xfcurve','master','cuemix','smp-gain','smp-pitch','mic-gain','mic-low','mic-high']) {
+      if (saved.v[id] == null) continue;
+      const el = document.getElementById(id);
+      el.value = saved.v[id];
+      el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input'));
+    }
+    const loopEl = document.getElementById('smp-loop');
+    if (saved.v['smp-loop'] != null) loopEl.checked = !!saved.v['smp-loop'];
+    // Toggles: replay a click only on mismatch, so the backing flags
+    // flip through the real handlers instead of stale classes.
+    for (const id of ['xfrev','qtz','mono','splitcue']) {
+      const el = document.getElementById(id);
+      if (saved.t[id] != null && el.classList.contains('on') !== !!saved.t[id]) el.click();
+    }
+    for (const [k, d] of Object.entries({ a: deckA, b: deckB })) {
+      const s2 = saved.decks[k];
+      if (!s2) continue;
+      const q = sessDeckQ(d.el);
+      const setV = (sel, v2) => {
+        const el = q(sel);
+        el.value = v2;
+        el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input'));
+      };
+      setV('[data-act=gain]', s2.gain);
+      setV('[data-eq=low]', s2.eqLow); setV('[data-eq=mid]', s2.eqMid); setV('[data-eq=high]', s2.eqHigh);
+      setV('[data-act=filter]', s2.filter);
+      setV('[data-act=fx]', s2.fx);        // fxSel first — setEcho re-reads it
+      setV('[data-act=fxbeat]', s2.fxbeat);
+      setV('[data-act=fxtap]', s2.fxtap);
+      setV('[data-act=echo]', s2.echo);
+      setV('[data-act=assign]', s2.assign);
+      setV('[data-act=range]', s2.range);
+      const fxBtn = q('[data-act=fxon]');
+      if (fxBtn.classList.contains('on') !== !!s2.fxon) fxBtn.click();
+      const slipB = q('[data-act=slip]');
+      if (slipB.classList.contains('on') !== !!s2.slip) slipB.click();
+    }
+  }
+} catch {}
 </script>
 </body>
 </html>
