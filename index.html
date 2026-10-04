@@ -195,7 +195,7 @@
     <div class="row"><label>Cue&nbsp;out</label><select id="cueout" title="Output device for the headphone cue bus"><option value="">System output</option></select></div>
     <div class="row"><label>Cue&nbsp;mix</label><input type="range" id="cuemix" min="0" max="1" step="0.01" value="0" title="Cue mix — left is cue (PFL) only, right blends the master output into the phones"><output>cue</output></div>
     <div class="row"><label>Phones</label><input type="range" id="cuevol" min="0" max="1" step="0.01" value="1" title="Headphone volume — level of the whole cue bus (cue + PGM blend)"><output>100%</output></div>
-    <div class="row"><label>Phones</label><button id="mono" title="Mono — fold the master down to one channel to check mono compatibility (club PAs are often mono)">Mono</button><button id="splitcue" title="Split cue — headphone cue (PFL) in the left ear, master PGM in the right">Split</button></div>
+    <div class="row"><label>Phones</label><button id="mono" title="Mono — fold the master down to one channel to check mono compatibility (club PAs are often mono)">Mono</button><button id="splitcue" title="Split cue — headphone cue (PFL) in the left ear, master PGM in the right">Split</button><button id="cut" title="Cut — hold to mute the master, release restores (transformer scratch technique)">Cut</button></div>
     <div class="meter cuem" title="Cue bus level (tick = peak hold)"><i id="cuemeter-fill"></i><b id="cuemeter-peak"></b></div>
     <div class="phase" id="phase" title="Beat-phase offset between decks"></div>
     <div class="row"><label>Smpl</label><span id="smp-pads"></span><input type="range" id="smp-gain" min="0" max="1" step="0.01" value="0.8" title="Sampler level — all pads"><input id="smp-file" type="file" accept="audio/*" hidden></div>
@@ -245,7 +245,7 @@
 // ----- Audio graph -----
 // worklet playback engine -> deckGain -> xfGain -> masterGain -> monoNode -> limiter -> analyser -> destination
 let ctx = null;
-let masterGain, limiter, analyser, monoNode, micDuck;
+let masterGain, limiter, analyser, monoNode, micDuck, cutGain;
 let cueDest = null, cueAudio = null, cueIn = null, cueAnalyser = null, pgmSend = null, cuePan = null, pgmPan = null, phonesOut = null;
 let micStream = null, micSrc = null, micGain = null, micHp = null, micAn = null;
 let wsolaModuleReady = false;
@@ -418,7 +418,11 @@ function audio() {
     micDuck = ctx.createGain();
     masterGain.connect(micDuck);
     micDuck.connect(monoNode);
-    monoNode.connect(limiter);
+    // cutGain is the transformer switch: a momentary mute on the whole
+    // master bus (decks + mic + sampler all pass through monoNode).
+    cutGain = ctx.createGain();
+    monoNode.connect(cutGain);
+    cutGain.connect(limiter);
     limiter.connect(analyser);
     analyser.connect(ctx.destination);
   }
@@ -2522,6 +2526,16 @@ smpFile.addEventListener('change', async e => {
   b.title = f.name;
   smpPending = -1;
 });
+
+{
+  const cutBtn = document.getElementById('cut');
+  const cutDown = () => { if (cutGain) { cutGain.gain.cancelScheduledValues(ctx.currentTime); cutGain.gain.setTargetAtTime(0, ctx.currentTime, 0.003); cutBtn.classList.add('on'); } };
+  const cutUp = () => { if (cutGain) { cutGain.gain.setTargetAtTime(1, ctx.currentTime, 0.005); cutBtn.classList.remove('on'); } };
+  cutBtn.addEventListener('pointerdown', cutDown);
+  cutBtn.addEventListener('pointerup', cutUp);
+  cutBtn.addEventListener('pointercancel', cutUp);
+  cutBtn.addEventListener('pointerleave', cutUp);
+}
 
 document.getElementById('mono').addEventListener('click', e => {
   if (!monoNode) return;
