@@ -44,6 +44,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Waveform overview** with playhead per deck.
 - **Auto BPM estimate + beat grid** — energy-flux autocorrelation, 60–180 BPM,
   no dependencies; grid ticks drawn on the waveform (see ADR-0001 / ADR-0002).
+  `beatOff` is refined to ~ms precision by an energy-rise search around
+  each comb line (see ADR-0025).
 - **Key detection** — chromagram + Krumhansl–Schmuckler profiles → Camelot
   code shown next to BPM; green = mixes harmonically with the other deck,
   amber = clash (see ADR-0004).

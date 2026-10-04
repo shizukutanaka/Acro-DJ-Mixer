@@ -1154,7 +1154,31 @@ function estimateBpm(d) {
     for (let i = p; i < frames; i += bestLag) s += flux[i];
     if (s > bestPhaseScore) { bestPhaseScore = s; bestPhase = p; }
   }
-  return { bpm: Math.round(fps * 60 / bestLag), beatOff: bestPhase * hop / targetSr };
+  // Sub-frame phase refinement on the raw signal: around each comb line,
+  // find the position of steepest energy rise at ~1.5 ms steps — the ODF
+  // frame smears onsets into a whole frame, so flux alone can't see
+  // inside it. Residuals are flux-independent, in ODF-frame units.
+  const winE = 128;                       // energy window (analysis samples)
+  const fine = 16;                        // step size ~1.5 ms
+  const wSamp = Math.floor(bestLag * hop / 8);
+  const energy = x => {
+    let e = 0;
+    for (let i = 0; i < winE; i++) { const v = d[x + i] || 0; e += v * v; }
+    return e;
+  };
+  let wsum = 0, rsum = 0;
+  for (let k = bestPhase; k < frames; k += bestLag) {
+    const c = k * hop;
+    const lo = Math.max(fine, c - wSamp), hi = Math.min(d.length - winE - 1, c + wSamp);
+    let bi = lo, bs = -Infinity;
+    for (let x = lo; x <= hi; x += fine) {
+      const s = energy(x) - energy(x - fine);
+      if (s > bs) { bs = s; bi = x; }
+    }
+    if (bs > 0) { wsum += bs; rsum += bs * (bi - c) / hop; }
+  }
+  const refined = wsum > 0 ? bestPhase + rsum / wsum : bestPhase;
+  return { bpm: Math.round(fps * 60 / bestLag), beatOff: refined * hop / targetSr };
 }
 
 // Iterative radix-2 FFT, in-place on re/im arrays (length a power of two).
