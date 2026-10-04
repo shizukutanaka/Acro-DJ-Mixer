@@ -191,6 +191,7 @@
     <div class="row"><label>Master</label><input type="range" id="master" min="0" max="1" step="0.01" value="0.9" title="Master level — double-click resets to 90%"><output id="master-out">90%</output></div>
     <div class="row"><label>Cue&nbsp;out</label><select id="cueout" title="Output device for the headphone cue bus"><option value="">System output</option></select></div>
     <div class="row"><label>Cue&nbsp;mix</label><input type="range" id="cuemix" min="0" max="1" step="0.01" value="0" title="Cue mix — left is cue (PFL) only, right blends the master output into the phones"><output>cue</output></div>
+    <div class="row"><label>Phones</label><input type="range" id="cuevol" min="0" max="1" step="0.01" value="1" title="Headphone volume — level of the whole cue bus (cue + PGM blend)"><output>100%</output></div>
     <div class="row"><label>Phones</label><button id="mono" title="Mono — fold the master down to one channel to check mono compatibility (club PAs are often mono)">Mono</button><button id="splitcue" title="Split cue — headphone cue (PFL) in the left ear, master PGM in the right">Split</button></div>
     <div class="meter cuem" title="Cue bus level"><i id="cuemeter-fill"></i></div>
     <div class="phase" id="phase" title="Beat-phase offset between decks"></div>
@@ -241,7 +242,7 @@
 // worklet playback engine -> deckGain -> xfGain -> masterGain -> monoNode -> limiter -> analyser -> destination
 let ctx = null;
 let masterGain, limiter, analyser, monoNode;
-let cueDest = null, cueAudio = null, cueIn = null, cueAnalyser = null, pgmSend = null, cuePan = null, pgmPan = null;
+let cueDest = null, cueAudio = null, cueIn = null, cueAnalyser = null, pgmSend = null, cuePan = null, pgmPan = null, phonesOut = null;
 let micStream = null, micSrc = null, micGain = null;
 let wsolaModuleReady = false;
 
@@ -428,9 +429,13 @@ function cueBus() {
     cueIn = ac.createGain();
     // Panners sit between the sends and the bus: centre normally, the
     // Split button pans cue hard-L and PGM hard-R (one-ear monitoring).
+    // Phones master level: cue and PGM both sum through phonesOut so
+    // one knob sets the headphone loudness whatever the blend is.
+    phonesOut = ac.createGain();
+    phonesOut.connect(cueDest);
     cuePan = ac.createStereoPanner();
     cueIn.connect(cuePan);
-    cuePan.connect(cueDest);
+    cuePan.connect(phonesOut);
     cueAnalyser = ac.createAnalyser();
     cueAnalyser.fftSize = 256;
     cueIn.connect(cueAnalyser);
@@ -441,7 +446,7 @@ function cueBus() {
     masterGain.connect(pgmSend);
     pgmPan = ac.createStereoPanner();
     pgmSend.connect(pgmPan);
-    pgmPan.connect(cueDest);
+    pgmPan.connect(phonesOut);
     cueAudio = new Audio();
     cueAudio.srcObject = cueDest.stream;
     cueAudio.play().catch(() => {});
@@ -2314,6 +2319,11 @@ masterEl.addEventListener('dblclick', () => {
   masterEl.dispatchEvent(new Event('input'));
 });
 
+document.getElementById('cuevol').addEventListener('input', e => {
+  const v = parseFloat(e.target.value);
+  e.target.nextElementSibling.textContent = Math.round(v * 100) + '%';
+  if (phonesOut && ctx) phonesOut.gain.setTargetAtTime(v, ctx.currentTime, 0.02);
+});
 document.getElementById('cuemix').addEventListener('input', e => {
   const m = parseFloat(e.target.value);
   e.target.nextElementSibling.textContent = m <= 0.01 ? 'cue' : Math.round(m * 100) + '%';
