@@ -155,6 +155,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Split cue** — `Split` on the Phones row pans headphone cue to the
   left ear and master PGM to the right for one-ear monitoring
   (see ADR-0064).
+- **Beat lamp** — the dot beside the bar counter pulses each beat and
+  flashes deck-accent on the downbeat (see ADR-0065).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,

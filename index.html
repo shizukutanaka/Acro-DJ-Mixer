@@ -94,6 +94,10 @@
   .deck.b input[type=range] { accent-color: var(--accent-b); }
   .bpm { font-size: 12px; color: var(--muted); }
   .barcount { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 26px; }
+  .beatlamp { width: 8px; height: 8px; border-radius: 50%; background: var(--line); align-self: center; }
+  .beatlamp.beat { background: var(--muted); }
+  .deck.a .beatlamp.bar { background: var(--accent-a); }
+  .deck.b .beatlamp.bar { background: var(--accent-b); }
   .bpm b { color: var(--text); font-size: 14px; }
   .mixer { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 14px; align-items: center; justify-content: center; }
   .mixer h2 { margin: 0; font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
@@ -173,7 +177,7 @@
     <div class="row"><label>Echo</label><input type="range" data-act="echo" min="0" max="1" step="0.01" value="0" title="Beat delay — 3/4-beat echo synced to the deck grid; 0 is dry. Double-click resets"><output>dry</output></div>
     <div class="row"><label>Stem</label><select data-act="stem" title="Mid/side split — Vocal keeps the centre channel (acapella), Inst keeps the sides (vocal-removed)"><option value="off">Full</option><option value="voc">Vocal</option><option value="inst">Inst</option></select></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1"><output>100%</output></div>
-    <div class="row"><span class="bpm">BPM <b>—</b></span><span class="barcount" title="Bar.beat position on the beat grid — where the phrase is">—</span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="stctl" title="Transpose — shift the deck's key in semitones (needs key lock / http)"><button data-act="pitchdn">−</button><b class="st">±0</b><button data-act="pitchup">+</button></span><button data-act="keysync" title="Key sync — transpose to a key that mixes harmonically with the other deck">Key</button><span class="status"></span></div>
+    <div class="row"><span class="bpm">BPM <b>—</b></span><span class="barcount" title="Bar.beat position on the beat grid — where the phrase is">—</span><span class="beatlamp" title="Beat indicator — pulses each beat, accent on the downbeat"></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="stctl" title="Transpose — shift the deck's key in semitones (needs key lock / http)"><button data-act="pitchdn">−</button><b class="st">±0</b><button data-act="pitchup">+</button></span><button data-act="keysync" title="Key sync — transpose to a key that mixes harmonically with the other deck">Key</button><span class="status"></span></div>
   </section>
 
   <section class="mixer">
@@ -214,7 +218,7 @@
     <div class="row"><label>Echo</label><input type="range" data-act="echo" min="0" max="1" step="0.01" value="0" title="Beat delay — 3/4-beat echo synced to the deck grid; 0 is dry. Double-click resets"><output>dry</output></div>
     <div class="row"><label>Stem</label><select data-act="stem" title="Mid/side split — Vocal keeps the centre channel (acapella), Inst keeps the sides (vocal-removed)"><option value="off">Full</option><option value="voc">Vocal</option><option value="inst">Inst</option></select></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1"><output>100%</output></div>
-    <div class="row"><span class="bpm">BPM <b>—</b></span><span class="barcount" title="Bar.beat position on the beat grid — where the phrase is">—</span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="stctl" title="Transpose — shift the deck's key in semitones (needs key lock / http)"><button data-act="pitchdn">−</button><b class="st">±0</b><button data-act="pitchup">+</button></span><button data-act="keysync" title="Key sync — transpose to a key that mixes harmonically with the other deck">Key</button><span class="status"></span></div>
+    <div class="row"><span class="bpm">BPM <b>—</b></span><span class="barcount" title="Bar.beat position on the beat grid — where the phrase is">—</span><span class="beatlamp" title="Beat indicator — pulses each beat, accent on the downbeat"></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="stctl" title="Transpose — shift the deck's key in semitones (needs key lock / http)"><button data-act="pitchdn">−</button><b class="st">±0</b><button data-act="pitchup">+</button></span><button data-act="keysync" title="Key sync — transpose to a key that mixes harmonically with the other deck">Key</button><span class="status"></span></div>
   </section>
 </main>
 <section class="library">
@@ -499,6 +503,7 @@ class Deck {
     this.key = null;       // {num, letter, name} from estimateKey (Camelot + name)
     this.bpmEl = root.querySelector('.bpm b');
     this.barEl = root.querySelector('.barcount');
+    this.lampEl = root.querySelector('.beatlamp');
     this.keyEl = root.querySelector('.key');
     this.wave = root.querySelector('canvas.wave');
     this.chFill = root.querySelector('.chm i');
@@ -2100,9 +2105,13 @@ function tick() {
     // Bar.beat counter — phrasing happens on bars, so show where on
     // the grid the playhead sits (bar 1 starts at beatOff).
     if (d.grid && d.buffer) {
-      const n = Math.floor((d.pos() - d.grid.beatOff) / (60 / d.grid.bpm));
+      const beats = (d.pos() - d.grid.beatOff) / (60 / d.grid.bpm);
+      const n = Math.floor(beats);
       d.barEl.textContent = n >= 0 ? (Math.floor(n / 4) + 1) + '.' + (n % 4 + 1) : '—';
-    } else if (d.barEl) d.barEl.textContent = '—';
+      // Beat lamp: lit for the first third of each beat, accent on the
+      // downbeat — the same beat math as the bar counter above.
+      d.lampEl.className = 'beatlamp' + (beats - n < 0.35 ? (n % 4 === 0 ? ' bar' : ' beat') : '');
+    } else if (d.barEl) { d.barEl.textContent = '—'; d.lampEl.className = 'beatlamp'; }
     const rem = d.buffer.duration - d.pos();
     d.timeEl.textContent = d.remain
       ? '-' + fmt(rem) + ' / ' + fmt(d.buffer.duration)
