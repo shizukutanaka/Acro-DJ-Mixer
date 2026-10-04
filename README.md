@@ -184,7 +184,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Beat sync** — `Shift+Sync` slips beat phase only, leaving the
   tempo fader alone (see ADR-0075).
 - **Waveform scrub** — hold and drag on the waveform to jog the
-  playhead continuously (see ADR-0076).
+  playhead continuously (see ADR-0076); `Shift`-drag while playing
+  bends pitch like a finger on the platter (see ADR-0102).
 - **Grid beat shift** — `Shift+‹/›` moves the grid a whole beat when
   detection locked onto the off-beat (see ADR-0078).
 - **BPM edit** — click the BPM readout to type the tempo directly;
