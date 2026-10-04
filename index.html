@@ -162,7 +162,7 @@
     <div class="row"><label>Filter</label><input type="range" data-act="filter" min="-1" max="1" step="0.01" value="0" title="Color filter — left sweeps low-pass, right sweeps high-pass, center is open. Double-click resets"><output>open</output></div>
     <div class="row"><label>Stem</label><select data-act="stem" title="Mid/side split — Vocal keeps the centre channel (acapella), Inst keeps the sides (vocal-removed)"><option value="off">Full</option><option value="voc">Vocal</option><option value="inst">Inst</option></select></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1"><output>100%</output></div>
-    <div class="row"><span class="bpm">BPM <b>—</b></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="status"></span></div>
+    <div class="row"><span class="bpm">BPM <b>—</b></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="status"></span></div>
   </section>
 
   <section class="mixer">
@@ -198,7 +198,7 @@
     <div class="row"><label>Filter</label><input type="range" data-act="filter" min="-1" max="1" step="0.01" value="0" title="Color filter — left sweeps low-pass, right sweeps high-pass, center is open. Double-click resets"><output>open</output></div>
     <div class="row"><label>Stem</label><select data-act="stem" title="Mid/side split — Vocal keeps the centre channel (acapella), Inst keeps the sides (vocal-removed)"><option value="off">Full</option><option value="voc">Vocal</option><option value="inst">Inst</option></select></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1"><output>100%</output></div>
-    <div class="row"><span class="bpm">BPM <b>—</b></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="status"></span></div>
+    <div class="row"><span class="bpm">BPM <b>—</b></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="status"></span></div>
   </section>
 </main>
 <section class="library">
@@ -529,6 +529,8 @@ class Deck {
     this.filterEl.addEventListener('dblclick', () => { this.filterEl.value = 0; this.setFilter(0); });
     this.stemSel.addEventListener('change', () => this.setStem(this.stemSel.value));
     this.el.querySelector('[data-act=tap]').addEventListener('click', () => this.tapTempo());
+    this.el.querySelector('[data-act=nudgeback]').addEventListener('click', () => this.nudgeGrid(-0.01));
+    this.el.querySelector('[data-act=nudgefwd]').addEventListener('click', () => this.nudgeGrid(0.01));
     this.wave.addEventListener('click', e => this.seekFromEvent(e));
   }
 
@@ -558,6 +560,16 @@ class Deck {
     this._drawnPos = undefined;
     this.drawWave();
     this.status('tap: ' + Math.round(bpm) + ' BPM');
+  }
+
+  // Grid nudge: shift beatOff a few ms to eyeball ticks onto transients
+  // — the detector gets phase close, this is the last-mile trim.
+  nudgeGrid(d) {
+    if (!this.grid) return;
+    this.grid.beatOff += d;
+    this.tagLib({ beatOff: this.grid.beatOff });
+    this._drawnPos = undefined;
+    this.drawWave();
   }
 
   async load(fileObj, meta) {
