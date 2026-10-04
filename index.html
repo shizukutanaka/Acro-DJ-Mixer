@@ -184,7 +184,7 @@
     <div class="row"><label>Master</label><input type="range" id="master" min="0" max="1" step="0.01" value="0.9"><output id="master-out">90%</output></div>
     <div class="row"><label>Cue&nbsp;out</label><select id="cueout" title="Output device for the headphone cue bus"><option value="">System output</option></select></div>
     <div class="row"><label>Cue&nbsp;mix</label><input type="range" id="cuemix" min="0" max="1" step="0.01" value="0" title="Cue mix — left is cue (PFL) only, right blends the master output into the phones"><output>cue</output></div>
-    <div class="row"><label>Mono</label><button id="mono" title="Mono — fold the master down to one channel to check mono compatibility (club PAs are often mono)">Mono</button></div>
+    <div class="row"><label>Phones</label><button id="mono" title="Mono — fold the master down to one channel to check mono compatibility (club PAs are often mono)">Mono</button><button id="splitcue" title="Split cue — headphone cue (PFL) in the left ear, master PGM in the right">Split</button></div>
     <div class="meter cuem" title="Cue bus level"><i id="cuemeter-fill"></i></div>
     <div class="phase" id="phase" title="Beat-phase offset between decks"></div>
     <div class="row"><button id="automix" title="Auto mix — when the playing deck reaches its last 16 beats, the other deck starts synced and the crossfader rides over for 8 beats">Auto</button><button id="recbtn" title="Record the master output — click again to stop and download a .webm">Rec</button></div>
@@ -231,7 +231,7 @@
 // worklet playback engine -> deckGain -> xfGain -> masterGain -> monoNode -> limiter -> analyser -> destination
 let ctx = null;
 let masterGain, limiter, analyser, monoNode;
-let cueDest = null, cueAudio = null, cueIn = null, cueAnalyser = null, pgmSend = null;
+let cueDest = null, cueAudio = null, cueIn = null, cueAnalyser = null, pgmSend = null, cuePan = null, pgmPan = null;
 let wsolaModuleReady = false;
 
 // Playback engine: holds the decoded channel data, advances content at `rate`.
@@ -415,7 +415,11 @@ function cueBus() {
     // Decks sum into cueIn; it feeds the stream AND a meter tap, so the
     // cue row can show what the phones are hearing.
     cueIn = ac.createGain();
-    cueIn.connect(cueDest);
+    // Panners sit between the sends and the bus: centre normally, the
+    // Split button pans cue hard-L and PGM hard-R (one-ear monitoring).
+    cuePan = ac.createStereoPanner();
+    cueIn.connect(cuePan);
+    cuePan.connect(cueDest);
     cueAnalyser = ac.createAnalyser();
     cueAnalyser.fftSize = 256;
     cueIn.connect(cueAnalyser);
@@ -424,7 +428,9 @@ function cueBus() {
     pgmSend = ac.createGain();
     pgmSend.gain.value = 0;
     masterGain.connect(pgmSend);
-    pgmSend.connect(cueDest);
+    pgmPan = ac.createStereoPanner();
+    pgmSend.connect(pgmPan);
+    pgmPan.connect(cueDest);
     cueAudio = new Audio();
     cueAudio.srcObject = cueDest.stream;
     cueAudio.play().catch(() => {});
@@ -2013,6 +2019,14 @@ document.getElementById('mono').addEventListener('click', e => {
   if (!monoNode) return;
   const on = monoNode.channelCount !== 1;
   monoNode.channelCount = on ? 1 : 2;
+  e.target.classList.toggle('on', on);
+});
+
+document.getElementById('splitcue').addEventListener('click', e => {
+  if (!cuePan || !pgmPan) return;
+  const on = cuePan.pan.value === 0;
+  cuePan.pan.value = on ? -1 : 0;
+  pgmPan.pan.value = on ? 1 : 0;
   e.target.classList.toggle('on', on);
 });
 

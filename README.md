@@ -152,6 +152,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   like the hardware TEMPO RESET (see ADR-0062).
 - **Cue preview** — hold `Cue` while stopped to audition from the cue
   point; release pauses and snaps back (see ADR-0063).
+- **Split cue** — `Split` on the Phones row pans headphone cue to the
+  left ear and master PGM to the right for one-ear monitoring
+  (see ADR-0064).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
