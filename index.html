@@ -154,6 +154,7 @@
       <button class="primary" data-act="play">Play</button>
       <button data-act="cue">Cue</button>
       <button data-act="sync">Sync</button>
+      <button data-act="dbl" title="Instant doubles — load this track into the other deck at the same point and tempo">×2</button>
       <button data-act="loop" title="4-beat loop snapped to the beat grid">Loop</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been">Roll</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button></span>
       <button data-act="cueout" title="Headphone cue — preview this deck on the cue output">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
@@ -191,6 +192,7 @@
       <button class="primary" data-act="play">Play</button>
       <button data-act="cue">Cue</button>
       <button data-act="sync">Sync</button>
+      <button data-act="dbl" title="Instant doubles — load this track into the other deck at the same point and tempo">×2</button>
       <button data-act="loop" title="4-beat loop snapped to the beat grid">Loop</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been">Roll</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button></span>
       <button data-act="cueout" title="Headphone cue — preview this deck on the cue output">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
@@ -490,6 +492,7 @@ class Deck {
     this.playBtn.addEventListener('click', () => this.toggle());
     this.el.querySelector('[data-act=cue]').addEventListener('click', () => this.cue());
     this.el.querySelector('[data-act=sync]').addEventListener('click', () => this.syncTo(this.partner));
+    this.el.querySelector('[data-act=dbl]').addEventListener('click', () => this.instantDouble());
     this.loopBtn.addEventListener('click', () => this.toggleLoop());
     const rollBtn = this.el.querySelector('[data-act=roll]');
     rollBtn.addEventListener('pointerdown', e => { e.preventDefault(); this.startRoll(); });
@@ -600,6 +603,7 @@ class Deck {
       this.offset = 0;
       this.playing = false;
       this.fileName = fileObj.name;
+      this._fileObj = fileObj;
       this.el.querySelector('.dropzone').textContent = fileObj.name;
       this.playBtn.textContent = 'Play';
       this.status('');
@@ -1167,6 +1171,23 @@ class Deck {
     this._drawnPos = undefined;
     this.drawWave();
     this.tagLib({ loop: [this.loopStart, this.loopEnd] });
+  }
+
+  // Instant doubles: clone this deck onto the partner at the same
+  // position and tempo — the classic doubling/scratch setup. Falls
+  // back to the track start when this deck is stopped.
+  async instantDouble() {
+    const p = this.partner;
+    if (!this._fileObj || !p || p === this) return;
+    const pos = this.pos();
+    const rate = this.rate;
+    const wasPlaying = this.playing;
+    await p.load(this._fileObj);
+    p.tempoEl.value = rate;
+    p.setRate(rate);
+    p.seekTo(pos);
+    if (wasPlaying) p.play();
+    this.status('Doubled into the other deck.');
   }
 
   // Match this deck's tempo and beat phase to the partner deck.
