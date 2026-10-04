@@ -112,6 +112,7 @@
   .eq .band input { flex: 1; min-width: 0; }
   .library { padding: 10px 20px; border-top: 1px solid var(--line); }
   .library h2 { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  #lib-search { width: 100%; box-sizing: border-box; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; color: var(--text); font-size: 12px; padding: 5px 8px; margin-bottom: 6px; }
   .lib-row { display: grid; grid-template-columns: 1fr auto auto auto auto; gap: 10px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
   .lib-row .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .lib-row button { font-size: 11px; padding: 2px 8px; }
@@ -139,7 +140,7 @@
 <body>
 <header>
   <h1>Acro DJ Mixer</h1>
-  <span class="hint">Drop an audio file on each deck. Keys: <b>Q</b>/<b>P</b> play deck A/B · <b>←</b>/<b>→</b> crossfade · <b>0</b> center</span>
+  <span class="hint">Drop an audio file on each deck. Keys: <b>Q</b>/<b>P</b> play A/B · <b>Z–V</b>/<b>B–,</b> pads A/B · <b>E</b>/<b>I</b> sync · <b>R</b>/<b>U</b> loop · <b>←</b>/<b>→</b> crossfade · <b>0</b> center</span>
 </header>
 <main>
   <section class="deck a" id="deck-a">
@@ -162,7 +163,7 @@
     <div class="row"><label>Filter</label><input type="range" data-act="filter" min="-1" max="1" step="0.01" value="0" title="Color filter — left sweeps low-pass, right sweeps high-pass, center is open. Double-click resets"><output>open</output></div>
     <div class="row"><label>Stem</label><select data-act="stem" title="Mid/side split — Vocal keeps the centre channel (acapella), Inst keeps the sides (vocal-removed)"><option value="off">Full</option><option value="voc">Vocal</option><option value="inst">Inst</option></select></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1"><output>100%</output></div>
-    <div class="row"><span class="bpm">BPM <b>—</b></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="status"></span></div>
+    <div class="row"><span class="bpm">BPM <b>—</b></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="status"></span></div>
   </section>
 
   <section class="mixer">
@@ -198,11 +199,12 @@
     <div class="row"><label>Filter</label><input type="range" data-act="filter" min="-1" max="1" step="0.01" value="0" title="Color filter — left sweeps low-pass, right sweeps high-pass, center is open. Double-click resets"><output>open</output></div>
     <div class="row"><label>Stem</label><select data-act="stem" title="Mid/side split — Vocal keeps the centre channel (acapella), Inst keeps the sides (vocal-removed)"><option value="off">Full</option><option value="voc">Vocal</option><option value="inst">Inst</option></select></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1"><output>100%</output></div>
-    <div class="row"><span class="bpm">BPM <b>—</b></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="status"></span></div>
+    <div class="row"><span class="bpm">BPM <b>—</b></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="status"></span></div>
   </section>
 </main>
 <section class="library">
   <h2>Library</h2>
+  <input type="text" id="lib-search" placeholder="Filter tracks…" autocomplete="off">
   <div id="lib-rows"><p class="muted">Tracks you load are saved here for instant reload.</p></div>
 </section>
 <footer>Acro DJ Mixer — local files only, nothing is uploaded. See docs/adr/ADR-0001 for scope decisions.</footer>
@@ -529,6 +531,8 @@ class Deck {
     this.filterEl.addEventListener('dblclick', () => { this.filterEl.value = 0; this.setFilter(0); });
     this.stemSel.addEventListener('change', () => this.setStem(this.stemSel.value));
     this.el.querySelector('[data-act=tap]').addEventListener('click', () => this.tapTempo());
+    this.el.querySelector('[data-act=nudgeback]').addEventListener('click', () => this.nudgeGrid(-0.01));
+    this.el.querySelector('[data-act=nudgefwd]').addEventListener('click', () => this.nudgeGrid(0.01));
     this.wave.addEventListener('click', e => this.seekFromEvent(e));
   }
 
@@ -558,6 +562,16 @@ class Deck {
     this._drawnPos = undefined;
     this.drawWave();
     this.status('tap: ' + Math.round(bpm) + ' BPM');
+  }
+
+  // Grid nudge: shift beatOff a few ms to eyeball ticks onto transients
+  // — the detector gets phase close, this is the last-mile trim.
+  nudgeGrid(d) {
+    if (!this.grid) return;
+    this.grid.beatOff += d;
+    this.tagLib({ beatOff: this.grid.beatOff });
+    this._drawnPos = undefined;
+    this.drawWave();
   }
 
   async load(fileObj, meta) {
@@ -1420,13 +1434,17 @@ const Library = {
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+let libQuery = '';
+
 async function renderLibrary() {
   const rowsEl = document.getElementById('lib-rows');
   let rows;
   try { rows = (await Library.all()).filter(t => !t.deleted_at).sort((a, b) => b.updated_at - a.updated_at); }
   catch (_) { return; }
+  const q = libQuery.trim().toLowerCase();
+  if (q) rows = rows.filter(t => (t.name || '').toLowerCase().includes(q));
   if (!rows.length) {
-    rowsEl.innerHTML = '<p class="muted">Tracks you load are saved here for instant reload.</p>';
+    rowsEl.innerHTML = `<p class="muted">${q ? 'No tracks match.' : 'Tracks you load are saved here for instant reload.'}</p>`;
     return;
   }
   // Harmonic-mix recommendation: a row lights green when it fits either
@@ -1558,6 +1576,10 @@ cueOutSel.addEventListener('change', e => setCueDevice(e.target.value));
 refreshCueDevices();
 if (navigator.mediaDevices) navigator.mediaDevices.addEventListener('devicechange', refreshCueDevices);
 
+document.getElementById('lib-search').addEventListener('input', e => {
+  libQuery = e.target.value;
+  renderLibrary();
+});
 document.getElementById('lib-rows').addEventListener('click', e => {
   const row = e.target.closest('.lib-row');
   if (!row) return;
@@ -1569,12 +1591,27 @@ renderLibrary();
 
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' && e.target.type === 'text') return;
+  if (e.target.tagName === 'SELECT') return;
   switch (e.key) {
     case 'q': case 'Q': deckA.toggle(); break;
     case 'p': case 'P': deckB.toggle(); break;
     case 'ArrowLeft': xfader.value = Math.max(0, parseFloat(xfader.value) - 0.05); applyCrossfade(); break;
     case 'ArrowRight': xfader.value = Math.min(1, parseFloat(xfader.value) + 0.05); applyCrossfade(); break;
     case '0': xfader.value = 0.5; applyCrossfade(); break;
+    // Deck A: Z X C V = pads 1-4, E = sync, R = loop
+    case 'z': case 'Z': deckA.padCue(0); break;
+    case 'x': case 'X': deckA.padCue(1); break;
+    case 'c': case 'C': deckA.padCue(2); break;
+    case 'v': case 'V': deckA.padCue(3); break;
+    case 'e': case 'E': deckA.syncTo(deckB); break;
+    case 'r': case 'R': deckA.toggleLoop(); break;
+    // Deck B: B N M , = pads 1-4, I = sync, U = loop
+    case 'b': case 'B': deckB.padCue(0); break;
+    case 'n': case 'N': deckB.padCue(1); break;
+    case 'm': case 'M': deckB.padCue(2); break;
+    case ',': deckB.padCue(3); break;
+    case 'i': case 'I': deckB.syncTo(deckA); break;
+    case 'u': case 'U': deckB.toggleLoop(); break;
   }
 });
 

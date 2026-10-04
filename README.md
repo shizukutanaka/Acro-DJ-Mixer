@@ -48,8 +48,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   each comb line (see ADR-0025); `bpm` is fractional internally via
   sub-lag parabolic interpolation — integer lag error (~0.5%) used to
   drift the grid ~2 beats over a 4-min track (see ADR-0027). `Tap` sets
-  tempo + phase by hand for tracks the detector can't read (see ADR-0029).
-- **Key detection** — chromagram + Krumhansl–Schmuckler profiles → Camelot
+  tempo + phase by hand for tracks the detector can't read (see ADR-0029);
+  `‹`/`›` nudge the grid phase ±10 ms to trim ticks onto transients
+  (see ADR-0030).y detection** — chromagram + Krumhansl–Schmuckler profiles → Camelot
   code shown next to BPM; green = mixes harmonically with the other deck,
   amber = clash (see ADR-0004).
 - **Sync** — one click matches a deck's tempo and beat phase to the other deck
@@ -74,7 +75,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   BPM/key analysis, soft-deletable); `→A`/`→B` reloads instantly with
   cached analysis, survives page reloads. Rows highlight green when the
   track fits a loaded deck (tempo within ±16% sync range + harmonic key)
-  — see ADR-0008/0011.
+  — see ADR-0008/0011. Filter box narrows rows by name as you type
+  (see ADR-0032).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
@@ -107,7 +109,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   peaks (see ADR-0018).
 - **Master level meter** and master gain.
 - **Keyboard** — `Q`/`P` toggle deck A/B, `←`/`→` move the crossfader,
-  `0` centers it.
+  `0` centers it; mirrored pad/sync/loop keys: deck A `Z X C V` `E` `R`,
+  deck B `B N M ,` `I` `U` (see ADR-0031).
 
 ## Architecture
 
