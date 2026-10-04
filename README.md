@@ -232,7 +232,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   ADR-0134).
 - **Beat division** — the `¼/½/¾/1` select sets echo time in beats,
   the DJM BEAT parameter (see ADR-0094); it also paces the flanger
-  sweep — one LFO cycle per `div*4` beats (see ADR-0138).
+  sweep — one LFO cycle per `div*4` beats (see ADR-0138) — and the
+  trans chop rate (`1/div` chops per beat; see ADR-0141).
 - **Rec timer** — the Rec button counts `M:SS` while recording so a
   forgotten take can't hide (see ADR-0082). The browser tab title
   shows `▶ A: name` while a deck plays, so a background tab still

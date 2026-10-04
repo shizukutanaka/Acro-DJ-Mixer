@@ -1438,7 +1438,9 @@ class Deck {
     const beat = this.grid ? 60 / this.grid.bpm / this.rate : 0.45;
     const div = parseFloat(this.fxBeat.value);
     this.delay.delayTime.setTargetAtTime(Math.min(div * beat, 2), ctx.currentTime, 0.05);
-    if (this.gateOsc) this.gateOsc.frequency.setTargetAtTime(1 / beat, ctx.currentTime, 0.05);
+    // Trans chop rate follows the BEAT division like echo and the
+    // flanger: ¼ = 4 chops per beat (fast stutter), 1 = one per beat.
+    if (this.gateOsc) this.gateOsc.frequency.setTargetAtTime(1 / (div * beat), ctx.currentTime, 0.05);
     // Flanger sweep is a beat effect too: one LFO cycle spans
     // div*4 beats (1 bar at BEAT=1), so the comb breathes in time —
     // at 120 BPM that's 2 Hz (¼) down to 0.5 Hz (1).
