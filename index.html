@@ -92,7 +92,8 @@
   .mixer { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 14px; align-items: center; justify-content: center; }
   .mixer h2 { margin: 0; font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
   .mixer .row { width: 100%; }
-  .meter { width: 100%; height: 10px; background: var(--panel-2); border-radius: 5px; overflow: hidden; }
+  .meter { width: 100%; height: 10px; }
+  .chm { height: 6px; margin-top: 4px; } background: var(--panel-2); border-radius: 5px; overflow: hidden; }
   .meter i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #3ddc84, #ffd23f 70%, #ff5252); transition: width .05s linear; }
   .gr { min-height: 12px; font-size: 10px; color: #ff5252; text-align: right; }
   .cuem { height: 4px; }
@@ -148,11 +149,13 @@
     <div class="dropzone" data-deck="a">Drop track or click to load</div>
     <input type="file" accept="audio/*" hidden>
     <canvas class="wave" width="640" height="90"></canvas>
+    <div class="meter chm" title="Channel level (post-EQ, pre-crossfader)"><i></i></div>
     <div class="transport">
       <button class="primary" data-act="play">Play</button>
       <button data-act="cue">Cue</button>
       <button data-act="sync">Sync</button>
-      <button data-act="loop" title="4-beat loop snapped to the beat grid">Loop</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button></span>
+      <button data-act="dbl" title="Instant doubles — load this track into the other deck at the same point and tempo">×2</button><button data-act="brake" title="Vinyl brake — pause spins down, play spins up">Brake</button>
+      <button data-act="loop" title="4-beat loop snapped to the beat grid">Loop</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been">Roll</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button></span>
       <button data-act="cueout" title="Headphone cue — preview this deck on the cue output">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
       <span class="time">0:00 / 0:00</span>
@@ -170,7 +173,7 @@
     <h2>Mixer</h2>
     <div class="meter"><i id="meter-fill"></i></div>
     <div class="gr" id="gr" title="Limiter gain reduction"></div>
-    <div class="row"><label>A</label><input type="range" id="xfader" min="0" max="1" step="0.005" value="0.5"><label>B</label></div>
+    <div class="row"><label>A</label><input type="range" id="xfader" min="0" max="1" step="0.005" value="0.5"><label>B</label><select id="xfcurve" title="Crossfader curve — Smooth fades gradually, Cut reaches full in the first/last 10% for scratching"><option value="smooth">Smooth</option><option value="cut">Cut</option></select></div>
     <div class="row"><label>Master</label><input type="range" id="master" min="0" max="1" step="0.01" value="0.9"><output id="master-out">90%</output></div>
     <div class="row"><label>Cue&nbsp;out</label><select id="cueout" title="Output device for the headphone cue bus"><option value="">System output</option></select></div>
     <div class="meter cuem" title="Cue bus level"><i id="cuemeter-fill"></i></div>
@@ -184,11 +187,13 @@
     <div class="dropzone" data-deck="b">Drop track or click to load</div>
     <input type="file" accept="audio/*" hidden>
     <canvas class="wave" width="640" height="90"></canvas>
+    <div class="meter chm" title="Channel level (post-EQ, pre-crossfader)"><i></i></div>
     <div class="transport">
       <button class="primary" data-act="play">Play</button>
       <button data-act="cue">Cue</button>
       <button data-act="sync">Sync</button>
-      <button data-act="loop" title="4-beat loop snapped to the beat grid">Loop</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button></span>
+      <button data-act="dbl" title="Instant doubles — load this track into the other deck at the same point and tempo">×2</button><button data-act="brake" title="Vinyl brake — pause spins down, play spins up">Brake</button>
+      <button data-act="loop" title="4-beat loop snapped to the beat grid">Loop</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been">Roll</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button></span>
       <button data-act="cueout" title="Headphone cue — preview this deck on the cue output">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
       <span class="time">0:00 / 0:00</span>
@@ -453,6 +458,7 @@ class Deck {
     this.bpmEl = root.querySelector('.bpm b');
     this.keyEl = root.querySelector('.key');
     this.wave = root.querySelector('canvas.wave');
+    this.chFill = root.querySelector('.chm i');
     this.wctx = this.wave.getContext('2d');
     this.timeEl = root.querySelector('.time');
     this.statusEl = root.querySelector('.status');
@@ -486,7 +492,13 @@ class Deck {
     this.playBtn.addEventListener('click', () => this.toggle());
     this.el.querySelector('[data-act=cue]').addEventListener('click', () => this.cue());
     this.el.querySelector('[data-act=sync]').addEventListener('click', () => this.syncTo(this.partner));
+    this.el.querySelector('[data-act=dbl]').addEventListener('click', () => this.instantDouble());
     this.loopBtn.addEventListener('click', () => this.toggleLoop());
+    const rollBtn = this.el.querySelector('[data-act=roll]');
+    rollBtn.addEventListener('pointerdown', e => { e.preventDefault(); this.startRoll(); });
+    for (const ev of ['pointerup', 'pointerleave', 'pointercancel'])
+      rollBtn.addEventListener(ev, () => this.stopRoll());
+    this.rollBtn = rollBtn;
     this.el.querySelector('[data-act=loopdiv]').addEventListener('click', () => this.setLoopLen(0.5));
     this.el.querySelector('[data-act=loopmul]').addEventListener('click', () => this.setLoopLen(2));
     this.cueBtn.addEventListener('click', () => this.toggleCue());
@@ -497,6 +509,13 @@ class Deck {
     this.el.querySelector('[data-act=jumpback]').addEventListener('click', () => this.beatJump(-1));
     this.el.querySelector('[data-act=jumpfwd]').addEventListener('click', () => this.beatJump(1));
     this.keylockBtn.addEventListener('click', () => this.toggleKeylock());
+    this.spinMul = 1;
+    this.brake = false;
+    this.brakeBtn = this.el.querySelector('[data-act=brake]');
+    this.brakeBtn.addEventListener('click', () => {
+      this.brake = !this.brake;
+      this.brakeBtn.classList.toggle('on', this.brake);
+    });
     this.tempoEl.addEventListener('input', () => this.setRate(parseFloat(this.tempoEl.value)));
     // Pitch bend: hold bends the deck ±5%, release restores. The bend
     // multiplies the engine rate only — the slider keeps the base tempo.
@@ -591,6 +610,7 @@ class Deck {
       this.offset = 0;
       this.playing = false;
       this.fileName = fileObj.name;
+      this._fileObj = fileObj;
       this.el.querySelector('.dropzone').textContent = fileObj.name;
       this.playBtn.textContent = 'Play';
       this.status('');
@@ -604,6 +624,7 @@ class Deck {
       this.cues = meta && meta.cues ? meta.cues.slice(0, 4) : [null, null, null, null];
       while (this.cues.length < 4) this.cues.push(null);
       this.cues.forEach((c, i) => this.pads[i].classList.toggle('set', c != null));
+      this._savedLoop = meta && meta.loop ? meta.loop : null;
       this.peaks = computePeaks(buf, this.wave.width);
       this.drawWave();
       this.libId = meta ? meta.libId : null;
@@ -627,6 +648,21 @@ class Deck {
       }
       // _libP resolves to the library id once the record exists — tag
       // calls must await it or analysis can race the save and be dropped.
+      // Restore a saved loop: bounds are absolute seconds, so no grid
+      // is needed — arm it visually and hand bounds to the engine.
+      if (this._savedLoop) {
+        const [ls, le] = this._savedLoop;
+        if (le - ls > 0.01 && le <= buf.duration) {
+          this.loopStart = ls;
+          this.loopEnd = le;
+          this.loopOn = true;
+          this.loopBtn.classList.add('on');
+          this.loopLenEl.hidden = false;
+          this.applyLoop();
+          this._drawnPos = undefined;
+          this.drawWave();
+        }
+      }
       this._libP = meta
         ? Promise.resolve(meta.libId)
         : Library.addFromFile(fileObj, buf.duration)
@@ -681,6 +717,10 @@ class Deck {
     this.eq.mid.connect(this.eq.high);
     this.eq.high.connect(this.filter);
     this.filter.connect(this.xfGain);
+    // Channel strip meter tap: post-EQ/filter, pre-crossfader.
+    this.chAnalyser = ac.createAnalyser();
+    this.chAnalyser.fftSize = 512;
+    this.filter.connect(this.chAnalyser);
     this.xfGain.connect(masterGain);
     try {
       if (!wsolaModuleReady) { await ac.audioWorklet.addModule(WSOLA_URL); wsolaModuleReady = true; }
@@ -714,7 +754,7 @@ class Deck {
   pos() {
     if (!this.buffer) return 0;
     let p = this.playing
-      ? this.offset + (ctx.currentTime - this.startedAt) * this.rate * this.bendMul
+      ? this.offset + (ctx.currentTime - this.startedAt) * this.rate * this.bendMul * this.spinMul
       : this.offset;
     // The engines wrap inside the loop region; mirror that here so the
     // playhead and any pos() consumers see the true position. (Seeks outside
@@ -732,6 +772,7 @@ class Deck {
 
   play() {
     if (!this.buffer || this.playing || !this.engine) return;
+    if (this._spinTimer) { clearInterval(this._spinTimer); this._spinTimer = null; this.spinMul = 1; }
     if (this.offset >= this.buffer.duration - 0.01) this.offset = 0;
     const ac = audio();
     if (this.engine === 'worklet') {
@@ -739,7 +780,7 @@ class Deck {
     } else {
       const src = ac.createBufferSource();
       src.buffer = this.buffer;
-      src.playbackRate.value = this.rate * this.bendMul;
+      src.playbackRate.value = this.rate * this.bendMul * this.spinMul;
       src.connect(this.deckGain);
       src.connect(this.cueSend);
       if (this.loopOn) { src.loop = true; src.loopStart = this.loopStart; src.loopEnd = this.loopEnd; }
@@ -757,6 +798,8 @@ class Deck {
     this.startedAt = ac.currentTime;
     this.playing = true;
     this.playBtn.textContent = 'Pause';
+    if (this.brake) { this.spinMul = 1e-3; this._applySpinRate(); this._spin(1, 0.5); }
+    else this.spinMul = 1;
   }
 
   stopPlayback() {
@@ -773,9 +816,46 @@ class Deck {
 
   pause() {
     if (!this.playing) return;
+    if (this.brake) {
+      // Spin-down: ramp the engine rate to ~0, then actually stop.
+      this.playing = true;   // pos() keeps tracking during the ramp
+      this._spin(0, 0.6, () => {
+        this.offset = this.pos();
+        this.playing = false;
+        this.spinMul = 1;
+        this.stopPlayback();
+      });
+      this.playBtn.textContent = 'Play';
+      return;
+    }
     this.offset = this.pos();
     this.stopPlayback();
     this.playBtn.textContent = 'Play';
+  }
+
+  _applySpinRate() {
+    const eff = this.rate * this.bendMul * this.spinMul;
+    if (this.engine === 'worklet') this.node.port.postMessage({ type: 'rate', rate: eff });
+    else if (this.source) this.source.playbackRate.value = eff;
+  }
+
+  // Ramp spinMul from its current value to `target` over `dur` s,
+  // rebasing the position clock at each step so pos() stays exact.
+  _spin(target, dur, done) {
+    if (this._spinTimer) clearInterval(this._spinTimer);
+    const from = this.spinMul, steps = 10, iv = dur * 1000 / steps;
+    let i = 0;
+    this._spinTimer = setInterval(() => {
+      i++;
+      const t = i / steps;
+      const v = from + (target - from) * t;
+      if (this.playing) { this.offset = this.pos(); this.startedAt = ctx.currentTime; }
+      this.spinMul = i >= steps ? target : Math.max(v, 1e-3);
+      const eff = this.rate * this.bendMul * this.spinMul;
+      if (this.engine === 'worklet') this.node.port.postMessage({ type: 'rate', rate: eff });
+      else if (this.source) this.source.playbackRate.value = eff;
+      if (i >= steps) { clearInterval(this._spinTimer); this._spinTimer = null; done && done(); }
+    }, iv);
   }
 
   cue() {
@@ -791,7 +871,7 @@ class Deck {
   setRate(r) {
     if (this.playing) { this.offset = this.pos(); this.startedAt = ctx.currentTime; }
     this.rate = r;
-    const eff = r * this.bendMul;   // bend multiplies engine rate, not the slider
+    const eff = r * this.bendMul * this.spinMul;   // bend & brake multiply engine rate, not the slider
     if (this.engine === 'worklet') this.node.port.postMessage({ type: 'rate', rate: eff });
     else if (this.source) this.source.playbackRate.value = eff;
     this.tempoOut.textContent = (r >= 1 ? '+' : '') + ((r - 1) * 100).toFixed(1) + '%';
@@ -828,9 +908,24 @@ class Deck {
   // fader) instead of being pumped into the limiter.
   applyAutoGain(mono) {
     const kw = kWeight(mono);
-    let sum = 0;
-    for (let i = 0; i < kw.length; i++) sum += kw[i] * kw[i];
-    const rms = Math.sqrt(sum / kw.length);
+    // EBU R128 gating: measure 400 ms blocks at 75% overlap, drop blocks
+    // below the -70 LUFS absolute gate, then below mean-10 LU relative
+    // gate — intros/outros/breaks no longer deflate the measurement.
+    const block = Math.round(0.4 * ANALYSIS_SR), hop = Math.round(block / 4);
+    const lk = [];
+    for (let b = 0; b + block <= kw.length; b += hop) {
+      let z = 0;
+      for (let i = b; i < b + block; i++) z += kw[i] * kw[i];
+      z /= block;
+      const L = -0.691 + 10 * Math.log10(Math.max(z, 1e-12));
+      if (L >= -70) lk.push([z, L]);
+    }
+    let sum = 0, n = 0;
+    if (lk.length) {
+      const meanL = 10 * Math.log10(lk.reduce((a, p) => a + p[0], 0) / lk.length) - 0.691;
+      for (const [z, L] of lk) if (L >= meanL - 10) { sum += z; n++; }
+    }
+    const rms = n ? Math.sqrt(sum / n) : (kw.length ? Math.sqrt(kw.reduce((a, v) => a + v * v, 0) / kw.length) : 0);
     const g = rms < 1e-4 ? 1 : Math.min(1, Math.max(0.25, 0.18 / rms));
     this.gainEl.value = g;
     this.setGain(g);
@@ -1062,6 +1157,42 @@ class Deck {
     this.loopLenEl.hidden = !this.loopOn;
     this._drawnPos = undefined;  // region shading changed while pos() may not have
     this.drawWave();
+    this.tagLib({ loop: this.loopOn ? [this.loopStart, this.loopEnd] : null });
+  }
+
+  // Loop roll (SLIP): while held, a 1-beat loop plays; on release the
+  // deck jumps to where the track would have been without the roll.
+  startRoll() {
+    if (this._roll || !this.playing || !this.buffer || !this.grid) return;
+    const beatLen = 60 / this.grid.bpm;
+    const n = Math.floor((this.pos() - this.grid.beatOff) / beatLen);
+    const start = Math.max(0, this.grid.beatOff + n * beatLen);
+    if (start + beatLen > this.buffer.duration) return;
+    this._roll = { pos: this.pos(), t: ctx.currentTime, saved: this.loopOn ? [this.loopStart, this.loopEnd] : null };
+    this.loopStart = start;
+    this.loopEnd = start + beatLen;
+    this.loopOn = true;
+    this.applyLoop();
+    this.rollBtn.classList.add('on');
+    this._drawnPos = undefined;
+    this.drawWave();
+  }
+
+  stopRoll() {
+    const r = this._roll;
+    if (!r) return;
+    this._roll = null;
+    const slip = r.pos + (ctx.currentTime - r.t) * this.rate;
+    if (r.saved) { [this.loopStart, this.loopEnd] = r.saved; this.loopOn = true; }
+    else this.loopOn = false;
+    this.applyLoop();
+    this.loopBtn.classList.toggle('on', this.loopOn);
+    this.loopLenEl.hidden = !this.loopOn;
+    this.rollBtn.classList.remove('on');
+    if (this.playing) this.seekTo(Math.min(slip, this.buffer.duration - 0.01));
+    this._drawnPos = undefined;
+    this.drawWave();
+    this.tagLib({ loop: this.loopOn ? [this.loopStart, this.loopEnd] : null });
   }
 
   applyLoop() {
@@ -1086,6 +1217,24 @@ class Deck {
     this.applyLoop();
     this._drawnPos = undefined;
     this.drawWave();
+    this.tagLib({ loop: [this.loopStart, this.loopEnd] });
+  }
+
+  // Instant doubles: clone this deck onto the partner at the same
+  // position and tempo — the classic doubling/scratch setup. Falls
+  // back to the track start when this deck is stopped.
+  async instantDouble() {
+    const p = this.partner;
+    if (!this._fileObj || !p || p === this) return;
+    const pos = this.pos();
+    const rate = this.rate;
+    const wasPlaying = this.playing;
+    await p.load(this._fileObj);
+    p.tempoEl.value = rate;
+    p.setRate(rate);
+    p.seekTo(pos);
+    if (wasPlaying) p.play();
+    this.status('Doubled into the other deck.');
   }
 
   // Match this deck's tempo and beat phase to the partner deck.
@@ -1428,7 +1577,7 @@ const Library = {
   async loadInto(deck, id) {
     const rec = await this.get(id);
     if (!rec || rec.deleted_at) return;
-    deck.load(rec.blob, { libId: rec.id, bpm: rec.bpm, beatOff: rec.beatOff, key: rec.key, cues: rec.cues });
+    deck.load(rec.blob, { libId: rec.id, bpm: rec.bpm, beatOff: rec.beatOff, key: rec.key, cues: rec.cues, loop: rec.loop });
   },
 };
 
@@ -1471,13 +1620,22 @@ deckA.partner = deckB;
 deckB.partner = deckA;
 const xfader = document.getElementById('xfader');
 
+const xfcurve = document.getElementById('xfcurve');
 function applyCrossfade() {
   const x = parseFloat(xfader.value);
+  if (xfcurve.value === 'cut') {
+    // Scratch curve: each side reaches full level within 10% of travel,
+    // so chops/transforms hit instantly; the middle sums both at full.
+    deckA.setXf(Math.min(1, (1 - x) / 0.1));
+    deckB.setXf(Math.min(1, x / 0.1));
+    return;
+  }
   // Equal-power law keeps perceived loudness constant through the middle.
   deckA.setXf(Math.cos(x * Math.PI / 2));
   deckB.setXf(Math.sin(x * Math.PI / 2));
 }
 xfader.addEventListener('input', applyCrossfade);
+xfcurve.addEventListener('change', applyCrossfade);
 
 // ----- Auto mix -----
 // Arm once per transition: at 16 beats before the playing deck ends, the
@@ -1633,6 +1791,17 @@ function tick() {
     }
   }
   autoMixTick();
+  for (const d of [deckA, deckB]) {
+    if (d.chAnalyser && d.chFill) {
+      d.chAnalyser.getByteTimeDomainData(meterBuf);
+      let p = 0;
+      for (let i = 0; i < meterBuf.length; i++) {
+        const v = Math.abs(meterBuf[i] - 128) / 128;
+        if (v > p) p = v;
+      }
+      d.chFill.style.width = Math.min(p * 100, 100).toFixed(1) + '%';
+    }
+  }
   if (ctx && analyser) {
     analyser.getByteTimeDomainData(meterBuf);
     let peak = 0;

@@ -77,6 +77,18 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   track fits a loaded deck (tempo within ±16% sync range + harmonic key)
   — see ADR-0008/0011. Filter box narrows rows by name as you type
   (see ADR-0032).
+- **Crossfader curve** — `Smooth` (equal-power, default) or `Cut`
+  (each side reaches full within 10% of travel for scratch chops; both
+  full in the middle), selected next to the fader (see ADR-0036).
+- **Loop persistence** — an armed loop is saved to the library record
+  and re-armed on reload, like hot cues (see ADR-0038).
+- **Loop roll** — hold `Roll` to loop the current beat, release to
+  resume where the track would have been (slip); an armed loop is
+  restored on release (see ADR-0037).
+- **Instant doubles** — `×2` clones the deck into the partner at the
+  same position and tempo, playing if it was playing (see ADR-0039).
+- **Vinyl brake** — `Brake` toggle makes pause spin down and play
+  spin up like a turntable; off = instant stop (see ADR-0040).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
@@ -102,7 +114,12 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   high-pass + +4 dB high shelf, approximating BS.1770 perceived
   loudness) is measured from the same downmix as BPM/key analysis and
   the deck gain is set so it lands near −15 dBFS; attenuation only,
-  slider shows and can override (see ADR-0019/0024).
+  slider shows and can override. Measured with full EBU R128 gating
+  (−70 LUFS absolute + −10 LU relative), so silent tails/intros don't
+  deflate the value (see ADR-0019/0024/0034).
+- **Channel meters** — a thin strip under each waveform shows the
+  deck's post-EQ/filter, pre-crossfader peak level, so gain staging is
+  visible before the fader opens (see ADR-0035).
 - **Master limiter** — a fast `DynamicsCompressor` at the end of the
   chain (threshold −3 dB, ratio 20) keeps two-deck sums and EQ boosts
   from clipping; `GR −x.x dB` shows under the meter while it rides
