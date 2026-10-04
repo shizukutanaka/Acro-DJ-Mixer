@@ -181,6 +181,7 @@
     <div class="row"><label>A</label><input type="range" id="xfader" min="0" max="1" step="0.005" value="0.5"><label>B</label><select id="xfcurve" title="Crossfader curve — Smooth fades gradually, Cut reaches full in the first/last 10% for scratching"><option value="smooth">Smooth</option><option value="cut">Cut</option></select><button id="xfrev" title="HAMSTER — swap which side of the crossfader feeds A and B, for scratching">Rev</button></div>
     <div class="row"><label>Master</label><input type="range" id="master" min="0" max="1" step="0.01" value="0.9"><output id="master-out">90%</output></div>
     <div class="row"><label>Cue&nbsp;out</label><select id="cueout" title="Output device for the headphone cue bus"><option value="">System output</option></select></div>
+    <div class="row"><label>Cue&nbsp;mix</label><input type="range" id="cuemix" min="0" max="1" step="0.01" value="0" title="Cue mix — left is cue (PFL) only, right blends the master output into the phones"><output>cue</output></div>
     <div class="meter cuem" title="Cue bus level"><i id="cuemeter-fill"></i></div>
     <div class="phase" id="phase" title="Beat-phase offset between decks"></div>
     <div class="row"><button id="automix" title="Auto mix — when the playing deck reaches its last 16 beats, the other deck starts synced and the crossfader rides over for 8 beats">Auto</button><button id="recbtn" title="Record the master output — click again to stop and download a .webm">Rec</button></div>
@@ -227,7 +228,7 @@
 // worklet playback engine -> deckGain -> xfGain -> masterGain -> limiter -> analyser -> destination
 let ctx = null;
 let masterGain, limiter, analyser;
-let cueDest = null, cueAudio = null, cueIn = null, cueAnalyser = null;
+let cueDest = null, cueAudio = null, cueIn = null, cueAnalyser = null, pgmSend = null;
 let wsolaModuleReady = false;
 
 // Playback engine: holds the decoded channel data, advances content at `rate`.
@@ -410,6 +411,12 @@ function cueBus() {
     cueAnalyser = ac.createAnalyser();
     cueAnalyser.fftSize = 256;
     cueIn.connect(cueAnalyser);
+    // Cue mix: a PGM send taps the master bus into the phones, so the
+    // Mix slider blends pre-fader cue with post-fader program.
+    pgmSend = ac.createGain();
+    pgmSend.gain.value = 0;
+    masterGain.connect(pgmSend);
+    pgmSend.connect(cueDest);
     cueAudio = new Audio();
     cueAudio.srcObject = cueDest.stream;
     cueAudio.play().catch(() => {});
@@ -1891,6 +1898,12 @@ document.getElementById('master').addEventListener('input', e => {
   const v = parseFloat(e.target.value);
   document.getElementById('master-out').textContent = Math.round(v * 100) + '%';
   if (ctx) masterGain.gain.setTargetAtTime(v, ctx.currentTime, 0.01);
+});
+
+document.getElementById('cuemix').addEventListener('input', e => {
+  const m = parseFloat(e.target.value);
+  e.target.nextElementSibling.textContent = m <= 0.01 ? 'cue' : Math.round(m * 100) + '%';
+  if (pgmSend && ctx) pgmSend.gain.setTargetAtTime(m, ctx.currentTime, 0.02);
 });
 
 const cueOutSel = document.getElementById('cueout');

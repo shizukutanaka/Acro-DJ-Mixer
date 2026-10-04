@@ -118,6 +118,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Loop move** — `◂`/`▸` beside the loop length buttons slide the
   armed loop by its own length (CDJ LOOP MOVE), persisted like the
   bounds (see ADR-0050).
+- **Cue mix** — `Cue mix` slider blends the master output into the
+  headphone bus alongside pre-fader cue, like a monitor knob
+  (see ADR-0051).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
