@@ -247,7 +247,7 @@
 let ctx = null;
 let masterGain, limiter, analyser, monoNode, micDuck;
 let cueDest = null, cueAudio = null, cueIn = null, cueAnalyser = null, pgmSend = null, cuePan = null, pgmPan = null, phonesOut = null;
-let micStream = null, micSrc = null, micGain = null, micAn = null;
+let micStream = null, micSrc = null, micGain = null, micHp = null, micAn = null;
 let wsolaModuleReady = false;
 
 // Playback engine: holds the decoded channel data, advances content at `rate`.
@@ -2468,9 +2468,9 @@ async function autoNext(vacated, playing) {
 // recordings (recorder taps limiter).
 document.getElementById('mic').addEventListener('click', async e => {
   if (micSrc) {
-    micSrc.disconnect(); micGain.disconnect(); micAn.disconnect();
+    micSrc.disconnect(); micGain.disconnect(); micHp.disconnect(); micAn.disconnect();
     micStream.getTracks().forEach(t => t.stop());
-    micSrc = micStream = micGain = micAn = null;
+    micSrc = micStream = micGain = micHp = micAn = null;
     e.target.style.filter = '';
     if (micDuck) micDuck.gain.setTargetAtTime(1, ctx.currentTime, 0.15);
     e.target.classList.remove('on');
@@ -2483,7 +2483,13 @@ document.getElementById('mic').addEventListener('click', async e => {
   micSrc = ctx.createMediaStreamSource(micStream);
   micGain = ctx.createGain(); micGain.gain.value = 0.9;
   micSrc.connect(micGain);
-  micGain.connect(monoNode);
+  // Rumble/pop filter — the mic section's fixed HPF. Mic inputs are
+  // the dirtiest source in the room; ~120 Hz takes handling noise
+  // and pops out without touching speech.
+  micHp = ctx.createBiquadFilter();
+  micHp.type = 'highpass'; micHp.frequency.value = 120; micHp.Q.value = 0.7;
+  micGain.connect(micHp);
+  micHp.connect(monoNode);
   // Level tap for the button's input indicator — readout only.
   micAn = ctx.createAnalyser(); micAn.fftSize = 256;
   micGain.connect(micAn);
