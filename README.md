@@ -89,6 +89,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   same position and tempo, playing if it was playing (see ADR-0039).
 - **Vinyl brake** — `Brake` toggle makes pause spin down and play
   spin up like a turntable; off = instant stop (see ADR-0040).
+- **Beat echo** — `Echo` slider adds a 3/4-beat feedback delay that
+  follows the deck's grid and tempo slider; double-click resets to
+  dry (see ADR-0041).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
