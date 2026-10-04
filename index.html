@@ -116,6 +116,7 @@
     <div class="transport">
       <button class="primary" data-act="play">Play</button>
       <button data-act="cue">Cue</button>
+      <button data-act="sync">Sync</button>
       <span class="time">0:00 / 0:00</span>
     </div>
     <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1"><output>+0.0%</output></div>
@@ -139,6 +140,7 @@
     <div class="transport">
       <button class="primary" data-act="play">Play</button>
       <button data-act="cue">Cue</button>
+      <button data-act="sync">Sync</button>
       <span class="time">0:00 / 0:00</span>
     </div>
     <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1"><output>+0.0%</output></div>
@@ -191,6 +193,7 @@ class Deck {
     this.xfGain = null;
     this.peaks = null;
     this.fileName = '';
+    this.grid = null;      // {bpm, beatOff} in track-time seconds, from estimateBpm
     this.bpmEl = root.querySelector('.bpm b');
     this.wave = root.querySelector('canvas.wave');
     this.wctx = this.wave.getContext('2d');
@@ -217,6 +220,7 @@ class Deck {
     });
     this.playBtn.addEventListener('click', () => this.toggle());
     this.el.querySelector('[data-act=cue]').addEventListener('click', () => this.cue());
+    this.el.querySelector('[data-act=sync]').addEventListener('click', () => this.syncTo(this.partner));
     this.tempoEl.addEventListener('input', () => this.setRate(parseFloat(this.tempoEl.value)));
     this.gainEl.addEventListener('input', () => this.setGain(parseFloat(this.gainEl.value)));
     this.wave.addEventListener('click', e => this.seekFromEvent(e));
@@ -238,6 +242,7 @@ class Deck {
       this.el.querySelector('.dropzone').textContent = fileObj.name;
       this.playBtn.textContent = 'Play';
       this.status('');
+      this.grid = null;
       this.peaks = computePeaks(buf, this.wave.width);
       this.drawWave();
       this.estimateBpm(buf);
@@ -368,6 +373,14 @@ class Deck {
       const amp = Math.max(this.peaks[i] * mid, 1);
       c.fillRect(x, mid - amp, Math.max(Math.floor(w / n), 1), amp * 2);
     }
+    if (this.buffer && this.grid) {
+      // Beat grid ticks make sync alignment visible.
+      c.fillStyle = 'rgba(255,255,255,0.35)';
+      const beatLen = 60 / this.grid.bpm;
+      for (let t = this.grid.beatOff; t < this.buffer.duration; t += beatLen) {
+        c.fillRect(Math.floor(t / this.buffer.duration * w), 0, 1, h);
+      }
+    }
     if (this.buffer) {
       const x = (this.pos() / this.buffer.duration) * w;
       c.fillStyle = '#fff';
@@ -378,11 +391,38 @@ class Deck {
   async estimateBpm(buf) {
     this.bpmEl.textContent = '…';
     try {
-      const bpm = await estimateBpm(buf);
-      this.bpmEl.textContent = bpm ? String(bpm) : '—';
+      const grid = await estimateBpm(buf);
+      this.grid = grid;
+      this.bpmEl.textContent = grid ? String(grid.bpm) : '—';
+      this._drawnPos = undefined;
+      this.drawWave();
     } catch (err) {
       console.error(err);
       this.bpmEl.textContent = '—';
+    }
+  }
+
+  // Match this deck's tempo and beat phase to the partner deck.
+  // Works in track-time space: pos() already accounts for playbackRate.
+  syncTo(other) {
+    if (!this.buffer || !other || !other.buffer) { this.status('Load a track on both decks.'); return; }
+    if (!this.grid || !other.grid) { this.status('Need BPM on both decks.'); return; }
+    const needRate = (other.grid.bpm * other.rate) / this.grid.bpm;
+    const rate = Math.min(Math.max(needRate, 0.84), 1.16); // deck tempo range
+    if (Math.abs(needRate - rate) > 0.001) this.status('Tempo out of ±16% range — synced as close as possible.');
+    else this.status('Synced to Deck ' + other.side.toUpperCase() + '.');
+    this.tempoEl.value = rate;
+    this.setRate(rate);
+    if (this.playing && other.playing) {
+      const beatLenA = 60 / other.grid.bpm;
+      const beatLenB = 60 / this.grid.bpm;
+      const phaseA = ((other.pos() - other.grid.beatOff) / beatLenA) % 1;
+      // Pick the beat index n minimizing the slip distance.
+      const base = (this.pos() - this.grid.beatOff) / beatLenB - phaseA;
+      const n = Math.round(base);
+      this.offset = this.grid.beatOff + (n + phaseA) * beatLenB;
+      this.stopSource();
+      this.play();
     }
   }
 }
@@ -439,27 +479,38 @@ async function estimateBpm(buf) {
   const fps = targetSr / hop;                 // envelope samples per second
   const minLag = Math.floor(fps * 60 / 180);  // 180 BPM
   const maxLag = Math.floor(fps * 60 / 60);   // 60 BPM
-  let bestLag = 0, best = 0;
+  const scores = new Float32Array(maxLag + 1);
+  let best = 0;
   for (let lag = minLag; lag <= maxLag; lag++) {
     let s = 0;
     for (let i = 0; i + lag < frames; i++) s += flux[i] * flux[i + lag];
-    if (s > best) { best = s; bestLag = lag; }
+    scores[lag] = s;
+    if (s > best) best = s;
   }
-  if (!bestLag) return null;
-  // Octave check: prefer the half-lag if it scores nearly as well (avoids half-tempo reads).
-  const half = Math.round(bestLag / 2);
-  if (half >= minLag) {
+  if (!best) return null;
+  // Octave guard: periodic signals also correlate at 2x/4x the true beat lag,
+  // so take the SMALLEST lag within 92% of the peak — the fastest tempo that
+  // still explains the onsets (avoids half-tempo reads like 64 for 128 BPM).
+  let bestLag = minLag;
+  while (bestLag <= maxLag && scores[bestLag] < best * 0.92) bestLag++;
+  if (bestLag > maxLag) return null;
+  // Beat phase: the comb offset that lands on the strongest onsets
+  // (Ellis 2006-style ODF comb alignment, minus dynamic programming).
+  let bestPhase = 0, bestPhaseScore = -1;
+  for (let p = 0; p < bestLag; p++) {
     let s = 0;
-    for (let i = 0; i + half < frames; i++) s += flux[i] * flux[i + half];
-    if (s > best * 0.85) bestLag = half;
+    for (let i = p; i < frames; i += bestLag) s += flux[i];
+    if (s > bestPhaseScore) { bestPhaseScore = s; bestPhase = p; }
   }
-  return Math.round(fps * 60 / bestLag);
+  return { bpm: Math.round(fps * 60 / bestLag), beatOff: bestPhase * hop / targetSr };
 }
 
 // ----- Mixer wiring -----
 
 const deckA = new Deck(document.getElementById('deck-a'), 'a');
 const deckB = new Deck(document.getElementById('deck-b'), 'b');
+deckA.partner = deckB;
+deckB.partner = deckA;
 const xfader = document.getElementById('xfader');
 
 function applyCrossfade() {
