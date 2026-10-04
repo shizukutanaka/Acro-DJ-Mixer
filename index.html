@@ -250,7 +250,7 @@
 let ctx = null;
 let masterGain, limiter, analyser, monoNode, micDuck, cutGain;
 let cueDest = null, cueAudio = null, cueIn = null, cueAnalyser = null, pgmSend = null, cuePan = null, pgmPan = null, phonesOut = null;
-let micStream = null, micSrc = null, micGain = null, micHp = null, micAn = null, micLow = null, micHigh = null;
+let micStream = null, micSrc = null, micGain = null, micHp = null, micAn = null, micLow = null, micHigh = null, micGate = null, micGateT = 0;
 let wsolaModuleReady = false;
 
 // Playback engine: holds the decoded channel data, advances content at `rate`.
@@ -2721,9 +2721,9 @@ async function autoNext(vacated, playing) {
 document.getElementById('mic').addEventListener('click', async e => {
   if (micSrc) {
     micSrc.disconnect(); micGain.disconnect(); micHp.disconnect(); micAn.disconnect();
-    if (micLow) { micLow.disconnect(); micHigh.disconnect(); }
+    if (micLow) { micLow.disconnect(); micHigh.disconnect(); micGate.disconnect(); }
     micStream.getTracks().forEach(t => t.stop());
-    micSrc = micStream = micGain = micHp = micAn = micLow = micHigh = null;
+    micSrc = micStream = micGain = micHp = micAn = micLow = micHigh = micGate = null;
     e.target.style.filter = '';
     if (micDuck) micDuck.gain.setTargetAtTime(1, ctx.currentTime, 0.15);
     e.target.classList.remove('on');
@@ -2750,7 +2750,11 @@ document.getElementById('mic').addEventListener('click', async e => {
   micHigh = ctx.createBiquadFilter();
   micHigh.type = 'highshelf'; micHigh.frequency.value = 4000;
   micHigh.gain.value = 12 * parseFloat(document.getElementById('mic-high').value);
-  micHp.connect(micLow); micLow.connect(micHigh); micHigh.connect(monoNode);
+  // Downward gate at the end of the chain: room tone and hiss don't
+  // belong on the master between phrases. Floor is −22 dB, not 0 —
+  // speech tails breathe instead of chopping.
+  micGate = ctx.createGain(); micGate.gain.value = 1; micGateT = ctx.currentTime;
+  micHp.connect(micLow); micLow.connect(micHigh); micHigh.connect(micGate); micGate.connect(monoNode);
   // Level tap for the button's input indicator — readout only.
   micAn = ctx.createAnalyser(); micAn.fftSize = 256;
   micGain.connect(micAn);
@@ -3169,6 +3173,17 @@ function tick() {
       if (v > mp) mp = v;
     }
     micBtn.style.filter = 'brightness(' + (1 + Math.min(mp, 1) * 0.7).toFixed(2) + ')';
+    // Gate state: snap open above 0.04, sink to −22 dB after ~300 ms
+    // of quiet — same analyser the indicator reads, no extra tap.
+    if (micGate) {
+      const now = ctx.currentTime;
+      if (mp > 0.04) {
+        micGateT = now;
+        micGate.gain.setTargetAtTime(1, now, 0.005);
+      } else if (now - micGateT > 0.3) {
+        micGate.gain.setTargetAtTime(0.08, now, 0.05);
+      }
+    }
   }
   // Tab title = now playing, so a background tab or continuous auto-mix
   // still tells you what's on the floor.

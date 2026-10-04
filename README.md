@@ -194,7 +194,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   slider beside it trims mic level in the master, 0–1.5 (past unity
   for quiet mics; see ADR-0135), and the two following sliders are a
   DJM-style mic EQ — LOW 200 Hz and HI 4 kHz shelves, ±12 dB (see
-  ADR-0151).
+  ADR-0151). A downward gate at the end of the chain drops room
+  noise to −22 dB between phrases, snapping back open on speech
+  (see ADR-0154).
 - **Fader start** — pushing the crossfader fully into a stopped deck's
   side starts it (see ADR-0068).
 - **Tempo range** — `±8 / ±16 / ±50` select per deck trades slider
