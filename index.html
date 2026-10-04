@@ -3081,18 +3081,28 @@ document.addEventListener('keydown', e => {
       if (pad) pad.click();
       break;
     }
-    // Deck A: Z X C V = pads 1-4, E = sync, R = loop
+    // Deck A: Z X C V = pads 1-4, A S D F = pads 5-8 (row above),
+    // E = sync, R = loop
     case 'z': case 'Z': deckA.padCue(0); break;
     case 'x': case 'X': deckA.padCue(1); break;
     case 'c': case 'C': deckA.padCue(2); break;
     case 'v': case 'V': deckA.padCue(3); break;
+    case 'a': case 'A': deckA.padCue(4); break;
+    case 's': case 'S': deckA.padCue(5); break;
+    case 'd': case 'D': deckA.padCue(6); break;
+    case 'f': case 'F': deckA.padCue(7); break;
     case 'e': case 'E': deckA.syncTo(deckB); break;
     case 'r': case 'R': deckA.toggleLoop(); break;
-    // Deck B: B N M , = pads 1-4, I = sync, U = loop
+    // Deck B: B N M , = pads 1-4, H J K L = pads 5-8 (row above),
+    // I = sync, U = loop
     case 'b': case 'B': deckB.padCue(0); break;
     case 'n': case 'N': deckB.padCue(1); break;
     case 'm': case 'M': deckB.padCue(2); break;
     case ',': deckB.padCue(3); break;
+    case 'h': case 'H': deckB.padCue(4); break;
+    case 'j': case 'J': deckB.padCue(5); break;
+    case 'k': case 'K': deckB.padCue(6); break;
+    case 'l': case 'L': deckB.padCue(7); break;
     case 'i': case 'I': deckB.syncTo(deckA); break;
     case 'u': case 'U': deckB.toggleLoop(); break;
   }

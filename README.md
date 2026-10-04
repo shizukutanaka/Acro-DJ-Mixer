@@ -338,8 +338,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   slider keeps its finer ±0.1% trim (see ADR-0109, ADR-0112).
 - **Keyboard** — `Q`/`P` toggle deck A/B, `←`/`→` move the crossfader,
   `0` centers it, `↑`/`↓` ride the master level; mirrored pad/sync/loop
-  keys: deck A `Z X C V` `E` `R`, deck B `B N M ,` `I` `U`
-  (see ADR-0031, ADR-0101).
+  keys: deck A `Z X C V` (cues 1–4) `A S D F` (cues 5–8) `E` `R`,
+  deck B `B N M ,` `H J K L` `I` `U` (see ADR-0031, ADR-0101,
+  ADR-0157).
 
 ## Architecture
 
