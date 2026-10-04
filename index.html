@@ -128,6 +128,7 @@
   .lib-row .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .lib-row button { font-size: 11px; padding: 2px 8px; }
   .lib-row .lib-del { color: var(--muted); }
+  .lib-row .prep { color: var(--muted); font-size: 10px; }
   .muted { color: var(--muted); font-size: 12px; }
   .looplen { display: inline-flex; gap: 2px; }
   .looplen[hidden] { display: none; }
@@ -1906,8 +1907,11 @@ async function renderLibrary() {
       && t.bpm / d.grid.bpm >= 1 - d.tempoRange && t.bpm / d.grid.bpm <= 1 + d.tempoRange
       && harmonic(d.key, t.key))
     .map(([name]) => name);
-  rowsEl.innerHTML = rows.map(t => { const f = fit(t); return `<div class="lib-row${f.length ? ' fit' : ''}" data-id="${t.id}">
-    <span class="name" title="${esc(t.name)}${f.length ? ' — fits deck ' + f.join('/') + ' (key + tempo)' : ''}">${esc(t.name)}</span>
+  rowsEl.innerHTML = rows.map(t => { const f = fit(t);
+    const nC = (t.cues || []).filter(c => c != null).length;
+    const prep = nC || t.loop ? ` <span class="prep" title="Saved prep — hot cues / armed loop">${nC ? '⚑' + nC : ''}${t.loop ? ' ∞' : ''}</span>` : '';
+    return `<div class="lib-row${f.length ? ' fit' : ''}" data-id="${t.id}">
+    <span class="name" title="${esc(t.name)}${f.length ? ' — fits deck ' + f.join('/') + ' (key + tempo)' : ''}">${esc(t.name)}${prep}</span>
     <span>${t.bpm ? Math.round(t.bpm) : '—'} BPM</span>
     <span>${t.key ? esc(t.key.num + t.key.letter + ' ' + t.key.name) : '—'}</span>
     <span>${fmt(t.duration || 0)}</span>
