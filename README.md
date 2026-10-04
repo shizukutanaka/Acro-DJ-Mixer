@@ -189,7 +189,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Library preview** — `▶` on a library row auditions the track on the
   headphone cue bus without loading a deck (see ADR-0080).
 - **Beat FX select** — the FX knob drives `Echo` or `Flng` (LFO-swept
-  comb); only the selected effect sounds (see ADR-0081).
+  comb) or  (beat-synced gate chop); only the selected effect
+  sounds (see ADR-0081, ADR-0097).
 - **Beat division** — the `¼/½/¾/1` select sets echo time in beats,
   the DJM BEAT parameter (see ADR-0094).
 - **Rec timer** — the Rec button counts `M:SS` while recording so a
