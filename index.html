@@ -103,6 +103,13 @@
   .key.clash { color: #d9a03f; }
   .eq .band { display: flex; align-items: center; gap: 3px; flex: 1; color: var(--muted); font-size: 11px; font-weight: 600; }
   .eq .band input { flex: 1; min-width: 0; }
+  .library { padding: 10px 20px; border-top: 1px solid var(--line); }
+  .library h2 { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .lib-row { display: grid; grid-template-columns: 1fr auto auto auto auto; gap: 10px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
+  .lib-row .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lib-row button { font-size: 11px; padding: 2px 8px; }
+  .lib-row .lib-del { color: var(--muted); }
+  .muted { color: var(--muted); font-size: 12px; }
   @media (max-width: 760px) {
     main { grid-template-columns: 1fr; }
   }
@@ -124,6 +131,7 @@
       <button data-act="cue">Cue</button>
       <button data-act="sync">Sync</button>
       <button data-act="loop" title="4-beat loop snapped to the beat grid">Loop</button>
+      <button data-act="cueout" title="Headphone cue — preview this deck on the cue output">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
       <span class="time">0:00 / 0:00</span>
     </div>
@@ -138,6 +146,7 @@
     <div class="meter"><i id="meter-fill"></i></div>
     <div class="row"><label>A</label><input type="range" id="xfader" min="0" max="1" step="0.005" value="0.5"><label>B</label></div>
     <div class="row"><label>Master</label><input type="range" id="master" min="0" max="1" step="0.01" value="0.9"><output id="master-out">90%</output></div>
+    <div class="row"><label>Cue&nbsp;out</label><select id="cueout" title="Output device for the headphone cue bus"><option value="">System output</option></select></div>
     <div class="kbd-hint">Equal-power crossfade.<br>Auto BPM is an estimate — trust your ears.</div>
   </section>
 
@@ -151,6 +160,7 @@
       <button data-act="cue">Cue</button>
       <button data-act="sync">Sync</button>
       <button data-act="loop" title="4-beat loop snapped to the beat grid">Loop</button>
+      <button data-act="cueout" title="Headphone cue — preview this deck on the cue output">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
       <span class="time">0:00 / 0:00</span>
     </div>
@@ -160,6 +170,10 @@
     <div class="row"><span class="bpm">BPM <b>—</b></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="status"></span></div>
   </section>
 </main>
+<section class="library">
+  <h2>Library</h2>
+  <div id="lib-rows"><p class="muted">Tracks you load are saved here for instant reload.</p></div>
+</section>
 <footer>Acro DJ Mixer — local files only, nothing is uploaded. See docs/adr/ADR-0001 for scope decisions.</footer>
 
 <script>
@@ -169,6 +183,7 @@
 // worklet playback engine -> deckGain -> xfGain -> masterGain -> analyser -> destination
 let ctx = null;
 let masterGain, analyser;
+let cueDest = null, cueAudio = null;
 let wsolaModuleReady = false;
 
 // Playback engine: holds the decoded channel data, advances content at `rate`.
@@ -320,6 +335,37 @@ function audio() {
   return ctx;
 }
 
+// Headphone cue bus: decks tap pre-fader signal into a MediaStream sent
+// to a hidden <audio> element, which setSinkId()s onto the chosen output
+// device — the only way to get a second output from one AudioContext.
+function cueBus() {
+  const ac = audio();
+  if (!cueDest) {
+    cueDest = ac.createMediaStreamDestination();
+    cueAudio = new Audio();
+    cueAudio.srcObject = cueDest.stream;
+    cueAudio.play().catch(() => {});
+    setCueDevice(document.getElementById('cueout').value);
+  }
+  return cueDest;
+}
+
+async function setCueDevice(id) {
+  if (!cueAudio || !cueAudio.setSinkId) return;
+  try { await cueAudio.setSinkId(id || ''); } catch (_) { /* transient / unsupported device */ }
+}
+
+async function refreshCueDevices() {
+  const sel = document.getElementById('cueout');
+  let outs = [];
+  try { outs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audiooutput'); }
+  catch (_) { return; } // mediaDevices unavailable (e.g. insecure context)
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">System output</option>' +
+    outs.map((d, i) => `<option value="${d.deviceId}">${d.label || 'Output ' + (i + 1)}</option>`).join('');
+  sel.value = cur;
+}
+
 function fmt(t) {
   if (!isFinite(t)) return '0:00';
   const m = Math.floor(t / 60), s = Math.floor(t % 60);
@@ -345,6 +391,9 @@ class Deck {
     this.loopOn = false;
     this.loopStart = 0;
     this.loopEnd = 0;
+    this.cueBtn = root.querySelector('[data-act=cueout]');
+    this.cueOn = false;
+    this.cueSend = null;   // pre-fader tap -> cue bus
     this.deckGain = null;
     this.xfGain = null;
     this.peaks = null;
@@ -382,6 +431,7 @@ class Deck {
     this.el.querySelector('[data-act=cue]').addEventListener('click', () => this.cue());
     this.el.querySelector('[data-act=sync]').addEventListener('click', () => this.syncTo(this.partner));
     this.loopBtn.addEventListener('click', () => this.toggleLoop());
+    this.cueBtn.addEventListener('click', () => this.toggleCue());
     this.keylockBtn.addEventListener('click', () => this.toggleKeylock());
     this.tempoEl.addEventListener('input', () => this.setRate(parseFloat(this.tempoEl.value)));
     this.gainEl.addEventListener('input', () => this.setGain(parseFloat(this.gainEl.value)));
@@ -394,7 +444,7 @@ class Deck {
 
   status(msg) { this.statusEl.textContent = msg || ''; }
 
-  async load(fileObj) {
+  async load(fileObj, meta) {
     this.status('decoding…');
     try {
       const ac = audio();
@@ -422,9 +472,24 @@ class Deck {
       this.keyEl.className = 'key';
       this.peaks = computePeaks(buf, this.wave.width);
       this.drawWave();
-      const mono = monoResample(buf); // one downmix feeds both analyses
-      this.estimateBpm(mono);
-      this.estimateKey(mono);
+      this.libId = meta ? meta.libId : null;
+      if (meta && meta.bpm) {
+        // Cached analysis from the library — instant, no recompute.
+        this.grid = { bpm: meta.bpm, beatOff: meta.beatOff || 0 };
+        this.bpmEl.textContent = String(this.grid.bpm);
+        this.key = meta.key || null;
+        this.refreshKey();
+        if (this.partner) this.partner.refreshKey();
+      } else {
+        const mono = monoResample(buf); // one downmix feeds both analyses
+        this.estimateBpm(mono);
+        this.estimateKey(mono);
+      }
+      if (!meta) {
+        Library.addFromFile(fileObj, buf.duration)
+          .then(id => { this.libId = id; })
+          .catch(err => console.warn('library save failed:', err));
+      }
     } catch (err) {
       console.error(err);
       this.status('Could not decode this file.');
@@ -446,6 +511,9 @@ class Deck {
     this.eq.mid.type = 'peaking';    this.eq.mid.frequency.value = 1000; this.eq.mid.Q.value = 0.9;
     this.eq.high.type = 'highshelf'; this.eq.high.frequency.value = 4000;
     for (const [band, el] of Object.entries(this.eqEls)) this.setBand(band, parseFloat(el.value));
+    this.cueSend = ac.createGain();
+    this.cueSend.gain.value = this.cueOn ? 1 : 0;
+    this.cueSend.connect(cueBus());
     this.deckGain.connect(this.eq.low);
     this.eq.low.connect(this.eq.mid);
     this.eq.mid.connect(this.eq.high);
@@ -456,6 +524,7 @@ class Deck {
       this.node = new AudioWorkletNode(ac, 'wsola', { numberOfInputs: 0, outputChannelCount: [2] });
       this.node.port.onmessage = e => this.onMsg(e.data);
       this.node.connect(this.deckGain);
+      this.node.connect(this.cueSend);
       this.engine = 'worklet';
     } catch (err) {
       // file:// and opaque origins block worklet module loads — fall back to
@@ -509,6 +578,7 @@ class Deck {
       src.buffer = this.buffer;
       src.playbackRate.value = this.rate;
       src.connect(this.deckGain);
+      src.connect(this.cueSend);
       if (this.loopOn) { src.loop = true; src.loopStart = this.loopStart; src.loopEnd = this.loopEnd; }
       src.onended = () => {
         if (src !== this.source) return;
@@ -655,6 +725,7 @@ class Deck {
       const grid = estimateBpm(await monoP);
       this.grid = grid;
       this.bpmEl.textContent = grid ? String(grid.bpm) : '—';
+      if (grid) Library.tag(this.libId, { bpm: grid.bpm, beatOff: grid.beatOff });
       this._drawnPos = undefined;
       this.drawWave();
     } catch (err) {
@@ -667,6 +738,7 @@ class Deck {
     this.keyEl.textContent = '…';
     try {
       this.key = estimateKey(await monoP);
+      if (this.key) Library.tag(this.libId, { key: this.key });
     } catch (err) {
       console.error(err);
       this.key = null;
@@ -682,6 +754,14 @@ class Deck {
     el.textContent = `${this.key.num}${this.key.letter} ${this.key.name}`;
     const other = this.partner && this.partner.key;
     el.className = 'key' + (other ? (harmonic(this.key, other) ? ' ok' : ' clash') : '');
+  }
+
+  // Headphone cue: pre-fader signal to the cue bus. Arming works before a
+  // track loads — the gain is applied when the graph is built.
+  toggleCue() {
+    this.cueOn = !this.cueOn;
+    this.cueBtn.classList.toggle('on', this.cueOn);
+    if (this.cueSend) this.cueSend.gain.setTargetAtTime(this.cueOn ? 1 : 0, ctx.currentTime, 0.01);
   }
 
   // 4-beat loop snapped to the detected beat grid — the DJ default of one
@@ -919,6 +999,97 @@ function harmonic(a, b) {
   return a.num === b.num || (a.letter === b.letter && d === 1);
 }
 
+// ----- Library (IndexedDB) -----
+// Every file dropped on a deck is auto-saved — audio blob plus the BPM/key
+// analysis once it lands — so a later session reloads instantly from the
+// list below. Records follow the table convention: id, created_at,
+// updated_at, deleted_at (soft delete), version.
+const Library = {
+  _db: null,
+  _open() {
+    if (!this._db) this._db = new Promise((res, rej) => {
+      const rq = indexedDB.open('acro-dj', 1);
+      rq.onupgradeneeded = () => rq.result.createObjectStore('tracks', { keyPath: 'id', autoIncrement: true });
+      rq.onsuccess = () => res(rq.result);
+      rq.onerror = () => rej(rq.error);
+    });
+    return this._db;
+  },
+  async _store(mode) { return (await this._open()).transaction('tracks', mode).objectStore('tracks'); },
+  async put(rec) {
+    const s = await this._store('readwrite');
+    return new Promise((res, rej) => { const rq = s.put(rec); rq.onsuccess = () => res(rq.result); rq.onerror = () => rej(rq.error); });
+  },
+  async get(id) {
+    const s = await this._store('readonly');
+    return new Promise((res, rej) => { const rq = s.get(id); rq.onsuccess = () => res(rq.result); rq.onerror = () => rej(rq.error); });
+  },
+  async all() {
+    const s = await this._store('readonly');
+    return new Promise((res, rej) => { const rq = s.getAll(); rq.onsuccess = () => res(rq.result); rq.onerror = () => rej(rq.error); });
+  },
+  async addFromFile(fileObj, duration) {
+    // Dedupe by name+size: re-loading the same track refreshes its record.
+    const rows = await this.all();
+    const ex = rows.find(t => t.name === fileObj.name && t.size === fileObj.size && !t.deleted_at);
+    const now = Date.now();
+    const rec = ex || { created_at: now, deleted_at: null, version: 0 };
+    rec.name = fileObj.name;
+    rec.size = fileObj.size;
+    rec.type = fileObj.type || '';
+    rec.blob = fileObj;
+    rec.duration = duration;
+    rec.updated_at = now;
+    rec.version++;
+    rec.id = await this.put(rec);
+    renderLibrary();
+    return rec.id;
+  },
+  async tag(id, patch) {
+    if (!id) return;
+    const rec = await this.get(id);
+    if (!rec) return;
+    Object.assign(rec, patch);
+    rec.updated_at = Date.now();
+    rec.version++;
+    await this.put(rec);
+    renderLibrary();
+  },
+  async remove(id) {
+    const rec = await this.get(id);
+    if (!rec) return;
+    rec.deleted_at = Date.now();
+    rec.version++;
+    await this.put(rec);
+    renderLibrary();
+  },
+  async loadInto(deck, id) {
+    const rec = await this.get(id);
+    if (!rec || rec.deleted_at) return;
+    deck.load(rec.blob, { libId: rec.id, bpm: rec.bpm, beatOff: rec.beatOff, key: rec.key });
+  },
+};
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+async function renderLibrary() {
+  const rowsEl = document.getElementById('lib-rows');
+  let rows;
+  try { rows = (await Library.all()).filter(t => !t.deleted_at).sort((a, b) => b.updated_at - a.updated_at); }
+  catch (_) { return; }
+  if (!rows.length) {
+    rowsEl.innerHTML = '<p class="muted">Tracks you load are saved here for instant reload.</p>';
+    return;
+  }
+  rowsEl.innerHTML = rows.map(t => `<div class="lib-row" data-id="${t.id}">
+    <span class="name" title="${esc(t.name)}">${esc(t.name)}</span>
+    <span>${t.bpm || '—'} BPM</span>
+    <span>${t.key ? esc(t.key.num + t.key.letter + ' ' + t.key.name) : '—'}</span>
+    <span>${fmt(t.duration || 0)}</span>
+    <span><button data-to="a" title="Load into Deck A">→A</button><button data-to="b" title="Load into Deck B">→B</button><button class="lib-del" data-del title="Remove from library">×</button></span>
+  </div>`).join('');
+}
+
 // ----- Mixer wiring -----
 
 const deckA = new Deck(document.getElementById('deck-a'), 'a');
@@ -940,6 +1111,20 @@ document.getElementById('master').addEventListener('input', e => {
   document.getElementById('master-out').textContent = Math.round(v * 100) + '%';
   if (ctx) masterGain.gain.setTargetAtTime(v, ctx.currentTime, 0.01);
 });
+
+const cueOutSel = document.getElementById('cueout');
+cueOutSel.addEventListener('change', e => setCueDevice(e.target.value));
+refreshCueDevices();
+if (navigator.mediaDevices) navigator.mediaDevices.addEventListener('devicechange', refreshCueDevices);
+
+document.getElementById('lib-rows').addEventListener('click', e => {
+  const row = e.target.closest('.lib-row');
+  if (!row) return;
+  const id = Number(row.dataset.id);
+  if (e.target.dataset.del !== undefined) Library.remove(id);
+  else if (e.target.dataset.to) Library.loadInto(e.target.dataset.to === 'a' ? deckA : deckB, id);
+});
+renderLibrary();
 
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' && e.target.type === 'text') return;
