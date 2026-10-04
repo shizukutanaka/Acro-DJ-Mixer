@@ -172,7 +172,7 @@
     <h2>Mixer</h2>
     <div class="meter"><i id="meter-fill"></i></div>
     <div class="gr" id="gr" title="Limiter gain reduction"></div>
-    <div class="row"><label>A</label><input type="range" id="xfader" min="0" max="1" step="0.005" value="0.5"><label>B</label></div>
+    <div class="row"><label>A</label><input type="range" id="xfader" min="0" max="1" step="0.005" value="0.5"><label>B</label><select id="xfcurve" title="Crossfader curve — Smooth fades gradually, Cut reaches full in the first/last 10% for scratching"><option value="smooth">Smooth</option><option value="cut">Cut</option></select></div>
     <div class="row"><label>Master</label><input type="range" id="master" min="0" max="1" step="0.01" value="0.9"><output id="master-out">90%</output></div>
     <div class="row"><label>Cue&nbsp;out</label><select id="cueout" title="Output device for the headphone cue bus"><option value="">System output</option></select></div>
     <div class="meter cuem" title="Cue bus level"><i id="cuemeter-fill"></i></div>
@@ -1494,13 +1494,22 @@ deckA.partner = deckB;
 deckB.partner = deckA;
 const xfader = document.getElementById('xfader');
 
+const xfcurve = document.getElementById('xfcurve');
 function applyCrossfade() {
   const x = parseFloat(xfader.value);
+  if (xfcurve.value === 'cut') {
+    // Scratch curve: each side reaches full level within 10% of travel,
+    // so chops/transforms hit instantly; the middle sums both at full.
+    deckA.setXf(Math.min(1, (1 - x) / 0.1));
+    deckB.setXf(Math.min(1, x / 0.1));
+    return;
+  }
   // Equal-power law keeps perceived loudness constant through the middle.
   deckA.setXf(Math.cos(x * Math.PI / 2));
   deckB.setXf(Math.sin(x * Math.PI / 2));
 }
 xfader.addEventListener('input', applyCrossfade);
+xfcurve.addEventListener('change', applyCrossfade);
 
 // ----- Auto mix -----
 // Arm once per transition: at 16 beats before the playing deck ends, the
