@@ -2516,6 +2516,13 @@ smpSlots.forEach((_, i) => {
     }
     if (!slot) { smpPending = i; smpFile.value = ''; smpFile.click(); return; }
     if (slot.src) { try { slot.src.stop(); } catch (_) {} }
+    // Single voice like the DJM sampler: a new shot chokes the others,
+    // so one-shots can never pile up mid-set.
+    smpSlots.forEach((sl, j) => {
+      if (j === i || !sl || !sl.src) return;
+      try { sl.src.stop(); } catch (_) {}
+      smpPadsEl.children[j].classList.remove('on');
+    });
     const ac = audio();
     if (!smpGain) {   // shared pad bus — one knob rides all four
       smpGain = ac.createGain();

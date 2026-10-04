@@ -287,7 +287,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   shift-click clears — jingles and drops without spending a deck
   (see ADR-0118). Keys `1`–`4` fire the pads (see ADR-0119);
   the slider beside them trims the shared sample level
-  (see ADR-0120).
+  (see ADR-0120). Pads are single-voice: firing one chokes the
+  others (see ADR-0121).
 - **Wheel nudge** — scrolling over any fader or knob steps it one
   detent (EQ, filter, FX, gain, master, crossfader); the tempo
   slider keeps its finer ±0.1% trim (see ADR-0109, ADR-0112).
