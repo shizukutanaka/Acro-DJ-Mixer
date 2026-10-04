@@ -225,6 +225,7 @@
 <section class="library">
   <h2>Library</h2>
   <input type="text" id="lib-search" placeholder="Filter tracks…" autocomplete="off">
+  <div class="row"><button id="lib-exp" title="Export library metadata (BPM, key, cues, loops) as JSON">⤓ Export</button><button id="lib-imp" title="Import library metadata — matches tracks by file name+size">⤒ Import</button><input type="file" id="lib-impfile" accept=".json,application/json" hidden></div>
   <div id="lib-rows"><p class="muted">Tracks you load are saved here for instant reload.</p></div>
 </section>
 <footer>Acro DJ Mixer — local files only, nothing is uploaded. See docs/adr/ADR-0001 for scope decisions.</footer>
@@ -2120,6 +2121,38 @@ document.getElementById('lib-search').addEventListener('input', e => {
   libQuery = e.target.value;
   renderLibrary();
 });
+// Library metadata export/import: the analysis + prep (BPM, grid,
+// key, hot cues, loop) is the valuable part — audio blobs stay put,
+// so entries match by name+size on the other side.
+const LIB_META_KEYS = ['name', 'size', 'type', 'duration', 'bpm', 'beatOff', 'key', 'cues', 'loop'];
+document.getElementById('lib-exp').addEventListener('click', async () => {
+  const rows = (await Library.all()).filter(t => !t.deleted_at);
+  const data = rows.map(t => Object.fromEntries(LIB_META_KEYS.filter(k => t[k] !== undefined).map(k => [k, t[k]])));
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' }));
+  a.download = 'acro-dj-library.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+const libImpFile = document.getElementById('lib-impfile');
+document.getElementById('lib-imp').addEventListener('click', () => libImpFile.click());
+libImpFile.addEventListener('change', async () => {
+  const f = libImpFile.files[0];
+  libImpFile.value = '';
+  if (!f) return;
+  let data;
+  try { data = JSON.parse(await f.text()); } catch { return; }
+  if (!Array.isArray(data)) return;
+  const rows = (await Library.all()).filter(t => !t.deleted_at);
+  for (const e of data) {
+    const rec = rows.find(t => t.name === e.name && t.size === e.size);
+    if (!rec) continue;   // audio not loaded here — nothing to tag
+    const patch = {};
+    for (const k of ['duration', 'bpm', 'beatOff', 'key', 'cues', 'loop']) if (e[k] !== undefined) patch[k] = e[k];
+    await Library.tag(rec.id, patch);
+  }
+});
+
 document.getElementById('lib-rows').addEventListener('click', e => {
   const row = e.target.closest('.lib-row');
   if (!row) return;

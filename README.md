@@ -169,6 +169,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   waveform marker (see ADR-0070).
 - **Prep badges** — library rows show `⚑N` saved cues and `∞` for a
   stored loop (see ADR-0071).
+- **Library export/import** — `⤓` downloads BPM, key, cues and loops
+  as JSON; `⤒` merges them onto tracks matched by name+size
+  (see ADR-0072).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
