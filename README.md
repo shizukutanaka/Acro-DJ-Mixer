@@ -118,7 +118,7 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Loop move** — `◂`/`▸` beside the loop length buttons slide the
   armed loop by its own length (CDJ LOOP MOVE), persisted like the
   bounds (see ADR-0050); `Shift`+◂/▸ trims the in-point a beat
-  (see ADR-0096).
+  (see ADR-0096); +◂/▸ trims the out-point (see ADR-0098).
 - **Cue mix** — `Cue mix` slider blends the master output into the
   headphone bus alongside pre-fader cue, like a monitor knob
   (see ADR-0051).
