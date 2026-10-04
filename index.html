@@ -65,6 +65,8 @@
   .dropzone:hover, .dropzone.drag { border-color: currentColor; color: var(--text); }
   .deck.a .dropzone { color: var(--accent-a); }
   .deck.b .dropzone { color: var(--accent-b); }
+  .stctl button { font-size: 10px; padding: 1px 5px; }
+  .stctl b { font-weight: 500; font-size: 11px; min-width: 24px; display: inline-block; text-align: center; }
   canvas.wave { width: 100%; height: 90px; background: var(--panel-2); border-radius: 6px; cursor: pointer; display: block; }
   .transport { display: flex; gap: 8px; align-items: center; }
   button {
@@ -167,7 +169,7 @@
     <div class="row"><label>Echo</label><input type="range" data-act="echo" min="0" max="1" step="0.01" value="0" title="Beat delay — 3/4-beat echo synced to the deck grid; 0 is dry. Double-click resets"><output>dry</output></div>
     <div class="row"><label>Stem</label><select data-act="stem" title="Mid/side split — Vocal keeps the centre channel (acapella), Inst keeps the sides (vocal-removed)"><option value="off">Full</option><option value="voc">Vocal</option><option value="inst">Inst</option></select></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1"><output>100%</output></div>
-    <div class="row"><span class="bpm">BPM <b>—</b></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="status"></span></div>
+    <div class="row"><span class="bpm">BPM <b>—</b></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="stctl" title="Transpose — shift the deck's key in semitones (needs key lock / http)"><button data-act="pitchdn">−</button><b class="st">±0</b><button data-act="pitchup">+</button></span><span class="status"></span></div>
   </section>
 
   <section class="mixer">
@@ -206,7 +208,7 @@
     <div class="row"><label>Echo</label><input type="range" data-act="echo" min="0" max="1" step="0.01" value="0" title="Beat delay — 3/4-beat echo synced to the deck grid; 0 is dry. Double-click resets"><output>dry</output></div>
     <div class="row"><label>Stem</label><select data-act="stem" title="Mid/side split — Vocal keeps the centre channel (acapella), Inst keeps the sides (vocal-removed)"><option value="off">Full</option><option value="voc">Vocal</option><option value="inst">Inst</option></select></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1"><output>100%</output></div>
-    <div class="row"><span class="bpm">BPM <b>—</b></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="status"></span></div>
+    <div class="row"><span class="bpm">BPM <b>—</b></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="stctl" title="Transpose — shift the deck's key in semitones (needs key lock / http)"><button data-act="pitchdn">−</button><b class="st">±0</b><button data-act="pitchup">+</button></span><span class="status"></span></div>
   </section>
 </main>
 <section class="library">
@@ -245,6 +247,7 @@ class WsolaProcessor extends AudioWorkletProcessor {
     for (let i = 0; i < this.W; i++) this.win[i] = (0.5 - 0.5 * Math.cos(2 * Math.PI * i / (this.W - 1))) * 0.5;
     this.buf = null;
     this.rate = 1;
+    this.pitch = 1;   // transpose ratio — emitted samples read input at i*pitch
     this.keylock = false;
     this.playing = false;
     this.blocks = 0;
@@ -270,6 +273,7 @@ class WsolaProcessor extends AudioWorkletProcessor {
         break;
       case 'rate': this.rate = m.rate; break;
       case 'loop': this.loopStart = m.on ? m.start : -1; this.loopEnd = m.on ? m.end : -1; break;
+      case 'pitch': this.pitch = m.rate; break;
       case 'keylock':
         this.keylock = m.on;
         // Hand the live position to the other engine, drop stale synthesis.
@@ -287,7 +291,7 @@ class WsolaProcessor extends AudioWorkletProcessor {
     const OV = this.W - this.H;             // overlapped tail carried between frames
     const in0 = this.buf[0], synT = this.syn[0];
     const lo = Math.max(-this.D, Math.ceil(-this.inPos));
-    const hi = Math.min(this.D, Math.floor(this.len - this.W - this.inPos));
+    const hi = Math.min(this.D, Math.floor(this.len - this.W * this.pitch - this.inPos));
     let best = -1, bd = 0;
     for (let d = lo; d <= hi; d++) {
       let s = 0;
@@ -299,7 +303,16 @@ class WsolaProcessor extends AudioWorkletProcessor {
     start = Math.min(Math.max(0, start), this.len - this.W);
     for (let c = 0; c < this.buf.length; c++) {
       const inp = this.buf[c], sy = this.syn[c], q = this.queue[c];
-      for (let i = 0; i < this.W; i++) sy[i] += this.win[i] * inp[start + i];
+      if (this.pitch === 1) {
+        for (let i = 0; i < this.W; i++) sy[i] += this.win[i] * inp[start + i];
+      } else {
+        // Transpose: emitted sample i reads input at i*pitch, so pitch
+        // shifts while output duration (and tempo) is unchanged.
+        for (let i = 0; i < this.W; i++) {
+          const p = start + i * this.pitch, i0 = p | 0, f = p - i0;
+          sy[i] += this.win[i] * (i0 + 1 < this.len ? inp[i0] * (1 - f) + inp[i0 + 1] * f : inp[i0]);
+        }
+      }
       for (let i = 0; i < this.H; i++) q[this.qHead + this.qLen + i] = sy[i];
       for (let i = 0; i < OV; i++) sy[i] = sy[i + this.H];
       for (let i = OV; i < this.W; i++) sy[i] = 0;
@@ -519,6 +532,10 @@ class Deck {
       this.brake = !this.brake;
       this.brakeBtn.classList.toggle('on', this.brake);
     });
+    this.st = 0;
+    this.stEl = this.el.querySelector('.stctl .st');
+    this.el.querySelector('[data-act=pitchdn]').addEventListener('click', () => this.transpose(-1));
+    this.el.querySelector('[data-act=pitchup]').addEventListener('click', () => this.transpose(1));
     this.tempoEl.addEventListener('input', () => this.setRate(parseFloat(this.tempoEl.value)));
     this.echoEl.addEventListener('input', () => this.setEcho(parseFloat(this.echoEl.value)));
     this.echoEl.addEventListener('dblclick', () => { this.echoEl.value = 0; this.setEcho(0); });
@@ -866,6 +883,18 @@ class Deck {
     if (!this.delay) return;
     const beat = this.grid ? 60 / this.grid.bpm / this.rate : 0.45;
     this.delay.delayTime.setTargetAtTime(Math.min(0.75 * beat, 2), ctx.currentTime, 0.05);
+  }
+
+  // Transpose ±1 semitone (range ±6): pitch shifts while tempo holds —
+  // the harmonic-mixing move. WSOLA-only: emitted samples read input at
+  // i*2^(st/12); the buffer engine and an unloaded deck ignore it.
+  transpose(d) {
+    const st = Math.min(6, Math.max(-6, this.st + d));
+    if (st === this.st) return;
+    this.st = st;
+    this.stEl.textContent = st === 0 ? '±0' : (st > 0 ? '+' : '') + st + 'st';
+    if (this.engine === 'worklet') this.node.port.postMessage({ type: 'pitch', rate: Math.pow(2, st / 12) });
+    else this.status('Transpose needs key lock (http).');
   }
 
   _applySpinRate() {
