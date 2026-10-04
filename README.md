@@ -115,6 +115,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Crossfader reverse** — `Rev` beside the curve select mirrors the
   fader's A/B assignment (hamster switch for scratching; works with
   both curves and auto mix) (see ADR-0049).
+- **Loop length** —  beside Loop picks the armed loop's
+  size up front (CDJ loop-beat select) (see ADR-0099).
 - **Loop move** — `◂`/`▸` beside the loop length buttons slide the
   armed loop by its own length (CDJ LOOP MOVE), persisted like the
   bounds (see ADR-0050); `Shift`+◂/▸ trims the in-point a beat
