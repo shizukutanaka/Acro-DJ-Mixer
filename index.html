@@ -241,7 +241,7 @@
 // ----- Audio graph -----
 // worklet playback engine -> deckGain -> xfGain -> masterGain -> monoNode -> limiter -> analyser -> destination
 let ctx = null;
-let masterGain, limiter, analyser, monoNode;
+let masterGain, limiter, analyser, monoNode, micDuck;
 let cueDest = null, cueAudio = null, cueIn = null, cueAnalyser = null, pgmSend = null, cuePan = null, pgmPan = null, phonesOut = null;
 let micStream = null, micSrc = null, micGain = null;
 let wsolaModuleReady = false;
@@ -408,7 +408,12 @@ function audio() {
     // Mono button flips channelCount to 1, which down-mixes L+R.
     monoNode = ctx.createGain();
     monoNode.channelCount = 2; monoNode.channelCountMode = 'explicit';
-    masterGain.connect(monoNode);
+    // micDuck sits between the deck bus and the mono fold — mic open
+    // squeezes the music ~12 dB (broadcast talkover) while the mic
+    // itself enters at monoNode, after the duck.
+    micDuck = ctx.createGain();
+    masterGain.connect(micDuck);
+    micDuck.connect(monoNode);
     monoNode.connect(limiter);
     limiter.connect(analyser);
     analyser.connect(ctx.destination);
@@ -2285,6 +2290,7 @@ document.getElementById('mic').addEventListener('click', async e => {
     micSrc.disconnect(); micGain.disconnect();
     micStream.getTracks().forEach(t => t.stop());
     micSrc = micStream = micGain = null;
+    if (micDuck) micDuck.gain.setTargetAtTime(1, ctx.currentTime, 0.15);
     e.target.classList.remove('on');
     return;
   }
@@ -2296,6 +2302,7 @@ document.getElementById('mic').addEventListener('click', async e => {
   micGain = ctx.createGain(); micGain.gain.value = 0.9;
   micSrc.connect(micGain);
   micGain.connect(monoNode);
+  if (micDuck) micDuck.gain.setTargetAtTime(0.25, ctx.currentTime, 0.15);   // ~−12 dB talkover duck
   e.target.classList.add('on');
 });
 
