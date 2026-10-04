@@ -172,6 +172,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Library export/import** — `⤓` downloads BPM, key, cues and loops
   as JSON; `⤒` merges them onto tracks matched by name+size
   (see ADR-0072).
+- **Cue marker** — the deck cue point (auto-cue or track start) shows
+  as a cyan tick on the waveform (see ADR-0074).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
