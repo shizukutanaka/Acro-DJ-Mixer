@@ -158,7 +158,7 @@
     <div class="row"><label>A</label><input type="range" id="xfader" min="0" max="1" step="0.005" value="0.5"><label>B</label></div>
     <div class="row"><label>Master</label><input type="range" id="master" min="0" max="1" step="0.01" value="0.9"><output id="master-out">90%</output></div>
     <div class="row"><label>Cue&nbsp;out</label><select id="cueout" title="Output device for the headphone cue bus"><option value="">System output</option></select></div>
-    <div class="row"><button id="automix" title="Auto mix — when the playing deck reaches its last 16 beats, the other deck starts synced and the crossfader rides over for 8 beats">Auto</button></div>
+    <div class="row"><button id="automix" title="Auto mix — when the playing deck reaches its last 16 beats, the other deck starts synced and the crossfader rides over for 8 beats">Auto</button><button id="recbtn" title="Record the master output — click again to stop and download a .webm">Rec</button></div>
     <div class="kbd-hint">Equal-power crossfade.<br>Auto BPM is an estimate — trust your ears.</div>
   </section>
 
@@ -1221,6 +1221,35 @@ xfader.addEventListener('input', applyCrossfade);
 // fade cancels it and leaves the xfader where it is.
 const autoMix = { on: false, fade: null };
 const autoBtn = document.getElementById('automix');
+
+// ----- Set recording -----
+// MediaStream tap on the master (same pattern as the cue bus) ->
+// MediaRecorder -> .webm download on stop.
+let recDest = null, recorder = null, recChunks = [];
+const recBtn = document.getElementById('recbtn');
+recBtn.addEventListener('click', () => {
+  audio();  // the click is a gesture — safe to create/resume the ctx
+  if (!recorder) {
+    if (!recDest) { recDest = ctx.createMediaStreamDestination(); masterGain.connect(recDest); }
+    recChunks = [];
+    recorder = new MediaRecorder(recDest.stream);
+    recorder.ondataavailable = e => recChunks.push(e.data);
+    recorder.onstop = () => {
+      const blob = new Blob(recChunks, { type: 'audio/webm' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'acro-set-' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.webm';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+      recorder = null;
+      recBtn.classList.remove('on');
+    };
+    recorder.start(1000);
+    recBtn.classList.add('on');
+  } else {
+    recorder.stop();
+  }
+});
 autoBtn.addEventListener('click', () => {
   if (autoMix.fade) { autoMix.fade = null; return; }   // cancel mid-fade
   autoMix.on = !autoMix.on;

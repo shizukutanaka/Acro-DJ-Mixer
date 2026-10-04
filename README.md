@@ -69,6 +69,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
   click again to cancel mid-fade (see ADR-0013).
+- **Set recording** — `Rec` button captures the master output to a
+  `.webm` (opus) download via `MediaRecorder` on a MediaStream tap
+  (see ADR-0014).
 - **Master level meter** and master gain.
 - **Keyboard** — `Q`/`P` toggle deck A/B, `←`/`→` move the crossfader,
   `0` centers it.
@@ -106,7 +109,8 @@ Ordered by value per the ADR's automation layer:
    `id`/`created_at`/`updated_at`/`deleted_at`/`version` per record.
 4b. ~~Hot cues.~~ Done (ADR-0010) — four per deck, persisted in the
    library. Beat-jump added in ADR-0012.
-5. Stem separation (ML model, worker pipeline).
+5. Stem separation (ML model, worker pipeline — the only remaining
+   roadmap item).
 6. ~~Recommendation / auto-mix assistance.~~ Done — harmonic-fit
    highlighting (ADR-0011) + one-click auto transitions (ADR-0013).
 
