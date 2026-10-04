@@ -95,6 +95,8 @@
   .meter { width: 100%; height: 10px; background: var(--panel-2); border-radius: 5px; overflow: hidden; }
   .meter i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #3ddc84, #ffd23f 70%, #ff5252); transition: width .05s linear; }
   .gr { min-height: 12px; font-size: 10px; color: #ff5252; text-align: right; }
+  .cuem { height: 4px; }
+  .cuem i { background: var(--acc); transition: width .08s linear; }
   .kbd-hint { color: var(--muted); font-size: 11px; text-align: center; }
   .kbd-hint kbd { background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
   footer { padding: 10px 20px; color: var(--muted); font-size: 11px; border-top: 1px solid var(--line); }
@@ -165,6 +167,7 @@
     <div class="row"><label>A</label><input type="range" id="xfader" min="0" max="1" step="0.005" value="0.5"><label>B</label></div>
     <div class="row"><label>Master</label><input type="range" id="master" min="0" max="1" step="0.01" value="0.9"><output id="master-out">90%</output></div>
     <div class="row"><label>Cue&nbsp;out</label><select id="cueout" title="Output device for the headphone cue bus"><option value="">System output</option></select></div>
+    <div class="meter cuem" title="Cue bus level"><i id="cuemeter-fill"></i></div>
     <div class="row"><button id="automix" title="Auto mix — when the playing deck reaches its last 16 beats, the other deck starts synced and the crossfader rides over for 8 beats">Auto</button><button id="recbtn" title="Record the master output — click again to stop and download a .webm">Rec</button></div>
     <div class="kbd-hint">Equal-power crossfade.<br>Auto BPM is an estimate — trust your ears.</div>
   </section>
@@ -204,7 +207,7 @@
 // worklet playback engine -> deckGain -> xfGain -> masterGain -> limiter -> analyser -> destination
 let ctx = null;
 let masterGain, limiter, analyser;
-let cueDest = null, cueAudio = null;
+let cueDest = null, cueAudio = null, cueIn = null, cueAnalyser = null;
 let wsolaModuleReady = false;
 
 // Playback engine: holds the decoded channel data, advances content at `rate`.
@@ -369,12 +372,19 @@ function cueBus() {
   const ac = audio();
   if (!cueDest) {
     cueDest = ac.createMediaStreamDestination();
+    // Decks sum into cueIn; it feeds the stream AND a meter tap, so the
+    // cue row can show what the phones are hearing.
+    cueIn = ac.createGain();
+    cueIn.connect(cueDest);
+    cueAnalyser = ac.createAnalyser();
+    cueAnalyser.fftSize = 256;
+    cueIn.connect(cueAnalyser);
     cueAudio = new Audio();
     cueAudio.srcObject = cueDest.stream;
     cueAudio.play().catch(() => {});
     setCueDevice(document.getElementById('cueout').value);
   }
-  return cueDest;
+  return cueIn;
 }
 
 async function setCueDevice(id) {
@@ -1435,6 +1445,7 @@ document.addEventListener('keydown', e => {
 
 const meterFill = document.getElementById('meter-fill');
 const grEl = document.getElementById('gr');
+const cueFill = document.getElementById('cuemeter-fill');
 const meterBuf = new Uint8Array(256);
 function tick() {
   for (const d of [deckA, deckB]) {
@@ -1457,6 +1468,15 @@ function tick() {
     meterFill.style.width = Math.min(peak * 100, 100).toFixed(1) + '%';
     const gr = limiter ? limiter.reduction : 0;
     grEl.textContent = gr < -0.5 ? 'GR ' + gr.toFixed(1) + ' dB' : '';
+    if (cueAnalyser) {
+      cueAnalyser.getByteTimeDomainData(meterBuf);
+      let cp = 0;
+      for (let i = 0; i < meterBuf.length; i++) {
+        const v = Math.abs(meterBuf[i] - 128) / 128;
+        if (v > cp) cp = v;
+      }
+      cueFill.style.width = Math.min(cp * 100, 100).toFixed(1) + '%';
+    }
   }
   requestAnimationFrame(tick);
 }

@@ -61,7 +61,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   beat of the grid (see ADR-0012).
 - **Headphone cue (PFL)** — `Phones` button taps each deck pre-fader onto
   a cue bus; `Cue out` picks the output device (`setSinkId`, Chrome/Edge).
-  See ADR-0007.
+  See ADR-0007. A thin level meter under the selector shows what the
+  phones are hearing (see ADR-0022).
 - **Library** — every loaded track is auto-saved to IndexedDB (audio +
   BPM/key analysis, soft-deletable); `→A`/`→B` reloads instantly with
   cached analysis, survives page reloads. Rows highlight green when the
