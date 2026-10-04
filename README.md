@@ -61,7 +61,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   See ADR-0007.
 - **Library** — every loaded track is auto-saved to IndexedDB (audio +
   BPM/key analysis, soft-deletable); `→A`/`→B` reloads instantly with
-  cached analysis, survives page reloads. See ADR-0008.
+  cached analysis, survives page reloads. Rows highlight green when the
+  track fits a loaded deck (tempo within ±16% sync range + harmonic key)
+  — see ADR-0008/0011.
 - **Master level meter** and master gain.
 - **Keyboard** — `Q`/`P` toggle deck A/B, `←`/`→` move the crossfader,
   `0` centers it.
