@@ -98,6 +98,69 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Waveform zoom** — scroll over a waveform to zoom ×1.5–32 around
   the playhead; the window follows playback, click still seeks inside
   the visible slice (see ADR-0043).
+- **Auto-cue** — loading a track skips lead-in silence: the playhead
+  starts at the first sample over −50 dBFS and `Cue` returns there
+  (see ADR-0044).
+- **Track-end warning** — the time readout flashes red during the
+  last 30 s of a track, CDJ-style (see ADR-0045).
+- **Key sync** — `Key` button transposes the deck to the smallest
+  shift that mixes harmonically with the other deck; the key readout
+  colours by the effective (transposed) key (see ADR-0046).
+- **Elapsed / remaining** — click the time readout to flip between
+  `pos / dur` and `-remaining / dur`, CDJ TIME-mode style (see
+  ADR-0047).
+- **Bar downbeats** — every 4th beat-grid tick on the waveform draws
+  brighter and wider, so bar boundaries (where phrases and loops live)
+  read at a glance (see ADR-0048).
+- **Crossfader reverse** — `Rev` beside the curve select mirrors the
+  fader's A/B assignment (hamster switch for scratching; works with
+  both curves and auto mix) (see ADR-0049).
+- **Loop move** — `◂`/`▸` beside the loop length buttons slide the
+  armed loop by its own length (CDJ LOOP MOVE), persisted like the
+  bounds (see ADR-0050).
+- **Cue mix** — `Cue mix` slider blends the master output into the
+  headphone bus alongside pre-fader cue, like a monitor knob
+  (see ADR-0051).
+- **Bar.beat counter** — the readout beside BPM shows where on the
+  grid the playhead sits (`9.3` = bar 9, beat 3), matching the bar
+  ticks on the waveform (see ADR-0052).
+- **Bar jump** — `Shift` + `−1b`/`+1b` jumps a whole bar (4 beats)
+  instead of one beat, for phrase-sized moves (see ADR-0053).
+- **Mono check** — `Mono` under `Cue mix` folds the master to one
+  channel (pre-limiter) to audition mono compatibility
+  (see ADR-0054).
+- **Quantize toggle** — `Qtz` beside `Rev` switches beat-grid snapping
+  for hot cues and loop in-points on/off (on by default)
+  (see ADR-0055).
+- **Decimal BPM** — the readout shows the fractional estimate
+  (`120.2`), so matched decks are visibly matched (see ADR-0056).
+- **Manual loop** — tracks with no detected grid can still loop:
+  `Loop` arms a 4-second free loop from the press point, and halve /
+  double / move all work (see ADR-0057).
+- **Free-size loop** — `Shift` + `Loop` marks the IN point, a second
+  press marks OUT: any-length loops (button blinks while armed)
+  (see ADR-0058).
+- **Reloop** — `↺` beside `Loop` re-enters the last exited loop with
+  its exact bounds; seeking out of a loop is also reloop-able
+  (see ADR-0059).
+- **Slip cues** — `Slip` makes pad presses momentary: hold to play the
+  cue, release to snap back to where the track would have been
+  (see ADR-0060).
+- **Next-bar jump** — `▸bar` on the hot-cue row lands the playhead on
+  the next bar downbeat, so drops hit "the one" (see ADR-0061).
+- **Tempo reset** — double-click the tempo slider for an exact ±0.0%,
+  like the hardware TEMPO RESET (see ADR-0062).
+- **Cue preview** — hold `Cue` while stopped to audition from the cue
+  point; release pauses and snaps back (see ADR-0063).
+- **Split cue** — `Split` on the Phones row pans headphone cue to the
+  left ear and master PGM to the right for one-ear monitoring
+  (see ADR-0064).
+- **Beat lamp** — the dot beside the bar counter pulses each beat and
+  flashes deck-accent on the downbeat (see ADR-0065).
+- **Fader resets** — double-click Gain (unity), the crossfader
+  (centre), or Master (90%) to snap back to default (see ADR-0066).
+- **Mic input** — `Mic` button sums a `getUserMedia` microphone into
+  the master before the limiter, so it is recorded too (see ADR-0067).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
