@@ -2091,7 +2091,7 @@ const autoBtn = document.getElementById('automix');
 // ----- Set recording -----
 // MediaStream tap on the master (same pattern as the cue bus) ->
 // MediaRecorder -> .webm download on stop.
-let recDest = null, recorder = null, recChunks = [];
+let recDest = null, recorder = null, recChunks = [], recStart = 0, recTick = null;
 const recBtn = document.getElementById('recbtn');
 recBtn.addEventListener('click', () => {
   audio();  // the click is a gesture — safe to create/resume the ctx
@@ -2109,9 +2109,19 @@ recBtn.addEventListener('click', () => {
       setTimeout(() => URL.revokeObjectURL(a.href), 10000);
       recorder = null;
       recBtn.classList.remove('on');
+      clearInterval(recTick);
+      recTick = null;
+      recBtn.textContent = 'Rec';
     };
     recorder.start(1000);
     recBtn.classList.add('on');
+    // Running timer on the button — the "is it actually recording?"
+    // glance, and the catch for a forgotten still-running take.
+    recStart = performance.now();
+    recTick = setInterval(() => {
+      const t = Math.floor((performance.now() - recStart) / 1000);
+      recBtn.textContent = `Rec ${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
+    }, 1000);
   } else {
     recorder.stop();
   }
