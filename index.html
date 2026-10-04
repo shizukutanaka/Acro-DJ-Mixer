@@ -1046,6 +1046,13 @@ class Deck {
         for (let i = 0; i < end; i++) {
           if (Math.abs(ch0[i]) > 0.003) { this.cueIn = i / buf.sampleRate; break; }
         }
+        // Effective end: the last sample above the same −50 dBFS
+        // floor. Tracks with a silent tail would otherwise make
+        // auto-mix fire late — it counts back from this point.
+        this._endAt = buf.duration;
+        for (let i = ch0.length - 1; i >= 0; i--) {
+          if (Math.abs(ch0[i]) > 0.003) { this._endAt = i / buf.sampleRate; break; }
+        }
       }
       // A cue point set by hand (shift+Cue) beats the auto-detected
       // first sound — like a rekordbox memory cue.
@@ -2784,14 +2791,15 @@ function autoMixTick() {
     // transitions always start on a downbeat like a human DJ
     // playing a phrase. No grid means no bars, so fall back to the
     // raw remaining-beats threshold.
+    const dEnd = d._endAt || d.buffer.duration;
     let fadeAt;
     if (d.grid) {
       const bar = 4 * beat;
-      const raw = d.buffer.duration - 2 * autoMix.len * beat;
-      fadeAt = Math.max(0, Math.min(d.buffer.duration,
+      const raw = dEnd - 2 * autoMix.len * beat;
+      fadeAt = Math.max(0, Math.min(dEnd,
         d.grid.beatOff + Math.round((raw - d.grid.beatOff) / bar) * bar));
     } else {
-      fadeAt = d.buffer.duration - 2 * autoMix.len * beat;
+      fadeAt = dEnd - 2 * autoMix.len * beat;
     }
     // Countdown on the button: beats until the fade fires.
     autoBtn.textContent = 'Auto ' + Math.max(0, Math.ceil((fadeAt - d.pos()) / beat)) + 'b';
