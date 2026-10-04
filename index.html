@@ -2744,6 +2744,7 @@ document.getElementById('mic').addEventListener('click', async e => {
 // master level, ducking, mono fold, cut, and recording all apply.
 const smpSlots = [null, null, null, null];
 let smpGain = null;
+let smpPrev = null;    // cue-bus audition voice
 const smpPadsEl = document.getElementById('smp-pads');
 const smpFile = document.getElementById('smp-file');
 let smpPending = -1;
@@ -2751,7 +2752,7 @@ smpSlots.forEach((_, i) => {
   const b = document.createElement('button');
   b.className = 'smp';
   b.textContent = '+';
-  b.title = 'Sampler — click loads a one-shot, click again plays it, alt-click stops playback, shift-click clears';
+  b.title = 'Sampler — click loads a one-shot, click again plays it, right-click previews on headphones, alt-click stops playback, shift-click clears';
   b.addEventListener('click', e => {
     const slot = smpSlots[i];
     if (e.altKey) {
@@ -2807,6 +2808,21 @@ smpSlots.forEach((_, i) => {
     src.start();
     slot.src = src;
     b.classList.add('on');
+  });
+  // Right-click auditions the pad on the headphone cue bus instead of
+  // the master chain — hear a one-shot before it hits the floor, like
+  // previewing a library row. Only the latest audition rings.
+  b.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    const slot = smpSlots[i];
+    if (!slot || !slot.buf) return;
+    if (smpPrev) { try { smpPrev.stop(); } catch (_) {} smpPrev = null; }
+    const src = audio().createBufferSource();
+    src.buffer = slot.buf;
+    src.connect(cueBus());
+    src.onended = () => { if (smpPrev === src) smpPrev = null; };
+    src.start();
+    smpPrev = src;
   });
   smpPadsEl.appendChild(b);
 });

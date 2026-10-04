@@ -316,7 +316,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   Click loads a file, click again fires (retrigger restarts),
   alt-click stops the ringing voice, shift-click clears — and
   shift-click on an empty pad resamples the deck's armed loop into a
-  one-shot (see ADR-0118/ADR-0132/ADR-0145). Keys `1`–`4` fire the pads (see ADR-0119);
+  one-shot, and right-click previews a pad on the headphone cue bus
+  (see ADR-0118/ADR-0132/ADR-0145/ADR-0147). Keys `1`–`4` fire the pads (see ADR-0119);
   the slider beside them trims the shared sample level
   (see ADR-0120). Pads are single-voice: firing one chokes the
   others (see ADR-0121).
