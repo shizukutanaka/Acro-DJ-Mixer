@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Acro DJ Mixer</title>
+<style>
+  :root {
+    --bg: #0e1116;
+    --panel: #171c24;
+    --panel-2: #1e2530;
+    --text: #e6ebf2;
+    --muted: #8b96a5;
+    --accent-a: #4da3ff;
+    --accent-b: #ff7a59;
+    --line: #2a3341;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.45 -apple-system, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    padding: 12px 20px;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  header h1 { font-size: 18px; margin: 0; letter-spacing: 0.5px; }
+  header .hint { color: var(--muted); font-size: 12px; }
+  main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 220px 1fr;
+    gap: 16px;
+    padding: 16px 20px;
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+  }
+  .deck { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .deck h2 { margin: 0; font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+  .deck.a h2 { color: var(--accent-a); }
+  .deck.b h2 { color: var(--accent-b); }
+  .dropzone {
+    border: 2px dashed var(--line);
+    border-radius: 8px;
+    padding: 18px 10px;
+    text-align: center;
+    color: var(--muted);
+    cursor: pointer;
+    transition: border-color .15s, color .15s;
+    min-height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    word-break: break-all;
+  }
+  .dropzone:hover, .dropzone.drag { border-color: currentColor; color: var(--text); }
+  .deck.a .dropzone { color: var(--accent-a); }
+  .deck.b .dropzone { color: var(--accent-b); }
+  canvas.wave { width: 100%; height: 90px; background: var(--panel-2); border-radius: 6px; cursor: pointer; display: block; }
+  .transport { display: flex; gap: 8px; align-items: center; }
+  button {
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  button:hover { border-color: var(--muted); }
+  button.primary { flex: 1; font-weight: 600; }
+  .deck.a button.primary { border-color: var(--accent-a); }
+  .deck.b button.primary { border-color: var(--accent-b); }
+  .time { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12px; margin-left: auto; }
+  .row { display: flex; align-items: center; gap: 10px; }
+  .row label { width: 58px; color: var(--muted); font-size: 12px; }
+  .row output { width: 58px; text-align: right; font-variant-numeric: tabular-nums; font-size: 12px; color: var(--muted); }
+  input[type=range] { flex: 1; accent-color: var(--accent-a); }
+  .deck.b input[type=range] { accent-color: var(--accent-b); }
+  .bpm { font-size: 12px; color: var(--muted); }
+  .bpm b { color: var(--text); font-size: 14px; }
+  .mixer { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 14px; align-items: center; justify-content: center; }
+  .mixer h2 { margin: 0; font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+  .mixer .row { width: 100%; }
+  .meter { width: 100%; height: 10px; background: var(--panel-2); border-radius: 5px; overflow: hidden; }
+  .meter i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #3ddc84, #ffd23f 70%, #ff5252); transition: width .05s linear; }
+  .kbd-hint { color: var(--muted); font-size: 11px; text-align: center; }
+  .kbd-hint kbd { background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
+  footer { padding: 10px 20px; color: var(--muted); font-size: 11px; border-top: 1px solid var(--line); }
+  .status { color: #ff7a7a; font-size: 12px; min-height: 14px; }
+  @media (max-width: 760px) {
+    main { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Acro DJ Mixer</h1>
+  <span class="hint">Drop an audio file on each deck. Keys: <b>Q</b>/<b>P</b> play deck A/B · <b>←</b>/<b>→</b> crossfade · <b>0</b> center</span>
+</header>
+<main>
+  <section class="deck a" id="deck-a">
+    <h2>Deck A</h2>
+    <div class="dropzone" data-deck="a">Drop track or click to load</div>
+    <input type="file" accept="audio/*" hidden>
+    <canvas class="wave" width="640" height="90"></canvas>
+    <div class="transport">
+      <button class="primary" data-act="play">Play</button>
+      <button data-act="cue">Cue</button>
+      <span class="time">0:00 / 0:00</span>
+    </div>
+    <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1"><output>+0.0%</output></div>
+    <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1"><output>100%</output></div>
+    <div class="row"><span class="bpm">BPM <b>—</b></span><span class="status"></span></div>
+  </section>
+
+  <section class="mixer">
+    <h2>Mixer</h2>
+    <div class="meter"><i id="meter-fill"></i></div>
+    <div class="row"><label>A</label><input type="range" id="xfader" min="0" max="1" step="0.005" value="0.5"><label>B</label></div>
+    <div class="row"><label>Master</label><input type="range" id="master" min="0" max="1" step="0.01" value="0.9"><output id="master-out">90%</output></div>
+    <div class="kbd-hint">Equal-power crossfade.<br>Auto BPM is an estimate — trust your ears.</div>
+  </section>
+
+  <section class="deck b" id="deck-b">
+    <h2>Deck B</h2>
+    <div class="dropzone" data-deck="b">Drop track or click to load</div>
+    <input type="file" accept="audio/*" hidden>
+    <canvas class="wave" width="640" height="90"></canvas>
+    <div class="transport">
+      <button class="primary" data-act="play">Play</button>
+      <button data-act="cue">Cue</button>
+      <span class="time">0:00 / 0:00</span>
+    </div>
+    <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1"><output>+0.0%</output></div>
+    <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1"><output>100%</output></div>
+    <div class="row"><span class="bpm">BPM <b>—</b></span><span class="status"></span></div>
+  </section>
+</main>
+<footer>Acro DJ Mixer — local files only, nothing is uploaded. See docs/adr/ADR-0001 for scope decisions.</footer>
+
+<script>
+'use strict';
+
+// ----- Audio graph -----
+// source -> deckGain -> xfGain -> masterGain -> analyser -> destination
+let ctx = null;
+let masterGain, analyser;
+
+function audio() {
+  if (!ctx) {
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = ctx.createGain();
+    masterGain.gain.value = parseFloat(document.getElementById('master').value);
+    analyser = ctx.createAnalyser();
+    analyser.fftSize = 256;
+    masterGain.connect(analyser);
+    analyser.connect(ctx.destination);
+  }
+  if (ctx.state === 'suspended') ctx.resume();
+  return ctx;
+}
+
+function fmt(t) {
+  if (!isFinite(t)) return '0:00';
+  const m = Math.floor(t / 60), s = Math.floor(t % 60);
+  return m + ':' + String(s).padStart(2, '0');
+}
+
+// ----- Deck -----
+class Deck {
+  constructor(root, side) {
+    this.side = side; // 'a' | 'b'
+    this.el = root;
+    this.buffer = null;
+    this.source = null;
+    this.playing = false;
+    this.offset = 0;      // seconds into track where playback resumes
+    this.startedAt = 0;   // ctx.currentTime at last play
+    this.rate = 1;
+    this.deckGain = null;
+    this.xfGain = null;
+    this.peaks = null;
+    this.fileName = '';
+    this.bpmEl = root.querySelector('.bpm b');
+    this.wave = root.querySelector('canvas.wave');
+    this.wctx = this.wave.getContext('2d');
+    this.timeEl = root.querySelector('.time');
+    this.statusEl = root.querySelector('.status');
+    this.playBtn = root.querySelector('[data-act=play]');
+    this.tempoEl = root.querySelector('[data-act=tempo]');
+    this.tempoOut = root.querySelector('[data-act=tempo] ~ output');
+    this.gainEl = root.querySelector('[data-act=gain]');
+    this.bind();
+  }
+
+  bind() {
+    const dz = this.el.querySelector('.dropzone');
+    const file = this.el.querySelector('input[type=file]');
+    dz.addEventListener('click', () => file.click());
+    file.addEventListener('change', e => { if (e.target.files[0]) this.load(e.target.files[0]); file.value = ''; });
+    dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+    dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+    dz.addEventListener('drop', e => {
+      e.preventDefault(); dz.classList.remove('drag');
+      const f = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) this.load(f);
+    });
+    this.playBtn.addEventListener('click', () => this.toggle());
+    this.el.querySelector('[data-act=cue]').addEventListener('click', () => this.cue());
+    this.tempoEl.addEventListener('input', () => this.setRate(parseFloat(this.tempoEl.value)));
+    this.gainEl.addEventListener('input', () => this.setGain(parseFloat(this.gainEl.value)));
+    this.wave.addEventListener('click', e => this.seekFromEvent(e));
+  }
+
+  status(msg) { this.statusEl.textContent = msg || ''; }
+
+  async load(fileObj) {
+    this.status('decoding…');
+    try {
+      const ac = audio();
+      const data = await fileObj.arrayBuffer();
+      const buf = await ac.decodeAudioData(data);
+      this.stopSource();
+      this.buffer = buf;
+      this.offset = 0;
+      this.playing = false;
+      this.fileName = fileObj.name;
+      this.el.querySelector('.dropzone').textContent = fileObj.name;
+      this.playBtn.textContent = 'Play';
+      this.status('');
+      this.peaks = computePeaks(buf, this.wave.width);
+      this.drawWave();
+      this.estimateBpm(buf);
+    } catch (err) {
+      console.error(err);
+      this.status('Could not decode this file.');
+    }
+  }
+
+  ensureNodes() {
+    if (this.deckGain) return;
+    const ac = audio();
+    this.deckGain = ac.createGain();
+    this.xfGain = ac.createGain();
+    this.deckGain.gain.value = parseFloat(this.gainEl.value);
+    this.xfGain.gain.value = this.side === 'a' ? 1 : 0;
+    this.deckGain.connect(this.xfGain);
+    this.xfGain.connect(masterGain);
+  }
+
+  pos() {
+    if (!this.buffer) return 0;
+    const p = this.playing
+      ? this.offset + (ctx.currentTime - this.startedAt) * this.rate
+      : this.offset;
+    return Math.min(Math.max(p, 0), this.buffer.duration);
+  }
+
+  toggle() {
+    if (!this.buffer) return;
+    this.playing ? this.pause() : this.play();
+  }
+
+  play() {
+    if (!this.buffer || this.playing) return;
+    if (this.offset >= this.buffer.duration - 0.01) this.offset = 0;
+    this.ensureNodes();
+    const ac = audio();
+    const src = ac.createBufferSource();
+    src.buffer = this.buffer;
+    src.playbackRate.value = this.rate;
+    src.connect(this.deckGain);
+    src.onended = () => {
+      // Ignore stale sources replaced by seek/stop.
+      if (src !== this.source) return;
+      if (this.pos() >= this.buffer.duration - 0.02) {
+        this.playing = false;
+        this.offset = this.buffer.duration;
+        this.playBtn.textContent = 'Play';
+      }
+    };
+    src.start(0, this.offset);
+    this.source = src;
+    this.startedAt = ac.currentTime;
+    this.playing = true;
+    this.playBtn.textContent = 'Pause';
+  }
+
+  stopSource() {
+    if (this.source) {
+      this.source.onended = null;
+      try { this.source.stop(); } catch (_) {}
+      this.source.disconnect();
+      this.source = null;
+    }
+    this.playing = false;
+  }
+
+  pause() {
+    if (!this.playing) return;
+    this.offset = this.pos();
+    this.stopSource();
+    this.playBtn.textContent = 'Play';
+  }
+
+  cue() {
+    // Classic cue behaviour: return to track start; keep playing state.
+    const wasPlaying = this.playing;
+    this.stopSource();
+    this.offset = 0;
+    this.playBtn.textContent = 'Play';
+    if (wasPlaying) this.play();
+  }
+
+  setRate(r) {
+    if (this.playing) {
+      this.offset = this.pos();
+      this.startedAt = ctx.currentTime;
+      this.source.playbackRate.value = r;
+    }
+    this.rate = r;
+    this.tempoOut.textContent = (r >= 1 ? '+' : '') + ((r - 1) * 100).toFixed(1) + '%';
+  }
+
+  setGain(g) {
+    if (this.deckGain) this.deckGain.gain.setTargetAtTime(g, ctx.currentTime, 0.01);
+    this.el.querySelector('[data-act=gain] ~ output').textContent = Math.round(g * 100) + '%';
+  }
+
+  setXf(v) {
+    if (this.xfGain) this.xfGain.gain.setTargetAtTime(v, ctx.currentTime, 0.01);
+  }
+
+  seekFromEvent(e) {
+    if (!this.buffer) return;
+    const rect = this.wave.getBoundingClientRect();
+    const frac = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
+    const wasPlaying = this.playing;
+    this.stopSource();
+    this.offset = frac * this.buffer.duration;
+    if (wasPlaying) this.play();
+    else this.drawWave();
+  }
+
+  drawWave() {
+    const cur = this.pos();
+    if (cur === this._drawnPos) return;
+    this._drawnPos = cur;
+    const { width: w, height: h } = this.wave;
+    const c = this.wctx;
+    c.clearRect(0, 0, w, h);
+    if (!this.peaks) return;
+    const mid = h / 2;
+    c.fillStyle = this.side === 'a' ? '#4da3ff' : '#ff7a59';
+    const n = this.peaks.length;
+    for (let i = 0; i < n; i++) {
+      const x = Math.floor(i * w / n);
+      const amp = Math.max(this.peaks[i] * mid, 1);
+      c.fillRect(x, mid - amp, Math.max(Math.floor(w / n), 1), amp * 2);
+    }
+    if (this.buffer) {
+      const x = (this.pos() / this.buffer.duration) * w;
+      c.fillStyle = '#fff';
+      c.fillRect(x - 1, 0, 2, h);
+    }
+  }
+
+  async estimateBpm(buf) {
+    this.bpmEl.textContent = '…';
+    try {
+      const bpm = await estimateBpm(buf);
+      this.bpmEl.textContent = bpm ? String(bpm) : '—';
+    } catch (err) {
+      console.error(err);
+      this.bpmEl.textContent = '—';
+    }
+  }
+}
+
+// ----- Analysis helpers (run off the audio thread; chunked to keep UI alive) -----
+
+function computePeaks(buf, buckets) {
+  const ch = buf.getChannelData(0);
+  const n = ch.length;
+  const per = Math.max(Math.floor(n / buckets), 1);
+  const peaks = new Float32Array(buckets);
+  for (let b = 0; b < buckets; b++) {
+    let max = 0;
+    const start = b * per, end = Math.min(start + per, n);
+    for (let i = start; i < end; i += 8) {
+      const v = Math.abs(ch[i]);
+      if (v > max) max = v;
+    }
+    peaks[b] = max;
+  }
+  return peaks;
+}
+
+// Energy-flux autocorrelation BPM estimate, 60–180 BPM.
+// Mono-mix -> ~11025 Hz -> onset envelope -> autocorrelate -> pick peak.
+async function estimateBpm(buf) {
+  const targetSr = 11025;
+  const off = new OfflineAudioContext(1, Math.ceil(buf.duration * targetSr), targetSr);
+  const src = off.createBufferSource();
+  src.buffer = buf;
+  src.connect(off.destination);
+  src.start();
+  const mono = await off.startRendering();
+  const d = mono.getChannelData(0);
+
+  // Onset envelope: positive energy difference between consecutive frames.
+  const frame = 256, hop = 128;
+  const frames = Math.floor((d.length - frame) / hop);
+  if (frames < 200) return null;
+  const flux = new Float32Array(frames);
+  let prev = 0;
+  for (let f = 0; f < frames; f++) {
+    let e = 0;
+    const base = f * hop;
+    for (let i = 0; i < frame; i += 4) {
+      const v = d[base + i];
+      e += v * v;
+    }
+    const diff = e - prev;
+    flux[f] = diff > 0 ? diff : 0;
+    prev = e;
+  }
+
+  const fps = targetSr / hop;                 // envelope samples per second
+  const minLag = Math.floor(fps * 60 / 180);  // 180 BPM
+  const maxLag = Math.floor(fps * 60 / 60);   // 60 BPM
+  let bestLag = 0, best = 0;
+  for (let lag = minLag; lag <= maxLag; lag++) {
+    let s = 0;
+    for (let i = 0; i + lag < frames; i++) s += flux[i] * flux[i + lag];
+    if (s > best) { best = s; bestLag = lag; }
+  }
+  if (!bestLag) return null;
+  // Octave check: prefer the half-lag if it scores nearly as well (avoids half-tempo reads).
+  const half = Math.round(bestLag / 2);
+  if (half >= minLag) {
+    let s = 0;
+    for (let i = 0; i + half < frames; i++) s += flux[i] * flux[i + half];
+    if (s > best * 0.85) bestLag = half;
+  }
+  return Math.round(fps * 60 / bestLag);
+}
+
+// ----- Mixer wiring -----
+
+const deckA = new Deck(document.getElementById('deck-a'), 'a');
+const deckB = new Deck(document.getElementById('deck-b'), 'b');
+const xfader = document.getElementById('xfader');
+
+function applyCrossfade() {
+  const x = parseFloat(xfader.value);
+  // Equal-power law keeps perceived loudness constant through the middle.
+  deckA.setXf(Math.cos(x * Math.PI / 2));
+  deckB.setXf(Math.sin(x * Math.PI / 2));
+}
+xfader.addEventListener('input', applyCrossfade);
+
+document.getElementById('master').addEventListener('input', e => {
+  const v = parseFloat(e.target.value);
+  document.getElementById('master-out').textContent = Math.round(v * 100) + '%';
+  if (ctx) masterGain.gain.setTargetAtTime(v, ctx.currentTime, 0.01);
+});
+
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' && e.target.type === 'text') return;
+  switch (e.key) {
+    case 'q': case 'Q': deckA.toggle(); break;
+    case 'p': case 'P': deckB.toggle(); break;
+    case 'ArrowLeft': xfader.value = Math.max(0, parseFloat(xfader.value) - 0.05); applyCrossfade(); break;
+    case 'ArrowRight': xfader.value = Math.min(1, parseFloat(xfader.value) + 0.05); applyCrossfade(); break;
+    case '0': xfader.value = 0.5; applyCrossfade(); break;
+  }
+});
+
+// ----- Render loop: playheads, time readouts, master meter -----
+
+const meterFill = document.getElementById('meter-fill');
+const meterBuf = new Uint8Array(256);
+function tick() {
+  for (const d of [deckA, deckB]) {
+    if (!d.buffer) continue;
+    d.drawWave();
+    d.timeEl.textContent = fmt(d.pos()) + ' / ' + fmt(d.buffer.duration);
+    if (d.playing && d.pos() >= d.buffer.duration - 0.02) {
+      d.playing = false;
+      d.playBtn.textContent = 'Play';
+    }
+  }
+  if (ctx && analyser) {
+    analyser.getByteTimeDomainData(meterBuf);
+    let peak = 0;
+    for (let i = 0; i < meterBuf.length; i++) {
+      const v = Math.abs(meterBuf[i] - 128) / 128;
+      if (v > peak) peak = v;
+    }
+    meterFill.style.width = Math.min(peak * 100, 100).toFixed(1) + '%';
+  }
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
