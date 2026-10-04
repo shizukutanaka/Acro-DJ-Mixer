@@ -690,7 +690,13 @@ class Deck {
     this.el.querySelector('[data-act=pitchup]').addEventListener('click', () => this.transpose(1));
     this.stEl.addEventListener('dblclick', () => this.transpose(-this.st));
     this.el.querySelector('[data-act=keysync]').addEventListener('click', () => this.keySync());
-    this.tempoEl.addEventListener('input', () => this.setRate(parseFloat(this.tempoEl.value)));
+    // Center detent (CDJ): within ~±0.3% of unity the fader reads
+    // dead center — original tempo comes back by feel, not eyesight.
+    this.tempoEl.addEventListener('input', () => {
+      let v = parseFloat(this.tempoEl.value);
+      if (Math.abs(v - 1) < 0.003) v = 1;
+      this.setRate(v);
+    });
     // Double-click = tempo reset to ±0%, like the CDJ TEMPO RESET.
     this.tempoEl.addEventListener('dblclick', () => { this.tempoEl.value = 1; this.setRate(1); });
     // Wheel = fine pitch trim, ±0.1% per notch — dragging a ±50%
