@@ -207,6 +207,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   (see ADR-0090).
 - **Mic ducking** — opening the mic squeezes the music ~12 dB
   (broadcast talkover), restored on close (see ADR-0091).
+- **Manual cue point** — `Shift+Cue` sets the cue point at the
+  playhead; persisted and restored on reload (see ADR-0092).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,

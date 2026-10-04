@@ -163,7 +163,7 @@
     <div class="meter chm" title="Channel level (post-EQ, pre-crossfader)"><i></i></div>
     <div class="transport">
       <button class="primary" data-act="play" title="Play / pause — shift = start on the next bar downbeat">Play</button>
-      <button data-act="cue" title="Cue — jump to cue point (hold while stopped to audition from it)">Cue</button>
+      <button data-act="cue" title="Cue — jump to cue point (hold while stopped to audition from it; shift = set cue point here)">Cue</button>
       <button data-act="sync" title="Sync — match tempo and beat phase to the other deck (shift = phase only, keep your tempo)">Sync</button>
       <button data-act="dbl" title="Instant doubles — load this track into the other deck at the same point and tempo">×2</button><button data-act="brake" title="Vinyl brake — pause spins down, play spins up">Brake</button>
       <button data-act="loop" title="4-beat loop snapped to the beat grid (shift = free-size in/out)">Loop</button><button data-act="reloop" title="Reloop — re-enter the last loop you exited">↺</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been">Roll</button><button data-act="slip" title="Slip — held pads play the cue momentarily, release resumes where the track would have been">Slip</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier">◂</button><button data-act="loopfwd" title="Move the loop one length later">▸</button></span>
@@ -207,7 +207,7 @@
     <div class="meter chm" title="Channel level (post-EQ, pre-crossfader)"><i></i></div>
     <div class="transport">
       <button class="primary" data-act="play" title="Play / pause — shift = start on the next bar downbeat">Play</button>
-      <button data-act="cue" title="Cue — jump to cue point (hold while stopped to audition from it)">Cue</button>
+      <button data-act="cue" title="Cue — jump to cue point (hold while stopped to audition from it; shift = set cue point here)">Cue</button>
       <button data-act="sync" title="Sync — match tempo and beat phase to the other deck (shift = phase only, keep your tempo)">Sync</button>
       <button data-act="dbl" title="Instant doubles — load this track into the other deck at the same point and tempo">×2</button><button data-act="brake" title="Vinyl brake — pause spins down, play spins up">Brake</button>
       <button data-act="loop" title="4-beat loop snapped to the beat grid (shift = free-size in/out)">Loop</button><button data-act="reloop" title="Reloop — re-enter the last loop you exited">↺</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been">Roll</button><button data-act="slip" title="Slip — held pads play the cue momentarily, release resumes where the track would have been">Slip</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier">◂</button><button data-act="loopfwd" title="Move the loop one length later">▸</button></span>
@@ -568,12 +568,26 @@ class Deck {
       this.toggle();
     });
     const cueBtnEl = this.el.querySelector('[data-act=cue]');
-    cueBtnEl.addEventListener('click', () => this.cue());
+    cueBtnEl.addEventListener('click', e => {
+      // Shift = set the cue point here (rekordbox-style re-cue): auto-cue's
+      // first-sound pick isn't always where the DJ wants the Cue landing.
+      if (e.shiftKey) {
+        if (!this.buffer) return;
+        this.cueIn = this.pos();
+        this.offset = this.cueIn;
+        this.tagLib({ cueIn: this.cueIn });   // survives reload like hot cues
+        this._drawnPos = undefined;
+        this.drawWave();
+        this.status('cue set ' + fmt(this.cueIn));
+        return;
+      }
+      this.cue();
+    });
     // Cue preview (CDJ CUE hold): while stopped, holding the button
     // plays from the cue point; releasing pauses and snaps back.
     this._cuePreview = false;
-    cueBtnEl.addEventListener('pointerdown', () => {
-      if (this.playing || !this.buffer) return;
+    cueBtnEl.addEventListener('pointerdown', e => {
+      if (e.shiftKey || this.playing || !this.buffer) return;   // shift is "set", not preview
       this._cuePreview = true;
       this.cue();
       this.play();
@@ -821,6 +835,9 @@ class Deck {
           if (Math.abs(ch0[i]) > 0.003) { this.cueIn = i / buf.sampleRate; break; }
         }
       }
+      // A cue point set by hand (shift+Cue) beats the auto-detected
+      // first sound — like a rekordbox memory cue.
+      if (meta && meta.cueIn != null) this.cueIn = meta.cueIn;
       this.offset = this.cueIn;
       if (this.engine === 'worklet' && this.cueIn > 0)
         this.node.port.postMessage({ type: 'seek', pos: Math.round(this.cueIn * buf.sampleRate) });
@@ -2038,7 +2055,7 @@ const Library = {
   async loadInto(deck, id) {
     const rec = await this.get(id);
     if (!rec || rec.deleted_at) return;
-    deck.load(rec.blob, { libId: rec.id, bpm: rec.bpm, beatOff: rec.beatOff, key: rec.key, cues: rec.cues, loop: rec.loop });
+    deck.load(rec.blob, { libId: rec.id, bpm: rec.bpm, beatOff: rec.beatOff, key: rec.key, cues: rec.cues, cueIn: rec.cueIn, loop: rec.loop });
   },
 };
 
@@ -2355,7 +2372,7 @@ document.getElementById('lib-search').addEventListener('input', e => {
 // Library metadata export/import: the analysis + prep (BPM, grid,
 // key, hot cues, loop) is the valuable part — audio blobs stay put,
 // so entries match by name+size on the other side.
-const LIB_META_KEYS = ['name', 'size', 'type', 'duration', 'bpm', 'beatOff', 'key', 'cues', 'loop'];
+const LIB_META_KEYS = ['name', 'size', 'type', 'duration', 'bpm', 'beatOff', 'key', 'cues', 'cueIn', 'loop'];
 document.getElementById('lib-exp').addEventListener('click', async () => {
   const rows = (await Library.all()).filter(t => !t.deleted_at);
   const data = rows.map(t => Object.fromEntries(LIB_META_KEYS.filter(k => t[k] !== undefined).map(k => [k, t[k]])));
@@ -2379,7 +2396,7 @@ libImpFile.addEventListener('change', async () => {
     const rec = rows.find(t => t.name === e.name && t.size === e.size);
     if (!rec) continue;   // audio not loaded here — nothing to tag
     const patch = {};
-    for (const k of ['duration', 'bpm', 'beatOff', 'key', 'cues', 'loop']) if (e[k] !== undefined) patch[k] = e[k];
+    for (const k of ['duration', 'bpm', 'beatOff', 'key', 'cues', 'cueIn', 'loop']) if (e[k] !== undefined) patch[k] = e[k];
     await Library.tag(rec.id, patch);
   }
 });
