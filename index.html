@@ -112,7 +112,8 @@
   .eq .band input { flex: 1; min-width: 0; }
   .library { padding: 10px 20px; border-top: 1px solid var(--line); }
   .library h2 { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
-  #lib-search { width: 100%; box-sizing: border-box; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; color: var(--text); font-size: 12px; padding: 5px 8px; margin-bottom: 6px; }
+  .libbar { display: flex; gap: 8px; margin-bottom: 6px; }
+  #lib-search { flex: 1; min-width: 0; box-sizing: border-box; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; color: var(--text); font-size: 12px; padding: 5px 8px; }
   .lib-row { display: grid; grid-template-columns: 1fr auto auto auto auto; gap: 10px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
   .lib-row .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .lib-row button { font-size: 11px; padding: 2px 8px; }
@@ -204,7 +205,7 @@
 </main>
 <section class="library">
   <h2>Library</h2>
-  <input type="text" id="lib-search" placeholder="Filter tracks…" autocomplete="off">
+  <div class="libbar"><input type="text" id="lib-search" placeholder="Filter tracks…" autocomplete="off"><select id="lib-sort" title="Sort the library"><option value="recent">Recent</option><option value="name">Name</option><option value="bpm">BPM</option><option value="key">Key</option></select></div>
   <div id="lib-rows"><p class="muted">Tracks you load are saved here for instant reload.</p></div>
 </section>
 <footer>Acro DJ Mixer — local files only, nothing is uploaded. See docs/adr/ADR-0001 for scope decisions.</footer>
@@ -1434,7 +1435,7 @@ const Library = {
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-let libQuery = '';
+let libQuery = '', libSort = 'recent';
 
 async function renderLibrary() {
   const rowsEl = document.getElementById('lib-rows');
@@ -1443,6 +1444,9 @@ async function renderLibrary() {
   catch (_) { return; }
   const q = libQuery.trim().toLowerCase();
   if (q) rows = rows.filter(t => (t.name || '').toLowerCase().includes(q));
+  if (libSort === 'name') rows.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  else if (libSort === 'bpm') rows.sort((a, b) => (a.bpm || 0) - (b.bpm || 0));
+  else if (libSort === 'key') rows.sort((a, b) => ((a.key ? a.key.num * 2 + (a.key.letter === 'B') : 0)) - (b.key ? b.key.num * 2 + (b.key.letter === 'B') : 0));
   if (!rows.length) {
     rowsEl.innerHTML = `<p class="muted">${q ? 'No tracks match.' : 'Tracks you load are saved here for instant reload.'}</p>`;
     return;
@@ -1578,6 +1582,10 @@ if (navigator.mediaDevices) navigator.mediaDevices.addEventListener('devicechang
 
 document.getElementById('lib-search').addEventListener('input', e => {
   libQuery = e.target.value;
+  renderLibrary();
+});
+document.getElementById('lib-sort').addEventListener('change', e => {
+  libSort = e.target.value;
   renderLibrary();
 });
 document.getElementById('lib-rows').addEventListener('click', e => {
