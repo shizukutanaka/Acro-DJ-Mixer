@@ -184,7 +184,7 @@
     <h2>Mixer</h2>
     <div class="meter"><i id="meter-fill"></i></div>
     <div class="gr" id="gr" title="Limiter gain reduction"></div>
-    <div class="row"><label>A</label><input type="range" id="xfader" min="0" max="1" step="0.005" value="0.5" title="Crossfader — double-click resets to centre"><label>B</label><select id="xfcurve" title="Crossfader curve — Smooth fades gradually, Cut reaches full in the first/last 10% for scratching"><option value="smooth">Smooth</option><option value="cut">Cut</option></select><button id="xfrev" title="HAMSTER — swap which side of the crossfader feeds A and B, for scratching">Rev</button><button id="qtz" class="on" title="Quantize — hot cues and loops snap to the beat grid; click to place them freehand">Qtz</button></div>
+    <div class="row"><label>A</label><input type="range" id="xfader" min="0" max="1" step="0.005" value="0.5" title="Crossfader — double-click resets to centre; pushing fully into a stopped deck starts it"><label>B</label><select id="xfcurve" title="Crossfader curve — Smooth fades gradually, Cut reaches full in the first/last 10% for scratching"><option value="smooth">Smooth</option><option value="cut">Cut</option></select><button id="xfrev" title="HAMSTER — swap which side of the crossfader feeds A and B, for scratching">Rev</button><button id="qtz" class="on" title="Quantize — hot cues and loops snap to the beat grid; click to place them freehand">Qtz</button></div>
     <div class="row"><label>Master</label><input type="range" id="master" min="0" max="1" step="0.01" value="0.9" title="Master level — double-click resets to 90%"><output id="master-out">90%</output></div>
     <div class="row"><label>Cue&nbsp;out</label><select id="cueout" title="Output device for the headphone cue bus"><option value="">System output</option></select></div>
     <div class="row"><label>Cue&nbsp;mix</label><input type="range" id="cuemix" min="0" max="1" step="0.01" value="0" title="Cue mix — left is cue (PFL) only, right blends the master output into the phones"><output>cue</output></div>
@@ -1907,8 +1907,8 @@ deckB.partner = deckA;
 const xfader = document.getElementById('xfader');
 
 const xfcurve = document.getElementById('xfcurve');
-let xfRev = false;
-let quantizeOn = true;   // HAMSTER: mirror the fader so left feeds B, right feeds A
+let xfRev = false;     // HAMSTER: mirror the fader so left feeds B, right feeds A
+let quantizeOn = true;
 function xfPos() { const x = parseFloat(xfader.value); return xfRev ? 1 - x : x; }
 document.getElementById('qtz').addEventListener('click', e => {
   quantizeOn = !quantizeOn;
@@ -1934,6 +1934,18 @@ function applyCrossfade() {
   deckB.setXf(Math.sin(x * Math.PI / 2));
 }
 xfader.addEventListener('input', applyCrossfade);
+// Fader start (CDJ FADER START): sweeping the fader fully into a
+// stopped deck's side starts it — the classic way to fire a cued
+// track or a scratch sample. Edge-triggered so nudging an already
+// parked fader doesn't keep retriggering; a deck parked past its
+// end stays put.
+let xfPrev = xfPos();
+xfader.addEventListener('input', () => {
+  const x = xfPos();
+  if (xfPrev >= 0.05 && x < 0.05 && deckA.buffer && !deckA.playing && deckA.pos() < deckA.buffer.duration) deckA.play();
+  if (xfPrev <= 0.95 && x > 0.95 && deckB.buffer && !deckB.playing && deckB.pos() < deckB.buffer.duration) deckB.play();
+  xfPrev = x;
+});
 xfader.addEventListener('dblclick', () => { xfader.value = 0.5; applyCrossfade(); });
 xfcurve.addEventListener('change', applyCrossfade);
 
