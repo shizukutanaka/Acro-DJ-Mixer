@@ -103,6 +103,13 @@
   .key.clash { color: #d9a03f; }
   .eq .band { display: flex; align-items: center; gap: 3px; flex: 1; color: var(--muted); font-size: 11px; font-weight: 600; }
   .eq .band input { flex: 1; min-width: 0; }
+  .library { padding: 10px 20px; border-top: 1px solid var(--line); }
+  .library h2 { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .lib-row { display: grid; grid-template-columns: 1fr auto auto auto auto; gap: 10px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
+  .lib-row .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lib-row button { font-size: 11px; padding: 2px 8px; }
+  .lib-row .lib-del { color: var(--muted); }
+  .muted { color: var(--muted); font-size: 12px; }
   @media (max-width: 760px) {
     main { grid-template-columns: 1fr; }
   }
@@ -163,6 +170,10 @@
     <div class="row"><span class="bpm">BPM <b>—</b></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="status"></span></div>
   </section>
 </main>
+<section class="library">
+  <h2>Library</h2>
+  <div id="lib-rows"><p class="muted">Tracks you load are saved here for instant reload.</p></div>
+</section>
 <footer>Acro DJ Mixer — local files only, nothing is uploaded. See docs/adr/ADR-0001 for scope decisions.</footer>
 
 <script>
@@ -433,7 +444,7 @@ class Deck {
 
   status(msg) { this.statusEl.textContent = msg || ''; }
 
-  async load(fileObj) {
+  async load(fileObj, meta) {
     this.status('decoding…');
     try {
       const ac = audio();
@@ -461,9 +472,24 @@ class Deck {
       this.keyEl.className = 'key';
       this.peaks = computePeaks(buf, this.wave.width);
       this.drawWave();
-      const mono = monoResample(buf); // one downmix feeds both analyses
-      this.estimateBpm(mono);
-      this.estimateKey(mono);
+      this.libId = meta ? meta.libId : null;
+      if (meta && meta.bpm) {
+        // Cached analysis from the library — instant, no recompute.
+        this.grid = { bpm: meta.bpm, beatOff: meta.beatOff || 0 };
+        this.bpmEl.textContent = String(this.grid.bpm);
+        this.key = meta.key || null;
+        this.refreshKey();
+        if (this.partner) this.partner.refreshKey();
+      } else {
+        const mono = monoResample(buf); // one downmix feeds both analyses
+        this.estimateBpm(mono);
+        this.estimateKey(mono);
+      }
+      if (!meta) {
+        Library.addFromFile(fileObj, buf.duration)
+          .then(id => { this.libId = id; })
+          .catch(err => console.warn('library save failed:', err));
+      }
     } catch (err) {
       console.error(err);
       this.status('Could not decode this file.');
@@ -699,6 +725,7 @@ class Deck {
       const grid = estimateBpm(await monoP);
       this.grid = grid;
       this.bpmEl.textContent = grid ? String(grid.bpm) : '—';
+      if (grid) Library.tag(this.libId, { bpm: grid.bpm, beatOff: grid.beatOff });
       this._drawnPos = undefined;
       this.drawWave();
     } catch (err) {
@@ -711,6 +738,7 @@ class Deck {
     this.keyEl.textContent = '…';
     try {
       this.key = estimateKey(await monoP);
+      if (this.key) Library.tag(this.libId, { key: this.key });
     } catch (err) {
       console.error(err);
       this.key = null;
@@ -971,6 +999,97 @@ function harmonic(a, b) {
   return a.num === b.num || (a.letter === b.letter && d === 1);
 }
 
+// ----- Library (IndexedDB) -----
+// Every file dropped on a deck is auto-saved — audio blob plus the BPM/key
+// analysis once it lands — so a later session reloads instantly from the
+// list below. Records follow the table convention: id, created_at,
+// updated_at, deleted_at (soft delete), version.
+const Library = {
+  _db: null,
+  _open() {
+    if (!this._db) this._db = new Promise((res, rej) => {
+      const rq = indexedDB.open('acro-dj', 1);
+      rq.onupgradeneeded = () => rq.result.createObjectStore('tracks', { keyPath: 'id', autoIncrement: true });
+      rq.onsuccess = () => res(rq.result);
+      rq.onerror = () => rej(rq.error);
+    });
+    return this._db;
+  },
+  async _store(mode) { return (await this._open()).transaction('tracks', mode).objectStore('tracks'); },
+  async put(rec) {
+    const s = await this._store('readwrite');
+    return new Promise((res, rej) => { const rq = s.put(rec); rq.onsuccess = () => res(rq.result); rq.onerror = () => rej(rq.error); });
+  },
+  async get(id) {
+    const s = await this._store('readonly');
+    return new Promise((res, rej) => { const rq = s.get(id); rq.onsuccess = () => res(rq.result); rq.onerror = () => rej(rq.error); });
+  },
+  async all() {
+    const s = await this._store('readonly');
+    return new Promise((res, rej) => { const rq = s.getAll(); rq.onsuccess = () => res(rq.result); rq.onerror = () => rej(rq.error); });
+  },
+  async addFromFile(fileObj, duration) {
+    // Dedupe by name+size: re-loading the same track refreshes its record.
+    const rows = await this.all();
+    const ex = rows.find(t => t.name === fileObj.name && t.size === fileObj.size && !t.deleted_at);
+    const now = Date.now();
+    const rec = ex || { created_at: now, deleted_at: null, version: 0 };
+    rec.name = fileObj.name;
+    rec.size = fileObj.size;
+    rec.type = fileObj.type || '';
+    rec.blob = fileObj;
+    rec.duration = duration;
+    rec.updated_at = now;
+    rec.version++;
+    rec.id = await this.put(rec);
+    renderLibrary();
+    return rec.id;
+  },
+  async tag(id, patch) {
+    if (!id) return;
+    const rec = await this.get(id);
+    if (!rec) return;
+    Object.assign(rec, patch);
+    rec.updated_at = Date.now();
+    rec.version++;
+    await this.put(rec);
+    renderLibrary();
+  },
+  async remove(id) {
+    const rec = await this.get(id);
+    if (!rec) return;
+    rec.deleted_at = Date.now();
+    rec.version++;
+    await this.put(rec);
+    renderLibrary();
+  },
+  async loadInto(deck, id) {
+    const rec = await this.get(id);
+    if (!rec || rec.deleted_at) return;
+    deck.load(rec.blob, { libId: rec.id, bpm: rec.bpm, beatOff: rec.beatOff, key: rec.key });
+  },
+};
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+async function renderLibrary() {
+  const rowsEl = document.getElementById('lib-rows');
+  let rows;
+  try { rows = (await Library.all()).filter(t => !t.deleted_at).sort((a, b) => b.updated_at - a.updated_at); }
+  catch (_) { return; }
+  if (!rows.length) {
+    rowsEl.innerHTML = '<p class="muted">Tracks you load are saved here for instant reload.</p>';
+    return;
+  }
+  rowsEl.innerHTML = rows.map(t => `<div class="lib-row" data-id="${t.id}">
+    <span class="name" title="${esc(t.name)}">${esc(t.name)}</span>
+    <span>${t.bpm || '—'} BPM</span>
+    <span>${t.key ? esc(t.key.num + t.key.letter + ' ' + t.key.name) : '—'}</span>
+    <span>${fmt(t.duration || 0)}</span>
+    <span><button data-to="a" title="Load into Deck A">→A</button><button data-to="b" title="Load into Deck B">→B</button><button class="lib-del" data-del title="Remove from library">×</button></span>
+  </div>`).join('');
+}
+
 // ----- Mixer wiring -----
 
 const deckA = new Deck(document.getElementById('deck-a'), 'a');
@@ -997,6 +1116,15 @@ const cueOutSel = document.getElementById('cueout');
 cueOutSel.addEventListener('change', e => setCueDevice(e.target.value));
 refreshCueDevices();
 if (navigator.mediaDevices) navigator.mediaDevices.addEventListener('devicechange', refreshCueDevices);
+
+document.getElementById('lib-rows').addEventListener('click', e => {
+  const row = e.target.closest('.lib-row');
+  if (!row) return;
+  const id = Number(row.dataset.id);
+  if (e.target.dataset.del !== undefined) Library.remove(id);
+  else if (e.target.dataset.to) Library.loadInto(e.target.dataset.to === 'a' ? deckA : deckB, id);
+});
+renderLibrary();
 
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' && e.target.type === 'text') return;

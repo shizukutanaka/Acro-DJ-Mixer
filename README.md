@@ -55,6 +55,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Headphone cue (PFL)** — `Phones` button taps each deck pre-fader onto
   a cue bus; `Cue out` picks the output device (`setSinkId`, Chrome/Edge).
   See ADR-0007.
+- **Library** — every loaded track is auto-saved to IndexedDB (audio +
+  BPM/key analysis, soft-deletable); `→A`/`→B` reloads instantly with
+  cached analysis, survives page reloads. See ADR-0008.
 - **Master level meter** and master gain.
 - **Keyboard** — `Q`/`P` toggle deck A/B, `←`/`→` move the crossfader,
   `0` centers it.
@@ -88,8 +91,8 @@ Ordered by value per the ADR's automation layer:
    engines; loop-length cycling remains open.
 3d. ~~Headphone cue.~~ Done (ADR-0007) — pre-fader cue bus via
    MediaStream + `setSinkId`.
-4. Track library with persistence (`id`, `created_at`, `updated_at`,
-   `deleted_at`, `version` per table when a store lands).
+4. ~~Track library with persistence.~~ Done (ADR-0008) — IndexedDB,
+   `id`/`created_at`/`updated_at`/`deleted_at`/`version` per record.
 5. Stem separation (ML model, worker pipeline).
 6. Recommendation / auto-mix assistance.
 
