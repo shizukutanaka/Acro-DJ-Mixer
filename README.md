@@ -206,7 +206,7 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   noise to −22 dB between phrases, snapping back open on speech
   (see ADR-0154). Holding the Mic button while off works as
   press-to-talk — tap latches, hold is momentary like kills, mute,
-  FX, and pads (see ADR-0155).
+  FX, pads, and Phones (see ADR-0155, ADR-0175).
 - **Fader start** — pushing the crossfader fully into a stopped deck's
   side starts it (see ADR-0068).
 - **Tempo range** — `±8 / ±16 / ±50` select per deck trades slider
