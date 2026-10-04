@@ -102,7 +102,8 @@
   .mixer { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 14px; align-items: center; justify-content: center; }
   .mixer h2 { margin: 0; font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
   .mixer .row { width: 100%; }
-  .meter { width: 100%; height: 10px; }
+  .meter { width: 100%; height: 10px; position: relative; }
+  .meter b { position: absolute; top: 0; bottom: 0; width: 2px; left: 0; background: rgba(255,255,255,.65); }
   .chm { height: 6px; margin-top: 4px; } background: var(--panel-2); border-radius: 5px; overflow: hidden; }
   .meter i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #3ddc84, #ffd23f 70%, #ff5252); transition: width .05s linear; }
   .gr { min-height: 12px; font-size: 10px; color: #ff5252; text-align: right; }
@@ -160,7 +161,7 @@
     <div class="dropzone" data-deck="a">Drop track or click to load</div>
     <input type="file" accept="audio/*" hidden>
     <canvas class="wave" width="640" height="90" title="Click to seek — scroll to zoom around the playhead"></canvas>
-    <div class="meter chm" title="Channel level (post-EQ, pre-crossfader)"><i></i></div>
+    <div class="meter chm" title="Channel level (post-EQ, pre-crossfader; tick = peak hold)"><i></i><b></b></div>
     <div class="transport">
       <button class="primary" data-act="play" title="Play / pause — shift = start on the next bar downbeat">Play</button>
       <button data-act="cue" title="Cue — jump to cue point (hold while stopped to audition from it; shift = set cue point here)">Cue</button>
@@ -204,7 +205,7 @@
     <div class="dropzone" data-deck="b">Drop track or click to load</div>
     <input type="file" accept="audio/*" hidden>
     <canvas class="wave" width="640" height="90" title="Click to seek — scroll to zoom around the playhead"></canvas>
-    <div class="meter chm" title="Channel level (post-EQ, pre-crossfader)"><i></i></div>
+    <div class="meter chm" title="Channel level (post-EQ, pre-crossfader; tick = peak hold)"><i></i><b></b></div>
     <div class="transport">
       <button class="primary" data-act="play" title="Play / pause — shift = start on the next bar downbeat">Play</button>
       <button data-act="cue" title="Cue — jump to cue point (hold while stopped to audition from it; shift = set cue point here)">Cue</button>
@@ -529,6 +530,8 @@ class Deck {
     this.keyEl = root.querySelector('.key');
     this.wave = root.querySelector('canvas.wave');
     this.chFill = root.querySelector('.chm i');
+    this.chPeakEl = root.querySelector('.chm b');
+    this.chPeak = 0;
     this.wctx = this.wave.getContext('2d');
     this.timeEl = root.querySelector('.time');
     this.statusEl = root.querySelector('.status');
@@ -2533,6 +2536,12 @@ function tick() {
         if (v > p) p = v;
       }
       d.chFill.style.width = Math.min(p * 100, 100).toFixed(1) + '%';
+      // Peak-hold tick: jumps to a new peak, decays ~2%/frame — reads
+      // like the max indicator on a hardware channel meter.
+      if (d.chPeakEl) {
+        d.chPeak = Math.max(p, d.chPeak - 0.012);
+        d.chPeakEl.style.left = Math.min(d.chPeak * 100, 98).toFixed(1) + '%';
+      }
     }
   }
   if (ctx && analyser) {
