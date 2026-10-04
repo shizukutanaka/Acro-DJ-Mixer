@@ -61,7 +61,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   loop on either engine; the region highlights on the waveform and
   seeking outside it exits the loop (see ADR-0006); `½`/`2×` halve or
   double the armed loop in place (see ADR-0009).
-- **Hot cues** — four pads per deck: click records a marker (amber tick
+- **Hot cues** — eight pads per deck (ADR-0140; keys still fire the first
+  four): click records a marker (amber tick
   on the waveform), click jumps, right-click clears; persisted per track
   in the library (see ADR-0010). Recording snaps to the nearest beat
   when a grid exists — hardware QUANTIZE (see ADR-0021).
@@ -353,7 +354,7 @@ Ordered by value per the ADR's automation layer:
 4. ~~Track library with persistence.~~ Done (ADR-0008) — IndexedDB,
    `id`/`created_at`/`updated_at`/`deleted_at`/`version` per record.
 4b. ~~Hot cues.~~ Done (ADR-0010) — four per deck, persisted in the
-   library. Beat-jump added in ADR-0012.
+   library; eight since ADR-0140. Beat-jump added in ADR-0012.
 5. ~~Stem separation.~~ Done (ADR-0026) — dependency-free mid/side
    Vocal/Inst split. An ML model remains a possible future upgrade if
    centre-panned extraction isn't enough.
