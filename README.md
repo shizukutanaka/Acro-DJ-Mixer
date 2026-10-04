@@ -129,6 +129,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Mono check** — `Mono` under `Cue mix` folds the master to one
   channel (pre-limiter) to audition mono compatibility
   (see ADR-0054).
+- **Quantize toggle** — `Qtz` beside `Rev` switches beat-grid snapping
+  for hot cues and loop in-points on/off (on by default)
+  (see ADR-0055).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
