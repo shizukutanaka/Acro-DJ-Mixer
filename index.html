@@ -2518,7 +2518,22 @@ document.getElementById('lib-rows').addEventListener('click', e => {
   const id = Number(row.dataset.id);
   if (e.target.dataset.del !== undefined) Library.remove(id);
   else if (e.target.dataset.prev !== undefined) previewTrack(id);
-  else if (e.target.dataset.to) Library.loadInto(e.target.dataset.to === 'a' ? deckA : deckB, id);
+  else if (e.target.dataset.to) {
+    // Load guard: loading into a playing deck kills the floor's audio
+    // mid-set — confirm the click like a hardware load lock.
+    const d = e.target.dataset.to === 'a' ? deckA : deckB;
+    const b = e.target;
+    const now = Date.now();
+    if (d.playing && !(b._arm && now - b._arm < 2000)) {
+      b._arm = now;
+      const lbl = b.textContent;
+      b.textContent = 'sure?';
+      setTimeout(() => { if (b._arm === now) { b.textContent = lbl; b._arm = 0; } }, 2000);
+      return;
+    }
+    b._arm = 0;
+    Library.loadInto(d, id);
+  }
 });
 renderLibrary();
 
