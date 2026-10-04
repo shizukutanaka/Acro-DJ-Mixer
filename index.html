@@ -177,7 +177,7 @@
     <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1" title="Tempo — double-click resets to ±0%"><output>+0.0%</output><span class="bend"><button data-act="benddn" title="Pitch bend — hold to slow the deck 5%">−</button><button data-act="bendup" title="Pitch bend — hold to speed the deck 5%">+</button></span><select data-act="range" title="Tempo range — ±8% fine, ±16% standard, ±50% wide"><option value="0.08">±8</option><option value="0.16" selected>±16</option><option value="0.50">±50</option></select></div>
     <div class="row eq"><label>EQ</label><span class="band"><button class="kill" data-kill="high" title="Kill high — instant −26 dB cut, click again to restore">H</button><input type="range" data-eq="high" min="-1" max="1" step="0.01" value="0" title="High shelf 4 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="mid" title="Kill mid — instant −26 dB cut, click again to restore">M</button><input type="range" data-eq="mid" min="-1" max="1" step="0.01" value="0" title="Mid 1 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="low" title="Kill low — instant −26 dB cut, click again to restore">L</button><input type="range" data-eq="low" min="-1" max="1" step="0.01" value="0" title="Low shelf 250 Hz, ±26 dB — double-click resets"></span></div>
     <div class="row"><label>Filter</label><input type="range" data-act="filter" min="-1" max="1" step="0.01" value="0" title="Color filter — left sweeps low-pass, right sweeps high-pass, center is open. Double-click resets"><output>open</output></div>
-    <div class="row"><label>FX</label><select data-act="fx" title="Beat FX — which effect the level knob drives"><option value="echo">Echo</option><option value="flange">Flng</option></select><input type="range" data-act="echo" min="0" max="1" step="0.01" value="0" title="Beat delay — 3/4-beat echo synced to the deck grid; 0 is dry. Double-click resets"><output>dry</output></div>
+    <div class="row"><label>FX</label><select data-act="fx" title="Beat FX — which effect the level knob drives"><option value="echo">Echo</option><option value="flange">Flng</option><option value="trans">Trans</option></select><select data-act="fxbeat" title="Echo time in beats — DJM BEAT parameter"><option value="0.25">¼</option><option value="0.5">½</option><option value="0.75" selected>¾</option><option value="1">1</option></select><input type="range" data-act="echo" min="0" max="1" step="0.01" value="0" title="Beat delay — 3/4-beat echo synced to the deck grid; 0 is dry. Double-click resets"><output>dry</output></div>
     <div class="row"><label>Stem</label><select data-act="stem" title="Mid/side split — Vocal keeps the centre channel (acapella), Inst keeps the sides (vocal-removed)"><option value="off">Full</option><option value="voc">Vocal</option><option value="inst">Inst</option></select></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1" title="Channel gain — double-click resets to unity"><output>100%</output></div>
     <div class="row"><span class="bpm">BPM <b>—</b></span><span class="barcount" title="Bar.beat position on the beat grid — where the phrase is">—</span><span class="beatlamp" title="Beat indicator — pulses each beat, accent on the downbeat"></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients (shift = one beat earlier)">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients (shift = one beat later)">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="stctl" title="Transpose — shift the deck's key in semitones (needs key lock / http); double-click ±N to reset"><button data-act="pitchdn">−</button><b class="st">±0</b><button data-act="pitchup">+</button></span><button data-act="keysync" title="Key sync — transpose to a key that mixes harmonically with the other deck">Key</button><span class="status"></span></div>
@@ -221,7 +221,7 @@
     <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1" title="Tempo — double-click resets to ±0%"><output>+0.0%</output><span class="bend"><button data-act="benddn" title="Pitch bend — hold to slow the deck 5%">−</button><button data-act="bendup" title="Pitch bend — hold to speed the deck 5%">+</button></span><select data-act="range" title="Tempo range — ±8% fine, ±16% standard, ±50% wide"><option value="0.08">±8</option><option value="0.16" selected>±16</option><option value="0.50">±50</option></select></div>
     <div class="row eq"><label>EQ</label><span class="band"><button class="kill" data-kill="high" title="Kill high — instant −26 dB cut, click again to restore">H</button><input type="range" data-eq="high" min="-1" max="1" step="0.01" value="0" title="High shelf 4 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="mid" title="Kill mid — instant −26 dB cut, click again to restore">M</button><input type="range" data-eq="mid" min="-1" max="1" step="0.01" value="0" title="Mid 1 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="low" title="Kill low — instant −26 dB cut, click again to restore">L</button><input type="range" data-eq="low" min="-1" max="1" step="0.01" value="0" title="Low shelf 250 Hz, ±26 dB — double-click resets"></span></div>
     <div class="row"><label>Filter</label><input type="range" data-act="filter" min="-1" max="1" step="0.01" value="0" title="Color filter — left sweeps low-pass, right sweeps high-pass, center is open. Double-click resets"><output>open</output></div>
-    <div class="row"><label>FX</label><select data-act="fx" title="Beat FX — which effect the level knob drives"><option value="echo">Echo</option><option value="flange">Flng</option></select><input type="range" data-act="echo" min="0" max="1" step="0.01" value="0" title="Beat delay — 3/4-beat echo synced to the deck grid; 0 is dry. Double-click resets"><output>dry</output></div>
+    <div class="row"><label>FX</label><select data-act="fx" title="Beat FX — which effect the level knob drives"><option value="echo">Echo</option><option value="flange">Flng</option><option value="trans">Trans</option></select><select data-act="fxbeat" title="Echo time in beats — DJM BEAT parameter"><option value="0.25">¼</option><option value="0.5">½</option><option value="0.75" selected>¾</option><option value="1">1</option></select><input type="range" data-act="echo" min="0" max="1" step="0.01" value="0" title="Beat delay — 3/4-beat echo synced to the deck grid; 0 is dry. Double-click resets"><output>dry</output></div>
     <div class="row"><label>Stem</label><select data-act="stem" title="Mid/side split — Vocal keeps the centre channel (acapella), Inst keeps the sides (vocal-removed)"><option value="off">Full</option><option value="voc">Vocal</option><option value="inst">Inst</option></select></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1" title="Channel gain — double-click resets to unity"><output>100%</output></div>
     <div class="row"><span class="bpm">BPM <b>—</b></span><span class="barcount" title="Bar.beat position on the beat grid — where the phrase is">—</span><span class="beatlamp" title="Beat indicator — pulses each beat, accent on the downbeat"></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients (shift = one beat earlier)">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients (shift = one beat later)">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="stctl" title="Transpose — shift the deck's key in semitones (needs key lock / http); double-click ±N to reset"><button data-act="pitchdn">−</button><b class="st">±0</b><button data-act="pitchup">+</button></span><button data-act="keysync" title="Key sync — transpose to a key that mixes harmonically with the other deck">Key</button><span class="status"></span></div>
@@ -230,7 +230,7 @@
 <section class="library">
   <h2>Library</h2>
   <input type="text" id="lib-search" placeholder="Filter tracks…" autocomplete="off">
-  <div class="row"><button id="lib-exp" title="Export library metadata (BPM, key, cues, loops) as JSON">⤓ Export</button><button id="lib-imp" title="Import library metadata — matches tracks by file name+size">⤒ Import</button><input type="file" id="lib-impfile" accept=".json,application/json" hidden></div>
+  <div class="row"><button id="lib-exp" title="Export library metadata (BPM, key, cues, loops) as JSON">⤓ Export</button><button id="lib-imp" title="Import library metadata — matches tracks by file name+size">⤒ Import</button><input type="file" id="lib-impfile" accept=".json,application/json" hidden><button id="lib-set" title="Setlist — download every track played this session, in order, as a .txt">Setlist</button></div>
   <div id="lib-rows"><p class="muted">Tracks you load are saved here for instant reload.</p></div>
 </section>
 <footer>Acro DJ Mixer — local files only, nothing is uploaded. See docs/adr/ADR-0001 for scope decisions.</footer>
@@ -667,6 +667,8 @@ class Deck {
       if (r !== this.rate) { this.tempoEl.value = r; this.setRate(r); }
     });
     this.fxSel = this.el.querySelector('[data-act=fx]');
+    this.fxBeat = this.el.querySelector('[data-act=fxbeat]');
+    this.fxBeat.addEventListener('change', () => this._syncDelay());
     this.fxSel.addEventListener('change', () => this.setEcho(parseFloat(this.echoEl.value)));
     this.echoEl.addEventListener('input', () => this.setEcho(parseFloat(this.echoEl.value)));
     this.echoEl.addEventListener('dblclick', () => { this.echoEl.value = 0; this.setEcho(0); });
@@ -845,6 +847,8 @@ class Deck {
       this.playing = false;
       this.fileName = fileObj.name;
       this._fileObj = fileObj;
+      this._setLogged = false;   // a fresh track re-earns its setlist entry
+      this._playCounted = false;   // a fresh track re-earns its play
       this.el.querySelector('.dropzone').textContent = fileObj.name;
       this.playBtn.textContent = 'Play';
       this.status(this.cueIn > 0.05 ? 'auto-cue +' + this.cueIn.toFixed(1) + 's' : '');
@@ -954,7 +958,12 @@ class Deck {
     this.eq.low.connect(this.eq.mid);
     this.eq.mid.connect(this.eq.high);
     this.eq.high.connect(this.filter);
-    this.filter.connect(this.xfGain);
+    // Trans gate (DJM TRANS): a beat-synced square LFO chops the dry
+    // path's gain — base 1−v·½ + LFO depth v·½ swings 1−v…1.
+    this.gate = ac.createGain();
+    this.gate.gain.value = 1;
+    this.filter.connect(this.gate);
+    this.gate.connect(this.xfGain);
     // Channel strip meter tap: post-EQ/filter, pre-crossfader.
     this.chAnalyser = ac.createAnalyser();
     this.chAnalyser.fftSize = 512;
@@ -992,6 +1001,14 @@ class Deck {
     this.flLfo.connect(this.flLfoDepth);
     this.flLfoDepth.connect(this.flDelay.delayTime);
     this.flLfo.start();
+    this.gateOsc = ac.createOscillator();
+    this.gateOsc.type = 'square';
+    this.gateOsc.frequency.value = 1;   // _syncDelay sets it to 1/beat
+    this.gateDepth = ac.createGain();
+    this.gateDepth.gain.value = 0;
+    this.gateOsc.connect(this.gateDepth);
+    this.gateDepth.connect(this.gate.gain);
+    this.gateOsc.start();
     this._syncDelay();
     this.xfGain.connect(masterGain);
     try {
@@ -1046,6 +1063,20 @@ class Deck {
     if (!this.buffer || this.playing || !this.engine) return;
     if (this._spinTimer) { clearInterval(this._spinTimer); this._spinTimer = null; this.spinMul = 1; }
     if (this.offset >= this.buffer.duration - 0.01) this.offset = 0;
+    if (!this._setLogged && this.fileName) {
+      this._setLogged = true;
+      setLog.push({ name: this.fileName, deck: this.side, at: new Date() });
+    }
+    if (!this._playCounted && this.fileName) {
+      this._playCounted = true;
+      // Play count lives on the library record so digging shows
+      // which tracks actually got rinsed.
+      (this.libId != null ? Promise.resolve(this.libId) : this._libP)
+        ?.then(async id => {
+          const rec = await Library.get(id);
+          if (rec) this.tagLib({ plays: (rec.plays || 0) + 1 });
+        });
+    }
     const ac = audio();
     if (this.engine === 'worklet') {
       this.node.port.postMessage({ type: 'play' });
@@ -1150,9 +1181,14 @@ class Deck {
   setEcho(v) {
     // CDJ BEAT FX style: the knob drives the selected effect only —
     // the other wet path is parked at zero.
-    const onFlange = this.fxSel && this.fxSel.value === 'flange';
-    if (this.delayWet) this.delayWet.gain.setTargetAtTime(onFlange ? 0 : v * 0.7, ctx.currentTime, 0.02);
-    if (this.flWet) this.flWet.gain.setTargetAtTime(onFlange ? v * 0.7 : 0, ctx.currentTime, 0.02);
+    const fx = this.fxSel ? this.fxSel.value : 'echo';
+    if (this.delayWet) this.delayWet.gain.setTargetAtTime(fx === 'echo' ? v * 0.7 : 0, ctx.currentTime, 0.02);
+    if (this.flWet) this.flWet.gain.setTargetAtTime(fx === 'flange' ? v * 0.7 : 0, ctx.currentTime, 0.02);
+    if (this.gateDepth) {
+      const t = fx === 'trans' ? v : 0;
+      this.gateDepth.gain.setTargetAtTime(t * 0.5, ctx.currentTime, 0.02);
+      this.gate.gain.setTargetAtTime(1 - t * 0.5, ctx.currentTime, 0.02);
+    }
     this.echoEl.nextElementSibling.textContent = v <= 0.01 ? 'dry' : Math.round(v * 100) + '%';
   }
 
@@ -1161,7 +1197,8 @@ class Deck {
   _syncDelay() {
     if (!this.delay) return;
     const beat = this.grid ? 60 / this.grid.bpm / this.rate : 0.45;
-    this.delay.delayTime.setTargetAtTime(Math.min(0.75 * beat, 2), ctx.currentTime, 0.05);
+    this.delay.delayTime.setTargetAtTime(Math.min(parseFloat(this.fxBeat.value) * beat, 2), ctx.currentTime, 0.05);
+    if (this.gateOsc) this.gateOsc.frequency.setTargetAtTime(1 / beat, ctx.currentTime, 0.05);
   }
 
   // Transpose ±1 semitone (range ±6): pitch shifts while tempo holds —
@@ -2100,6 +2137,7 @@ let libQuery = '';
 // headphone cue bus without touching a deck — the "is this the right
 // track" check before committing a load.
 let previewSrc = null, previewId = null;
+const setLog = [];   // every track actually played this session, in order
 async function previewTrack(id) {
   const wasPlaying = previewId === id;
   if (previewSrc) { try { previewSrc.stop(); } catch (_) {} previewSrc.disconnect(); previewSrc = previewId = null; }
@@ -2136,7 +2174,7 @@ async function renderLibrary() {
     .map(([name]) => name);
   rowsEl.innerHTML = rows.map(t => { const f = fit(t);
     const nC = (t.cues || []).filter(c => c != null).length;
-    const prep = nC || t.loop ? ` <span class="prep" title="Saved prep — hot cues / armed loop">${nC ? '⚑' + nC : ''}${t.loop ? ' ∞' : ''}</span>` : '';
+    const prep = nC || t.loop || t.plays ? ` <span class="prep" title="Saved prep / plays">${nC ? '⚑' + nC : ''}${t.loop ? ' ∞' : ''}${t.plays ? ' ×' + t.plays : ''}</span>` : '';
     return `<div class="lib-row${f.length ? ' fit' : ''}" data-id="${t.id}">
     <span class="name" title="${esc(t.name)}${f.length ? ' — fits deck ' + f.join('/') + ' (key + tempo)' : ''}">${esc(t.name)}${prep}</span>
     <span>${t.bpm ? Math.round(t.bpm) : '—'} BPM</span>
@@ -2412,6 +2450,15 @@ document.getElementById('lib-exp').addEventListener('click', async () => {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' }));
   a.download = 'acro-dj-library.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+document.getElementById('lib-set').addEventListener('click', () => {
+  const lines = setLog.map((e, i) => String(i + 1).padStart(2, '0') + '. ' +
+    e.at.toTimeString().slice(0, 5) + '  ' + e.name);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([lines.join('\n') + '\n'], { type: 'text/plain' }));
+  a.download = 'setlist-' + new Date().toISOString().slice(0, 10) + '.txt';
   a.click();
   URL.revokeObjectURL(a.href);
 });
