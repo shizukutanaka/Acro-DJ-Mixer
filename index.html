@@ -1244,6 +1244,12 @@ class Deck {
       c.fillRect(x0, 0, x1 - x0, h);
     }
     if (this.buffer) {
+      // Deck cue point (auto-cue or track start) — cyan tick so the
+      // Cue button's destination is visible on the waveform.
+      if (this.cueIn != null && this.cueIn >= v0 && this.cueIn <= v1) {
+        c.fillStyle = '#4fc3f7';
+        c.fillRect(Math.floor(xOf(this.cueIn)) - 1, 0, 2, h);
+      }
       for (const [i, t] of this.cues.entries()) {   // hot-cue markers, pad-colored
         if (t == null || t < v0 || t > v1) continue;
         c.fillStyle = this.padColors[i];
