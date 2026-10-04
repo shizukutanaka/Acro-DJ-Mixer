@@ -2012,8 +2012,10 @@ class Deck {
         this.loopBtn.classList.add('armed');
         return;
       }
-      const start = this._loopIn;
-      const end = Math.min(this.pos(), this.buffer.duration);
+      // Quantized loops honour Qtz (ADR-0021 parity with hot cues):
+      // both bounds snap to the grid; Qtz off stays freehand.
+      const start = this.quantize(this._loopIn);
+      const end = Math.min(this.quantize(this.pos()), this.buffer.duration);
       this._loopIn = null;
       this.loopBtn.classList.remove('armed');
       if (end - start < 0.05) { this.status('Too short for a loop.'); return; }
