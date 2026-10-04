@@ -113,6 +113,9 @@
   .looplen { display: inline-flex; gap: 2px; }
   .looplen[hidden] { display: none; }
   .looplen button { font-size: 11px; padding: 3px 6px; }
+  .hotcues { display: flex; gap: 4px; margin-top: 6px; }
+  .hotcues .pad { flex: 1; font-size: 11px; padding: 3px 0; opacity: .45; }
+  .hotcues .pad.set { opacity: 1; background: var(--panel-2); color: var(--text); }
   @media (max-width: 760px) {
     main { grid-template-columns: 1fr; }
   }
@@ -138,6 +141,7 @@
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
       <span class="time">0:00 / 0:00</span>
     </div>
+    <div class="hotcues"><button class="pad" data-pad="0" title="Hot cue — click sets a marker, click jumps, right-click clears">1</button><button class="pad" data-pad="1" title="Hot cue — click sets a marker, click jumps, right-click clears">2</button><button class="pad" data-pad="2" title="Hot cue — click sets a marker, click jumps, right-click clears">3</button><button class="pad" data-pad="3" title="Hot cue — click sets a marker, click jumps, right-click clears">4</button></div>
     <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1"><output>+0.0%</output></div>
     <div class="row eq"><label>EQ</label><span class="band">H<input type="range" data-eq="high" min="-1" max="1" step="0.01" value="0" title="High shelf 4 kHz, ±26 dB — double-click resets"></span><span class="band">M<input type="range" data-eq="mid" min="-1" max="1" step="0.01" value="0" title="Mid 1 kHz, ±26 dB — double-click resets"></span><span class="band">L<input type="range" data-eq="low" min="-1" max="1" step="0.01" value="0" title="Low shelf 250 Hz, ±26 dB — double-click resets"></span></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1"><output>100%</output></div>
@@ -167,6 +171,7 @@
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
       <span class="time">0:00 / 0:00</span>
     </div>
+    <div class="hotcues"><button class="pad" data-pad="0" title="Hot cue — click sets a marker, click jumps, right-click clears">1</button><button class="pad" data-pad="1" title="Hot cue — click sets a marker, click jumps, right-click clears">2</button><button class="pad" data-pad="2" title="Hot cue — click sets a marker, click jumps, right-click clears">3</button><button class="pad" data-pad="3" title="Hot cue — click sets a marker, click jumps, right-click clears">4</button></div>
     <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1"><output>+0.0%</output></div>
     <div class="row eq"><label>EQ</label><span class="band">H<input type="range" data-eq="high" min="-1" max="1" step="0.01" value="0" title="High shelf 4 kHz, ±26 dB — double-click resets"></span><span class="band">M<input type="range" data-eq="mid" min="-1" max="1" step="0.01" value="0" title="Mid 1 kHz, ±26 dB — double-click resets"></span><span class="band">L<input type="range" data-eq="low" min="-1" max="1" step="0.01" value="0" title="Low shelf 250 Hz, ±26 dB — double-click resets"></span></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1"><output>100%</output></div>
@@ -397,6 +402,8 @@ class Deck {
     this.loopEnd = 0;
     this.cueBtn = root.querySelector('[data-act=cueout]');
     this.cueOn = false;
+    this.pads = [...root.querySelectorAll('.hotcues .pad')];
+    this.cues = [null, null, null, null];  // hot-cue marker times (seconds)
     this.cueSend = null;   // pre-fader tap -> cue bus
     this.deckGain = null;
     this.xfGain = null;
@@ -438,6 +445,10 @@ class Deck {
     this.el.querySelector('[data-act=loopdiv]').addEventListener('click', () => this.setLoopLen(0.5));
     this.el.querySelector('[data-act=loopmul]').addEventListener('click', () => this.setLoopLen(2));
     this.cueBtn.addEventListener('click', () => this.toggleCue());
+    this.pads.forEach((pad, i) => {
+      pad.addEventListener('click', () => this.padCue(i));
+      pad.addEventListener('contextmenu', e => { e.preventDefault(); this.clearPad(i); });
+    });
     this.keylockBtn.addEventListener('click', () => this.toggleKeylock());
     this.tempoEl.addEventListener('input', () => this.setRate(parseFloat(this.tempoEl.value)));
     this.gainEl.addEventListener('input', () => this.setGain(parseFloat(this.gainEl.value)));
@@ -477,6 +488,9 @@ class Deck {
       this.loopLenEl.hidden = true;
       this.keyEl.textContent = '—';
       this.keyEl.className = 'key';
+      this.cues = meta && meta.cues ? meta.cues.slice(0, 4) : [null, null, null, null];
+      while (this.cues.length < 4) this.cues.push(null);
+      this.cues.forEach((c, i) => this.pads[i].classList.toggle('set', c != null));
       this.peaks = computePeaks(buf, this.wave.width);
       this.drawWave();
       this.libId = meta ? meta.libId : null;
@@ -720,6 +734,12 @@ class Deck {
       c.fillRect(x0, 0, x1 - x0, h);
     }
     if (this.buffer) {
+      c.fillStyle = '#d9a03f';  // hot-cue markers
+      for (const t of this.cues) {
+        if (t == null) continue;
+        const x = (t / this.buffer.duration) * w;
+        c.fillRect(x - 1, 0, 2, h);
+      }
       const x = (this.pos() / this.buffer.duration) * w;
       c.fillStyle = '#fff';
       c.fillRect(x - 1, 0, 2, h);
@@ -752,6 +772,33 @@ class Deck {
     }
     this.refreshKey();
     if (this.partner) this.partner.refreshKey();
+  }
+
+  // Hot cues: empty pad records the current position, set pad jumps to
+  // it (keeps play state; out-of-loop jumps exit the loop via seekTo).
+  // Cues persist on the library record so they survive reloads.
+  padCue(i) {
+    if (!this.buffer) return;
+    if (this.cues[i] == null) {
+      this.cues[i] = this.pos();
+      this.pads[i].classList.add('set');
+      this.pads[i].title = 'Hot cue ' + fmt(this.cues[i]) + ' — click jumps, right-click clears';
+      Library.tag(this.libId, { cues: this.cues });
+      this._drawnPos = undefined;
+      this.drawWave();
+    } else {
+      this.seekTo(this.cues[i]);
+    }
+  }
+
+  clearPad(i) {
+    if (this.cues[i] == null) return;
+    this.cues[i] = null;
+    this.pads[i].classList.remove('set');
+    this.pads[i].title = 'Hot cue — click sets a marker, click jumps, right-click clears';
+    Library.tag(this.libId, { cues: this.cues });
+    this._drawnPos = undefined;
+    this.drawWave();
   }
 
   // Camelot code + harmonic-compatibility color vs the partner deck.
@@ -1089,7 +1136,7 @@ const Library = {
   async loadInto(deck, id) {
     const rec = await this.get(id);
     if (!rec || rec.deleted_at) return;
-    deck.load(rec.blob, { libId: rec.id, bpm: rec.bpm, beatOff: rec.beatOff, key: rec.key });
+    deck.load(rec.blob, { libId: rec.id, bpm: rec.bpm, beatOff: rec.beatOff, key: rec.key, cues: rec.cues });
   },
 };
 
