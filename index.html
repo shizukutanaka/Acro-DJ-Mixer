@@ -116,6 +116,8 @@
   .hotcues { display: flex; gap: 4px; margin-top: 6px; }
   .hotcues .pad { flex: 1; font-size: 11px; padding: 3px 0; opacity: .45; }
   .hotcues .pad.set { opacity: 1; background: var(--panel-2); color: var(--text); }
+  .lib-row.fit .name { color: #3ddc84; }
+  .lib-row.fit .name::before { content: '● '; font-size: 9px; vertical-align: 1px; }
   @media (max-width: 760px) {
     main { grid-template-columns: 1fr; }
   }
@@ -494,6 +496,8 @@ class Deck {
       this.peaks = computePeaks(buf, this.wave.width);
       this.drawWave();
       this.libId = meta ? meta.libId : null;
+      this._libP = null;
+      this._libPatch = null;
       if (meta && meta.bpm) {
         // Cached analysis from the library — instant, no recompute.
         this.grid = { bpm: meta.bpm, beatOff: meta.beatOff || 0 };
@@ -506,11 +510,13 @@ class Deck {
         this.estimateBpm(mono);
         this.estimateKey(mono);
       }
-      if (!meta) {
-        Library.addFromFile(fileObj, buf.duration)
-          .then(id => { this.libId = id; })
-          .catch(err => console.warn('library save failed:', err));
-      }
+      // _libP resolves to the library id once the record exists — tag
+      // calls must await it or analysis can race the save and be dropped.
+      this._libP = meta
+        ? Promise.resolve(meta.libId)
+        : Library.addFromFile(fileObj, buf.duration)
+            .then(id => { this.libId = id; return id; })
+            .catch(err => { console.warn('library save failed:', err); return null; });
     } catch (err) {
       console.error(err);
       this.status('Could not decode this file.');
@@ -746,13 +752,24 @@ class Deck {
     }
   }
 
+  // Persist a patch onto this track's library record (no-op when the
+  // track isn't in the library). Awaits _libP so early tags aren't lost
+  // to the save-in-progress race.
+  async tagLib(patch) {
+    // Accumulate: two tags can race on the same record (get->put is
+    // read-modify-write), so each write must carry every prior patch.
+    this._libPatch = Object.assign(this._libPatch || {}, patch);
+    const id = this.libId ?? await this._libP;
+    if (id != null) Library.tag(id, this._libPatch);
+  }
+
   async estimateBpm(monoP) {
     this.bpmEl.textContent = '…';
     try {
       const grid = estimateBpm(await monoP);
       this.grid = grid;
       this.bpmEl.textContent = grid ? String(grid.bpm) : '—';
-      if (grid) Library.tag(this.libId, { bpm: grid.bpm, beatOff: grid.beatOff });
+      if (grid) this.tagLib({ bpm: grid.bpm, beatOff: grid.beatOff });
       this._drawnPos = undefined;
       this.drawWave();
     } catch (err) {
@@ -765,7 +782,7 @@ class Deck {
     this.keyEl.textContent = '…';
     try {
       this.key = estimateKey(await monoP);
-      if (this.key) Library.tag(this.libId, { key: this.key });
+      if (this.key) this.tagLib({ key: this.key });
     } catch (err) {
       console.error(err);
       this.key = null;
@@ -783,7 +800,7 @@ class Deck {
       this.cues[i] = this.pos();
       this.pads[i].classList.add('set');
       this.pads[i].title = 'Hot cue ' + fmt(this.cues[i]) + ' — click jumps, right-click clears';
-      Library.tag(this.libId, { cues: this.cues });
+      this.tagLib({ cues: this.cues });
       this._drawnPos = undefined;
       this.drawWave();
     } else {
@@ -796,13 +813,14 @@ class Deck {
     this.cues[i] = null;
     this.pads[i].classList.remove('set');
     this.pads[i].title = 'Hot cue — click sets a marker, click jumps, right-click clears';
-    Library.tag(this.libId, { cues: this.cues });
+    this.tagLib({ cues: this.cues });
     this._drawnPos = undefined;
     this.drawWave();
   }
 
   // Camelot code + harmonic-compatibility color vs the partner deck.
   refreshKey() {
+    renderLibrary();  // harmonic-fit highlighting re-scores on key changes
     const el = this.keyEl;
     if (!this.key) { el.textContent = '—'; el.className = 'key'; return; }
     el.textContent = `${this.key.num}${this.key.letter} ${this.key.name}`;
@@ -1151,13 +1169,20 @@ async function renderLibrary() {
     rowsEl.innerHTML = '<p class="muted">Tracks you load are saved here for instant reload.</p>';
     return;
   }
-  rowsEl.innerHTML = rows.map(t => `<div class="lib-row" data-id="${t.id}">
-    <span class="name" title="${esc(t.name)}">${esc(t.name)}</span>
+  // Harmonic-mix recommendation: a row lights green when it fits either
+  // analyzed deck — tempo within the ±16% sync range and Camelot-harmonic.
+  const fit = t => [['A', deckA], ['B', deckB]]
+    .filter(([, d]) => d.grid && d.key && t.bpm && t.key
+      && t.bpm / d.grid.bpm >= 0.84 && t.bpm / d.grid.bpm <= 1.16
+      && harmonic(d.key, t.key))
+    .map(([name]) => name);
+  rowsEl.innerHTML = rows.map(t => { const f = fit(t); return `<div class="lib-row${f.length ? ' fit' : ''}" data-id="${t.id}">
+    <span class="name" title="${esc(t.name)}${f.length ? ' — fits deck ' + f.join('/') + ' (key + tempo)' : ''}">${esc(t.name)}</span>
     <span>${t.bpm || '—'} BPM</span>
     <span>${t.key ? esc(t.key.num + t.key.letter + ' ' + t.key.name) : '—'}</span>
     <span>${fmt(t.duration || 0)}</span>
     <span><button data-to="a" title="Load into Deck A">→A</button><button data-to="b" title="Load into Deck B">→B</button><button class="lib-del" data-del title="Remove from library">×</button></span>
-  </div>`).join('');
+  </div>`; }).join('');
 }
 
 // ----- Mixer wiring -----
