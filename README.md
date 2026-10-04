@@ -252,7 +252,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   deflate the value (see ADR-0019/0024/0034).
 - **Channel meters** — a thin strip under each waveform shows the
   deck's post-EQ/filter, pre-crossfader peak level, so gain staging is
-  visible before the fader opens (see ADR-0035).
+  visible before the fader opens (see ADR-0035); a tick holds the
+  recent peak ~1.4 s like a hardware max-hold segment (see ADR-0100).
 - **Master limiter** — a fast `DynamicsCompressor` at the end of the
   chain (threshold −3 dB, ratio 20) keeps two-deck sums and EQ boosts
   from clipping; `GR −x.x dB` shows under the meter while it rides
