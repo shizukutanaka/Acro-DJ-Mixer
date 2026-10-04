@@ -2512,27 +2512,29 @@ libImpFile.addEventListener('change', async () => {
   }
 });
 
+// Two-click confirm: arms the button for 2 s ("sure?"), a second
+// click inside the window runs fn. Load-guard and row-delete share it.
+const armConfirm = (b, fn) => {
+  const now = Date.now();
+  if (b._arm && now - b._arm < 2000) { b._arm = 0; fn(); return; }
+  b._arm = now;
+  const lbl = b.textContent;
+  b.textContent = 'sure?';
+  setTimeout(() => { if (b._arm === now) { b.textContent = lbl; b._arm = 0; } }, 2000);
+};
+
 document.getElementById('lib-rows').addEventListener('click', e => {
   const row = e.target.closest('.lib-row');
   if (!row) return;
   const id = Number(row.dataset.id);
-  if (e.target.dataset.del !== undefined) Library.remove(id);
+  if (e.target.dataset.del !== undefined) armConfirm(e.target, () => Library.remove(id));
   else if (e.target.dataset.prev !== undefined) previewTrack(id);
   else if (e.target.dataset.to) {
     // Load guard: loading into a playing deck kills the floor's audio
     // mid-set — confirm the click like a hardware load lock.
     const d = e.target.dataset.to === 'a' ? deckA : deckB;
-    const b = e.target;
-    const now = Date.now();
-    if (d.playing && !(b._arm && now - b._arm < 2000)) {
-      b._arm = now;
-      const lbl = b.textContent;
-      b.textContent = 'sure?';
-      setTimeout(() => { if (b._arm === now) { b.textContent = lbl; b._arm = 0; } }, 2000);
-      return;
-    }
-    b._arm = 0;
-    Library.loadInto(d, id);
+    if (d.playing) armConfirm(e.target, () => Library.loadInto(d, id));
+    else Library.loadInto(d, id);
   }
 });
 renderLibrary();
