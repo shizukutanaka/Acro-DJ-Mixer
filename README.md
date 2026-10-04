@@ -188,6 +188,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   comb); only the selected effect sounds (see ADR-0081).
 - **Rec timer** — the Rec button counts `M:SS` while recording so a
   forgotten take can't hide (see ADR-0082).
+- **Cue clear** — `Shift`+pad click deletes a hot cue (right-click
+  still works) — trackpad-friendly (see ADR-0083).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
