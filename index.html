@@ -167,7 +167,7 @@
       <button data-act="cue" title="Cue — jump to cue point (hold while stopped to audition from it; shift = set cue point here)">Cue</button>
       <button data-act="sync" title="Sync — match tempo and beat phase to the other deck (shift = phase only, keep your tempo)">Sync</button>
       <button data-act="dbl" title="Instant doubles — load this track into the other deck at the same point and tempo">×2</button><button data-act="brake" title="Vinyl brake — pause spins down, play spins up">Brake</button>
-      <button data-act="loop" title="Loop — arm an N-beat loop snapped to the beat grid (shift = free-size in/out)">Loop</button><select data-act="loopbeats" title="Loop length in beats for the next armed loop"><option value="2">2b</option><option value="4" selected>4b</option><option value="8">8b</option><option value="16">16b</option></select><button data-act="reloop" title="Reloop — re-enter the last loop you exited">↺</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been">Roll</button><button data-act="slip" title="Slip — held pads play the cue momentarily, release resumes where the track would have been">Slip</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier (shift: in-point a beat earlier, alt: out-point a beat earlier)">◂</button><button data-act="loopfwd" title="Move the loop one length later (shift: in-point a beat later, alt: out-point a beat later)">▸</button></span>
+      <button data-act="loop" title="Loop — arm an N-beat loop snapped to the beat grid (shift = free-size in/out)">Loop</button><select data-act="loopbeats" title="Loop length in beats for the next armed loop"><option value="2">2b</option><option value="4" selected>4b</option><option value="8">8b</option><option value="16">16b</option></select><button data-act="reloop" title="Reloop — re-enter the last loop you exited">↺</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been (shift = ½ beat)">Roll</button><button data-act="slip" title="Slip — held pads play the cue momentarily, release resumes where the track would have been">Slip</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier (shift: in-point a beat earlier, alt: out-point a beat earlier)">◂</button><button data-act="loopfwd" title="Move the loop one length later (shift: in-point a beat later, alt: out-point a beat later)">▸</button></span>
       <button data-act="cueout" title="Headphone cue — preview this deck on the cue output">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
       <button data-act="eject" title="Eject — unload the track, reset the deck">⏏</button>
@@ -211,7 +211,7 @@
       <button data-act="cue" title="Cue — jump to cue point (hold while stopped to audition from it; shift = set cue point here)">Cue</button>
       <button data-act="sync" title="Sync — match tempo and beat phase to the other deck (shift = phase only, keep your tempo)">Sync</button>
       <button data-act="dbl" title="Instant doubles — load this track into the other deck at the same point and tempo">×2</button><button data-act="brake" title="Vinyl brake — pause spins down, play spins up">Brake</button>
-      <button data-act="loop" title="Loop — arm an N-beat loop snapped to the beat grid (shift = free-size in/out)">Loop</button><select data-act="loopbeats" title="Loop length in beats for the next armed loop"><option value="2">2b</option><option value="4" selected>4b</option><option value="8">8b</option><option value="16">16b</option></select><button data-act="reloop" title="Reloop — re-enter the last loop you exited">↺</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been">Roll</button><button data-act="slip" title="Slip — held pads play the cue momentarily, release resumes where the track would have been">Slip</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier (shift: in-point a beat earlier, alt: out-point a beat earlier)">◂</button><button data-act="loopfwd" title="Move the loop one length later (shift: in-point a beat later, alt: out-point a beat later)">▸</button></span>
+      <button data-act="loop" title="Loop — arm an N-beat loop snapped to the beat grid (shift = free-size in/out)">Loop</button><select data-act="loopbeats" title="Loop length in beats for the next armed loop"><option value="2">2b</option><option value="4" selected>4b</option><option value="8">8b</option><option value="16">16b</option></select><button data-act="reloop" title="Reloop — re-enter the last loop you exited">↺</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been (shift = ½ beat)">Roll</button><button data-act="slip" title="Slip — held pads play the cue momentarily, release resumes where the track would have been">Slip</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier (shift: in-point a beat earlier, alt: out-point a beat earlier)">◂</button><button data-act="loopfwd" title="Move the loop one length later (shift: in-point a beat later, alt: out-point a beat later)">▸</button></span>
       <button data-act="cueout" title="Headphone cue — preview this deck on the cue output">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
       <button data-act="eject" title="Eject — unload the track, reset the deck">⏏</button>
@@ -608,7 +608,7 @@ class Deck {
     this.loopBtn.addEventListener('click', e => this.toggleLoop(e.shiftKey));
     this.el.querySelector('[data-act=reloop]').addEventListener('click', () => this.reloop());
     const rollBtn = this.el.querySelector('[data-act=roll]');
-    rollBtn.addEventListener('pointerdown', e => { e.preventDefault(); this.startRoll(); });
+    rollBtn.addEventListener('pointerdown', e => { e.preventDefault(); this.startRoll(e.shiftKey ? 0.5 : 1); });
     for (const ev of ['pointerup', 'pointerleave', 'pointercancel'])
       rollBtn.addEventListener(ev, () => this.stopRoll());
     this.rollBtn = rollBtn;
@@ -1657,9 +1657,9 @@ class Deck {
 
   // Loop roll (SLIP): while held, a 1-beat loop plays; on release the
   // deck jumps to where the track would have been without the roll.
-  startRoll() {
+  startRoll(beats = 1) {
     if (this._roll || !this.playing || !this.buffer || !this.grid) return;
-    const beatLen = 60 / this.grid.bpm;
+    const beatLen = (60 / this.grid.bpm) * beats;   // shift+roll = half-beat roll
     const n = Math.floor((this.pos() - this.grid.beatOff) / beatLen);
     const start = Math.max(0, this.grid.beatOff + n * beatLen);
     if (start + beatLen > this.buffer.duration) return;
