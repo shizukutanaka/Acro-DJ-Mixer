@@ -101,6 +101,8 @@
   .key { margin-left: .9rem; color: var(--muted); font-weight: 600; }
   .key.ok { color: #3ddc84; }
   .key.clash { color: #d9a03f; }
+  .eq .band { display: flex; align-items: center; gap: 3px; flex: 1; color: var(--muted); font-size: 11px; font-weight: 600; }
+  .eq .band input { flex: 1; min-width: 0; }
   @media (max-width: 760px) {
     main { grid-template-columns: 1fr; }
   }
@@ -125,6 +127,7 @@
       <span class="time">0:00 / 0:00</span>
     </div>
     <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1"><output>+0.0%</output></div>
+    <div class="row eq"><label>EQ</label><span class="band">H<input type="range" data-eq="high" min="-1" max="1" step="0.01" value="0" title="High shelf 4 kHz, ±26 dB — double-click resets"></span><span class="band">M<input type="range" data-eq="mid" min="-1" max="1" step="0.01" value="0" title="Mid 1 kHz, ±26 dB — double-click resets"></span><span class="band">L<input type="range" data-eq="low" min="-1" max="1" step="0.01" value="0" title="Low shelf 250 Hz, ±26 dB — double-click resets"></span></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1"><output>100%</output></div>
     <div class="row"><span class="bpm">BPM <b>—</b></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="status"></span></div>
   </section>
@@ -150,6 +153,7 @@
       <span class="time">0:00 / 0:00</span>
     </div>
     <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1"><output>+0.0%</output></div>
+    <div class="row eq"><label>EQ</label><span class="band">H<input type="range" data-eq="high" min="-1" max="1" step="0.01" value="0" title="High shelf 4 kHz, ±26 dB — double-click resets"></span><span class="band">M<input type="range" data-eq="mid" min="-1" max="1" step="0.01" value="0" title="Mid 1 kHz, ±26 dB — double-click resets"></span><span class="band">L<input type="range" data-eq="low" min="-1" max="1" step="0.01" value="0" title="Low shelf 250 Hz, ±26 dB — double-click resets"></span></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1"><output>100%</output></div>
     <div class="row"><span class="bpm">BPM <b>—</b></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="status"></span></div>
   </section>
@@ -342,6 +346,8 @@ class Deck {
     this.tempoEl = root.querySelector('[data-act=tempo]');
     this.tempoOut = root.querySelector('[data-act=tempo] ~ output');
     this.gainEl = root.querySelector('[data-act=gain]');
+    this.eq = null;   // {low, mid, high} BiquadFilters, created lazily with the graph
+    this.eqEls = { low: root.querySelector('[data-eq=low]'), mid: root.querySelector('[data-eq=mid]'), high: root.querySelector('[data-eq=high]') };
     this.bind();
   }
 
@@ -363,6 +369,10 @@ class Deck {
     this.keylockBtn.addEventListener('click', () => this.toggleKeylock());
     this.tempoEl.addEventListener('input', () => this.setRate(parseFloat(this.tempoEl.value)));
     this.gainEl.addEventListener('input', () => this.setGain(parseFloat(this.gainEl.value)));
+    for (const [band, el] of Object.entries(this.eqEls)) {
+      el.addEventListener('input', () => this.setBand(band, parseFloat(el.value)));
+      el.addEventListener('dblclick', () => { el.value = 0; this.setBand(band, 0); });
+    }
     this.wave.addEventListener('click', e => this.seekFromEvent(e));
   }
 
@@ -411,7 +421,17 @@ class Deck {
     this.deckGain.gain.value = parseFloat(this.gainEl.value);
     const x = parseFloat(document.getElementById('xfader').value);
     this.xfGain.gain.value = this.side === 'a' ? Math.cos(x * Math.PI / 2) : Math.sin(x * Math.PI / 2);
-    this.deckGain.connect(this.xfGain);
+    // DJ-style 3-band EQ (post-fader): lowshelf 250 Hz / peaking 1 kHz /
+    // highshelf 4 kHz — the standard isolator split points.
+    this.eq = { low: ac.createBiquadFilter(), mid: ac.createBiquadFilter(), high: ac.createBiquadFilter() };
+    this.eq.low.type = 'lowshelf';   this.eq.low.frequency.value = 250;
+    this.eq.mid.type = 'peaking';    this.eq.mid.frequency.value = 1000; this.eq.mid.Q.value = 0.9;
+    this.eq.high.type = 'highshelf'; this.eq.high.frequency.value = 4000;
+    for (const [band, el] of Object.entries(this.eqEls)) this.setBand(band, parseFloat(el.value));
+    this.deckGain.connect(this.eq.low);
+    this.eq.low.connect(this.eq.mid);
+    this.eq.mid.connect(this.eq.high);
+    this.eq.high.connect(this.xfGain);
     this.xfGain.connect(masterGain);
     try {
       if (!wsolaModuleReady) { await ac.audioWorklet.addModule(WSOLA_URL); wsolaModuleReady = true; }
@@ -544,6 +564,12 @@ class Deck {
   setGain(g) {
     if (this.deckGain) this.deckGain.gain.setTargetAtTime(g, ctx.currentTime, 0.01);
     this.el.querySelector('[data-act=gain] ~ output').textContent = Math.round(g * 100) + '%';
+  }
+
+  // EQ band slider -1..+1 -> dB. -26 dB at full cut approximates the
+  // "kill" travel of DJ isolators; +26 dB of headroom for boosts.
+  setBand(band, v) {
+    if (this.eq) this.eq[band].gain.setTargetAtTime(v * 26, ctx.currentTime, 0.01);
   }
 
   setXf(v) {

@@ -37,6 +37,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   in an `AudioWorklet`, see ADR-0003). Requires http(s); on `file://` the
   button is disabled and tempo stays varispeed.
 - **Gain** — per-deck channel fader.
+- **3-band EQ** — High/Mid/Low per deck (shelf 250 Hz / peak 1 kHz /
+  shelf 4 kHz, ±26 dB isolator-style travel, double-click resets).
+  See ADR-0005.
 - **Crossfader** — equal-power law for constant loudness through the middle.
 - **Waveform overview** with playhead per deck.
 - **Auto BPM estimate + beat grid** — energy-flux autocorrelation, 60–180 BPM,
@@ -56,7 +59,7 @@ Single file (`index.html`), vanilla JS + Web Audio API:
 
 ```
 WSOLA worklet (keylock) or BufferSource (fallback)
-        ──> deckGain ──> xfGain ──> masterGain ──> analyser ──> destination
+        ──> deckGain ──> EQ(low→mid→high) ──> xfGain ──> masterGain ──> analyser ──> destination
 ```
 
 Per deck, instantiated lazily on first play (browser autoplay policy requires a
@@ -72,6 +75,8 @@ Ordered by value per the ADR's automation layer:
 2. ~~Keylock / master tempo.~~ Done (ADR-0003) — WSOLA in an AudioWorklet.
 3. ~~Key detection + harmonic-mixing hints.~~ Done (ADR-0004) — chroma +
    Krumhansl–Schmuckler → Camelot compatibility.
+3b. ~~3-band DJ EQ.~~ Done (ADR-0005) — pulled ahead of the library work
+   as P1 core mixer functionality.
 4. Track library with persistence (`id`, `created_at`, `updated_at`,
    `deleted_at`, `version` per table when a store lands).
 5. Stem separation (ML model, worker pipeline).
