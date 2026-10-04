@@ -36,7 +36,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Key lock** — preserve pitch while tempo changes (WSOLA time-stretching
   in an `AudioWorklet`, see ADR-0003). Requires http(s); on `file://` the
   button is disabled and tempo stays varispeed.
-- **Gain** — per-deck channel fader.
+- **Gain** — per-deck channel fader; `Mut` beside it is a momentary
+  channel on/off — hold to silence, playback keeps running underneath
+  so release lands on beat (see ADR-0137).
 - **3-band EQ** — High/Mid/Low per deck (shelf 250 Hz / peak 1 kHz /
   shelf 4 kHz, ±26 dB isolator-style travel, double-click resets).
   See ADR-0005.
