@@ -195,6 +195,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Channel assign** — `A/Thru/B` select routes each deck to a
   crossfader side or bypasses it; fader-start follows the assign
   (see ADR-0085).
+- **Continuous auto-mix** — after each auto fade the vacated deck
+  auto-loads the next library track and stays armed (see ADR-0086).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,

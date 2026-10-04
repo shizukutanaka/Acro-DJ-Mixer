@@ -194,7 +194,7 @@
     <div class="row"><label>Phones</label><button id="mono" title="Mono — fold the master down to one channel to check mono compatibility (club PAs are often mono)">Mono</button><button id="splitcue" title="Split cue — headphone cue (PFL) in the left ear, master PGM in the right">Split</button></div>
     <div class="meter cuem" title="Cue bus level"><i id="cuemeter-fill"></i></div>
     <div class="phase" id="phase" title="Beat-phase offset between decks"></div>
-    <div class="row"><button id="automix" title="Auto mix — near the end of the playing track the other deck starts synced and the crossfader rides over (8 beats; shift = long 32-beat fade)">Auto</button><button id="recbtn" title="Record the master output — click again to stop and download a .webm">Rec</button><button id="mic" title="Microphone — live input summed into the master pre-limiter (use headphones — open speakers will feed back)">Mic</button></div>
+    <div class="row"><button id="automix" title="Auto mix — near the end of the playing track the other deck starts synced and the crossfader rides over (8 beats; shift = long 32-beat fade). Keeps going: the empty deck auto-loads the next library track">Auto</button><button id="recbtn" title="Record the master output — click again to stop and download a .webm">Rec</button><button id="mic" title="Microphone — live input summed into the master pre-limiter (use headphones — open speakers will feed back)">Mic</button></div>
     <div class="kbd-hint">Equal-power crossfade.<br>Auto BPM is an estimate — trust your ears.</div>
   </section>
 
@@ -2223,11 +2223,15 @@ function autoMixTick() {
     }
     if (k >= 1) {
       autoMix.fade = null;
-      autoMix.on = false;
-      autoBtn.classList.remove('on');
       f.from.setFilter(parseFloat(f.from.filterEl.value));   // restore knob
       if (f.to && f.to.eq) f.to.setBand('low', parseFloat(f.to.eqEls.low.value));   // restore bass
       f.from.pause();   // faded out — let it stop rather than play silently
+      // Continuous radio: load the next library track into the vacated
+      // deck and keep Auto armed — the playlist walks the library until
+      // it runs out of next tracks or Auto is clicked off.
+      autoNext(f.from, f.to).then(loaded => {
+        if (!loaded) { autoMix.on = false; autoBtn.classList.remove('on'); }
+      });
     }
     return;
   }
@@ -2243,6 +2247,22 @@ function autoMixTick() {
     autoMix.fade = { from: d, to, t0: ctx.currentTime, dur: autoMix.len * beat,
                      fromX: d === deckA ? 0 : 1, toX: d === deckA ? 1 : 0 };
   }
+}
+
+// Next-in-line for continuous auto-mix: the library row after the one
+// now playing (updated_at order, same as the visible list). Wraps
+// around so a small library still loops; refuses when the next row
+// IS the playing track (library of one) or nothing's left.
+async function autoNext(vacated, playing) {
+  try {
+    const rows = (await Library.all()).filter(t => !t.deleted_at).sort((a, b) => b.updated_at - a.updated_at);
+    if (!rows.length) return false;
+    const cur = rows.findIndex(t => t.id === playing.libId);
+    const next = rows[(cur + 1) % rows.length];
+    if (!next || next.id === playing.libId) return false;
+    await Library.loadInto(vacated, next.id);
+    return true;
+  } catch (_) { return false; }
 }
 
 // Mic input: summed into the master at monoNode — pre-limiter and
