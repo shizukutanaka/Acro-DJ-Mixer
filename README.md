@@ -169,10 +169,14 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   waveform marker (see ADR-0070).
 - **Prep badges** — library rows show `⚑N` saved cues and `∞` for a
   stored loop (see ADR-0071).
+- **Library export/import** — `⤓` downloads BPM, key, cues and loops
+  as JSON; `⤒` merges them onto tracks matched by name+size
+  (see ADR-0072).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
-  click again to cancel mid-fade (see ADR-0013). During the fade the
+  click again to cancel mid-fade; Shift+Auto arms a long 32-beat
+  blend (see ADR-0013, ADR-0073). During the fade the
   outgoing deck is also low-pass swept 20 kHz → ~400 Hz — a
   "filter out" transition, not a flat crossfade (see ADR-0020).
 - **Pitch bend** — hold `−`/`+` beside the tempo fader to ride the deck

@@ -192,7 +192,7 @@
     <div class="row"><label>Phones</label><button id="mono" title="Mono — fold the master down to one channel to check mono compatibility (club PAs are often mono)">Mono</button><button id="splitcue" title="Split cue — headphone cue (PFL) in the left ear, master PGM in the right">Split</button></div>
     <div class="meter cuem" title="Cue bus level"><i id="cuemeter-fill"></i></div>
     <div class="phase" id="phase" title="Beat-phase offset between decks"></div>
-    <div class="row"><button id="automix" title="Auto mix — when the playing deck reaches its last 16 beats, the other deck starts synced and the crossfader rides over for 8 beats">Auto</button><button id="recbtn" title="Record the master output — click again to stop and download a .webm">Rec</button><button id="mic" title="Microphone — live input summed into the master pre-limiter (use headphones — open speakers will feed back)">Mic</button></div>
+    <div class="row"><button id="automix" title="Auto mix — near the end of the playing track the other deck starts synced and the crossfader rides over (8 beats; shift = long 32-beat fade)">Auto</button><button id="recbtn" title="Record the master output — click again to stop and download a .webm">Rec</button><button id="mic" title="Microphone — live input summed into the master pre-limiter (use headphones — open speakers will feed back)">Mic</button></div>
     <div class="kbd-hint">Equal-power crossfade.<br>Auto BPM is an estimate — trust your ears.</div>
   </section>
 
@@ -225,6 +225,7 @@
 <section class="library">
   <h2>Library</h2>
   <input type="text" id="lib-search" placeholder="Filter tracks…" autocomplete="off">
+  <div class="row"><button id="lib-exp" title="Export library metadata (BPM, key, cues, loops) as JSON">⤓ Export</button><button id="lib-imp" title="Import library metadata — matches tracks by file name+size">⤒ Import</button><input type="file" id="lib-impfile" accept=".json,application/json" hidden></div>
   <div id="lib-rows"><p class="muted">Tracks you load are saved here for instant reload.</p></div>
 </section>
 <footer>Acro DJ Mixer — local files only, nothing is uploaded. See docs/adr/ADR-0001 for scope decisions.</footer>
@@ -1975,7 +1976,7 @@ xfcurve.addEventListener('change', applyCrossfade);
 // other deck starts on its first grid beat, syncs, and the crossfader
 // rides across over 8 beats. Disarms after each fade; clicking during a
 // fade cancels it and leaves the xfader where it is.
-const autoMix = { on: false, fade: null };
+const autoMix = { on: false, fade: null, len: 8 };   // len = fade length in beats (shift+Auto = 32)
 const autoBtn = document.getElementById('automix');
 
 // ----- Set recording -----
@@ -2006,12 +2007,13 @@ recBtn.addEventListener('click', () => {
     recorder.stop();
   }
 });
-autoBtn.addEventListener('click', () => {
+autoBtn.addEventListener('click', e => {
   if (autoMix.fade) {                                     // cancel mid-fade
     const f = autoMix.fade; autoMix.fade = null;
     f.from.setFilter(parseFloat(f.from.filterEl.value));  // restore knob position
     return;
   }
+  autoMix.len = e.shiftKey ? 32 : 8;                      // shift arms a long 32-beat fade
   autoMix.on = !autoMix.on;
   autoBtn.classList.toggle('on', autoMix.on);
 });
@@ -2047,11 +2049,11 @@ function autoMixTick() {
     const to = d.partner;
     if (!d.playing || !d.buffer || d.loopOn || to.playing || !to.buffer) continue;
     const beat = d.grid ? 60 / d.grid.bpm : 1;
-    if (d.buffer.duration - d.pos() > 16 * beat) continue;
+    if (d.buffer.duration - d.pos() > 2 * autoMix.len * beat) continue;
     to.seekTo(to.grid ? to.grid.beatOff : 0);
     if (d.grid && to.grid) to.syncTo(d);
     to.play();
-    autoMix.fade = { from: d, t0: ctx.currentTime, dur: 8 * beat,
+    autoMix.fade = { from: d, t0: ctx.currentTime, dur: autoMix.len * beat,
                      fromX: d === deckA ? 0 : 1, toX: d === deckA ? 1 : 0 };
   }
 }
@@ -2120,6 +2122,38 @@ document.getElementById('lib-search').addEventListener('input', e => {
   libQuery = e.target.value;
   renderLibrary();
 });
+// Library metadata export/import: the analysis + prep (BPM, grid,
+// key, hot cues, loop) is the valuable part — audio blobs stay put,
+// so entries match by name+size on the other side.
+const LIB_META_KEYS = ['name', 'size', 'type', 'duration', 'bpm', 'beatOff', 'key', 'cues', 'loop'];
+document.getElementById('lib-exp').addEventListener('click', async () => {
+  const rows = (await Library.all()).filter(t => !t.deleted_at);
+  const data = rows.map(t => Object.fromEntries(LIB_META_KEYS.filter(k => t[k] !== undefined).map(k => [k, t[k]])));
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' }));
+  a.download = 'acro-dj-library.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+const libImpFile = document.getElementById('lib-impfile');
+document.getElementById('lib-imp').addEventListener('click', () => libImpFile.click());
+libImpFile.addEventListener('change', async () => {
+  const f = libImpFile.files[0];
+  libImpFile.value = '';
+  if (!f) return;
+  let data;
+  try { data = JSON.parse(await f.text()); } catch { return; }
+  if (!Array.isArray(data)) return;
+  const rows = (await Library.all()).filter(t => !t.deleted_at);
+  for (const e of data) {
+    const rec = rows.find(t => t.name === e.name && t.size === e.size);
+    if (!rec) continue;   // audio not loaded here — nothing to tag
+    const patch = {};
+    for (const k of ['duration', 'bpm', 'beatOff', 'key', 'cues', 'loop']) if (e[k] !== undefined) patch[k] = e[k];
+    await Library.tag(rec.id, patch);
+  }
+});
+
 document.getElementById('lib-rows').addEventListener('click', e => {
   const row = e.target.closest('.lib-row');
   if (!row) return;
