@@ -66,7 +66,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   `−1b`/`+1b` beside them beat-jump one
   beat of the grid (see ADR-0012).
 - **Headphone cue (PFL)** — `Phones` button taps each deck pre-fader onto
-  a cue bus; `Cue out` picks the output device (`setSinkId`, Chrome/Edge).
+  a cue bus; `Shift+Phones` arms it solo, dropping the other deck's
+  cue in one click (see ADR-0113); `Cue out` picks the output device (`setSinkId`, Chrome/Edge).
   See ADR-0007. A thin level meter under the selector shows what the
   phones are hearing, with a peak-hold tick like the other meters
   (see ADR-0022, ADR-0107). A `Δ ±x% beat` readout below it
