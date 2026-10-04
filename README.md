@@ -165,6 +165,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   side starts it (see ADR-0068).
 - **Tempo range** — `±8 / ±16 / ±50` select per deck trades slider
   resolution for reach, CDJ-style (see ADR-0069).
+- **Cue colors** — each hot-cue pad owns a color, mirrored by its
+  waveform marker (see ADR-0070).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
