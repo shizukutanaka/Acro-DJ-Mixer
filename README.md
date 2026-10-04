@@ -220,7 +220,10 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   `Verb` (generated-IR convolver send); only the selected effect
   sounds (see ADR-0081, ADR-0097, ADR-0126, ADR-0127, ADR-0128). The
   `FX` button punches the effect in/out without touching the knob —
-  disengaged parks every path, knob position kept (see ADR-0133).
+  disengaged parks every path, knob position kept (see ADR-0133). The
+  `pre`/`post` select moves the send tap — tails that outlive the
+  crossfader (pre) or fader FX that die with the side (post; see
+  ADR-0134).
 - **Beat division** — the `¼/½/¾/1` select sets echo time in beats,
   the DJM BEAT parameter (see ADR-0094).
 - **Rec timer** — the Rec button counts `M:SS` while recording so a
