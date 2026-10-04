@@ -576,7 +576,7 @@ class Deck {
       if (meta && meta.bpm) {
         // Cached analysis from the library — instant, no recompute.
         this.grid = { bpm: meta.bpm, beatOff: meta.beatOff || 0 };
-        this.bpmEl.textContent = String(this.grid.bpm);
+        this.bpmEl.textContent = String(Math.round(this.grid.bpm));
         this.key = meta.key || null;
         this.refreshKey();
         if (this.partner) this.partner.refreshKey();
@@ -912,7 +912,7 @@ class Deck {
     try {
       const grid = estimateBpm(await monoP);
       this.grid = grid;
-      this.bpmEl.textContent = grid ? String(grid.bpm) : '—';
+      this.bpmEl.textContent = grid ? String(Math.round(grid.bpm)) : '—';
       if (grid) this.tagLib({ bpm: grid.bpm, beatOff: grid.beatOff });
       this._drawnPos = undefined;
       this.drawWave();
@@ -1179,6 +1179,18 @@ function estimateBpm(d) {
   let bestLag = minLag;
   while (bestLag <= maxLag && scores[bestLag] < best * 0.92) bestLag++;
   if (bestLag > maxLag) return null;
+  // Sub-lag refinement: the true beat period sits between ODF frames —
+  // parabolic interpolation on the autocorrelation peak keeps beatLen
+  // accurate (integer lag quantizes tempo ~0.5%, drifting ~1 beat over
+  // a 4-minute track). Only when bestLag is an interior local maximum.
+  let lag = bestLag;
+  if (bestLag > minLag && bestLag < maxLag
+      && scores[bestLag] >= scores[bestLag - 1]
+      && scores[bestLag] >= scores[bestLag + 1]) {
+    const d = scores[bestLag - 1] - 2 * scores[bestLag] + scores[bestLag + 1];
+    if (d < 0) lag = Math.max(bestLag - 0.5, Math.min(bestLag + 0.5,
+      bestLag + 0.5 * (scores[bestLag - 1] - scores[bestLag + 1]) / d));
+  }
   // Beat phase: the comb offset that lands on the strongest onsets
   // (Ellis 2006-style ODF comb alignment, minus dynamic programming).
   let bestPhase = 0, bestPhaseScore = -1;
@@ -1211,7 +1223,7 @@ function estimateBpm(d) {
     if (bs > 0) { wsum += bs; rsum += bs * (bi - c) / hop; }
   }
   const refined = wsum > 0 ? bestPhase + rsum / wsum : bestPhase;
-  return { bpm: Math.round(fps * 60 / bestLag), beatOff: refined * hop / targetSr };
+  return { bpm: fps * 60 / lag, beatOff: refined * hop / targetSr };
 }
 
 // Iterative radix-2 FFT, in-place on re/im arrays (length a power of two).
@@ -1399,7 +1411,7 @@ async function renderLibrary() {
     .map(([name]) => name);
   rowsEl.innerHTML = rows.map(t => { const f = fit(t); return `<div class="lib-row${f.length ? ' fit' : ''}" data-id="${t.id}">
     <span class="name" title="${esc(t.name)}${f.length ? ' — fits deck ' + f.join('/') + ' (key + tempo)' : ''}">${esc(t.name)}</span>
-    <span>${t.bpm || '—'} BPM</span>
+    <span>${t.bpm ? Math.round(t.bpm) : '—'} BPM</span>
     <span>${t.key ? esc(t.key.num + t.key.letter + ' ' + t.key.name) : '—'}</span>
     <span>${fmt(t.duration || 0)}</span>
     <span><button data-to="a" title="Load into Deck A">→A</button><button data-to="b" title="Load into Deck B">→B</button><button class="lib-del" data-del title="Remove from library">×</button></span>
