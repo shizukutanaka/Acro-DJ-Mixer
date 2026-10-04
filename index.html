@@ -170,6 +170,7 @@
       <button data-act="cueout" title="Headphone cue — preview this deck on the cue output">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
       <button data-act="eject" title="Eject — unload the track, reset the deck">⏏</button>
+      <select data-act="assign" title="Channel assign — which crossfader side feeds this channel (Thru ignores the fader)"><option value="a">A</option><option value="thru">Thru</option><option value="b">B</option></select>
       <span class="time">0:00 / 0:00</span>
     </div>
     <div class="hotcues"><button class="pad" data-pad="0" title="Hot cue — click sets a marker, click jumps, shift-click or right-click clears">1</button><button class="pad" data-pad="1" title="Hot cue — click sets a marker, click jumps, shift-click or right-click clears">2</button><button class="pad" data-pad="2" title="Hot cue — click sets a marker, click jumps, shift-click or right-click clears">3</button><button class="pad" data-pad="3" title="Hot cue — click sets a marker, click jumps, shift-click or right-click clears">4</button><span class="jump"><button data-act="jumpback" title="Jump back one beat (shift = one bar; 1 s without BPM)">−1b</button><button data-act="jumpfwd" title="Jump forward one beat (shift = one bar; 1 s without BPM)">+1b</button><button data-act="nextbar" title="Jump to the next bar downbeat — drop on the one">▸bar</button></span></div>
@@ -212,6 +213,7 @@
       <button data-act="cueout" title="Headphone cue — preview this deck on the cue output">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
       <button data-act="eject" title="Eject — unload the track, reset the deck">⏏</button>
+      <select data-act="assign" title="Channel assign — which crossfader side feeds this channel (Thru ignores the fader)"><option value="a">A</option><option value="thru">Thru</option><option value="b">B</option></select>
       <span class="time">0:00 / 0:00</span>
     </div>
     <div class="hotcues"><button class="pad" data-pad="0" title="Hot cue — click sets a marker, click jumps, shift-click or right-click clears">1</button><button class="pad" data-pad="1" title="Hot cue — click sets a marker, click jumps, shift-click or right-click clears">2</button><button class="pad" data-pad="2" title="Hot cue — click sets a marker, click jumps, shift-click or right-click clears">3</button><button class="pad" data-pad="3" title="Hot cue — click sets a marker, click jumps, shift-click or right-click clears">4</button><span class="jump"><button data-act="jumpback" title="Jump back one beat (shift = one bar; 1 s without BPM)">−1b</button><button data-act="jumpfwd" title="Jump forward one beat (shift = one bar; 1 s without BPM)">+1b</button><button data-act="nextbar" title="Jump to the next bar downbeat — drop on the one">▸bar</button></span></div>
@@ -605,6 +607,9 @@ class Deck {
     this.el.querySelector('[data-act=nextbar]').addEventListener('click', () => this.jumpBar());
     this.keylockBtn.addEventListener('click', () => this.toggleKeylock());
     this.el.querySelector('[data-act=eject]').addEventListener('click', () => this.eject());
+    this.assignSel = this.el.querySelector('[data-act=assign]');
+    this.assignSel.value = this.side;
+    this.assignSel.addEventListener('change', applyCrossfade);
     this.spinMul = 1;
     this.brake = false;
     this.brakeBtn = this.el.querySelector('[data-act=brake]');
@@ -2099,16 +2104,22 @@ document.getElementById('xfrev').addEventListener('click', e => {
 });
 function applyCrossfade() {
   const x = xfPos();
+  let ga, gb;
   if (xfcurve.value === 'cut') {
     // Scratch curve: each side reaches full level within 10% of travel,
     // so chops/transforms hit instantly; the middle sums both at full.
-    deckA.setXf(Math.min(1, (1 - x) / 0.1));
-    deckB.setXf(Math.min(1, x / 0.1));
-    return;
+    ga = Math.min(1, (1 - x) / 0.1);
+    gb = Math.min(1, x / 0.1);
+  } else {
+    // Equal-power law keeps perceived loudness constant through the middle.
+    ga = Math.cos(x * Math.PI / 2);
+    gb = Math.sin(x * Math.PI / 2);
   }
-  // Equal-power law keeps perceived loudness constant through the middle.
-  deckA.setXf(Math.cos(x * Math.PI / 2));
-  deckB.setXf(Math.sin(x * Math.PI / 2));
+  // Channel assign (DJM CH ASSIGN): a deck may sit on the A side, the B
+  // side, or Thru — bypassing the fader entirely.
+  const pick = sel => sel === 'a' ? ga : sel === 'b' ? gb : 1;
+  deckA.setXf(pick(deckA.assignSel.value));
+  deckB.setXf(pick(deckB.assignSel.value));
 }
 xfader.addEventListener('input', applyCrossfade);
 // Fader start (CDJ FADER START): sweeping the fader fully into a
@@ -2119,8 +2130,10 @@ xfader.addEventListener('input', applyCrossfade);
 let xfPrev = xfPos();
 xfader.addEventListener('input', () => {
   const x = xfPos();
-  if (xfPrev >= 0.05 && x < 0.05 && deckA.buffer && !deckA.playing && deckA.pos() < deckA.buffer.duration) deckA.play();
-  if (xfPrev <= 0.95 && x > 0.95 && deckB.buffer && !deckB.playing && deckB.pos() < deckB.buffer.duration) deckB.play();
+  // Only a deck assigned to that side hears the edge — a Thru deck
+  // ignores the fader entirely, on hardware and here.
+  if (xfPrev >= 0.05 && x < 0.05 && deckA.assignSel.value === 'a' && deckA.buffer && !deckA.playing && deckA.pos() < deckA.buffer.duration) deckA.play();
+  if (xfPrev <= 0.95 && x > 0.95 && deckB.assignSel.value === 'b' && deckB.buffer && !deckB.playing && deckB.pos() < deckB.buffer.duration) deckB.play();
   xfPrev = x;
 });
 xfader.addEventListener('dblclick', () => { xfader.value = 0.5; applyCrossfade(); });

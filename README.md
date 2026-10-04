@@ -192,6 +192,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   still works) — trackpad-friendly (see ADR-0083).
 - **Eject** — `⏏` unloads the track and resets deck readouts;
   control settings survive (see ADR-0084).
+- **Channel assign** — `A/Thru/B` select routes each deck to a
+  crossfader side or bypasses it; fader-start follows the assign
+  (see ADR-0085).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
