@@ -80,6 +80,10 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Set recording** — `Rec` button captures the master output to a
   `.webm` (opus) download via `MediaRecorder` on a MediaStream tap
   (see ADR-0014).
+- **Master limiter** — a fast `DynamicsCompressor` at the end of the
+  chain (threshold −3 dB, ratio 20) keeps two-deck sums and EQ boosts
+  from clipping; `GR −x.x dB` shows under the meter while it rides
+  peaks (see ADR-0018).
 - **Master level meter** and master gain.
 - **Keyboard** — `Q`/`P` toggle deck A/B, `←`/`→` move the crossfader,
   `0` centers it.
@@ -91,7 +95,7 @@ Single file (`index.html`), vanilla JS + Web Audio API:
 ```
 WSOLA worklet (keylock) or BufferSource (fallback)
         ┬─> cueSend ──> cue bus ──> <audio setSinkId> (headphone cue)
-        └─> deckGain ──> EQ(low→mid→high) ──> xfGain ──> masterGain ──> analyser ──> destination
+        └─> deckGain ──> EQ(low→mid→high) ──> filter ──> xfGain ──> masterGain ──> limiter ──> analyser ──> destination
 ```
 
 Per deck, instantiated lazily on first play (browser autoplay policy requires a
