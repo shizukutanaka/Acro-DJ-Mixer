@@ -47,7 +47,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   `beatOff` is refined to ~ms precision by an energy-rise search around
   each comb line (see ADR-0025); `bpm` is fractional internally via
   sub-lag parabolic interpolation — integer lag error (~0.5%) used to
-  drift the grid ~2 beats over a 4-min track (see ADR-0027).
+  drift the grid ~2 beats over a 4-min track (see ADR-0027). `Tap` sets
+  tempo + phase by hand for tracks the detector can't read (see ADR-0029).
 - **Key detection** — chromagram + Krumhansl–Schmuckler profiles → Camelot
   code shown next to BPM; green = mixes harmonically with the other deck,
   amber = clash (see ADR-0004).
