@@ -2758,7 +2758,49 @@ smpSlots.forEach((_, i) => {
   const b = document.createElement('button');
   b.className = 'smp';
   b.textContent = '+';
-  b.title = 'Sampler — click loads a one-shot, click again plays it, right-click previews on headphones, alt-click stops playback, shift-click clears';
+  b.title = 'Sampler — click loads a one-shot, click again plays it (hold = gate), right-click previews on headphones, alt-click stops playback, shift-click clears';
+  const firePad = () => {
+    const slot = smpSlots[i];
+    if (!slot || !slot.buf) return;
+    if (slot.src) { try { slot.src.stop(); } catch (_) {} }
+    // Single voice like the DJM sampler: a new shot chokes the others,
+    // so one-shots can never pile up mid-set.
+    smpSlots.forEach((sl, j) => {
+      if (j === i || !sl || !sl.src) return;
+      try { sl.src.stop(); } catch (_) {}
+      smpPadsEl.children[j].classList.remove('on');
+    });
+    const ac = audio();
+    if (!smpGain) {   // shared pad bus — one knob rides all four
+      smpGain = ac.createGain();
+      smpGain.gain.value = parseFloat(document.getElementById('smp-gain').value);
+      smpGain.connect(masterGain);
+    }
+    const src = ac.createBufferSource();
+    src.buffer = slot.buf;
+    src.connect(smpGain);
+    src.onended = () => { if (slot.src === src) { b.classList.remove('on'); slot.src = null; } };
+    src.start();
+    slot.src = src;
+    b.classList.add('on');
+  };
+  // Gate mode (same hold idiom as kills/mute/FX): press-and-hold a
+  // loaded pad and the shot rings only while held — release stops it.
+  // Tap (<250 ms) still fires the full one-shot via click.
+  b.addEventListener('pointerdown', e => {
+    if (e.button !== 0 || e.shiftKey || e.altKey || !smpSlots[i]) return;
+    b._momTimer = setTimeout(() => { b._mom = true; firePad(); }, 250);
+  });
+  const momEnd = () => {
+    clearTimeout(b._momTimer);
+    if (b._mom) {
+      b._mom = false; b._suppress = true;
+      const slot = smpSlots[i];
+      if (slot && slot.src) { try { slot.src.stop(); } catch (_) {} b.classList.remove('on'); slot.src = null; }
+    }
+  };
+  b.addEventListener('pointerup', momEnd);
+  b.addEventListener('pointercancel', momEnd);
   b.addEventListener('click', e => {
     const slot = smpSlots[i];
     if (e.altKey) {
@@ -2793,27 +2835,8 @@ smpSlots.forEach((_, i) => {
       return;
     }
     if (!slot) { smpPending = i; smpFile.value = ''; smpFile.click(); return; }
-    if (slot.src) { try { slot.src.stop(); } catch (_) {} }
-    // Single voice like the DJM sampler: a new shot chokes the others,
-    // so one-shots can never pile up mid-set.
-    smpSlots.forEach((sl, j) => {
-      if (j === i || !sl || !sl.src) return;
-      try { sl.src.stop(); } catch (_) {}
-      smpPadsEl.children[j].classList.remove('on');
-    });
-    const ac = audio();
-    if (!smpGain) {   // shared pad bus — one knob rides all four
-      smpGain = ac.createGain();
-      smpGain.gain.value = parseFloat(document.getElementById('smp-gain').value);
-      smpGain.connect(masterGain);
-    }
-    const src = ac.createBufferSource();
-    src.buffer = slot.buf;
-    src.connect(smpGain);
-    src.onended = () => { if (slot.src === src) { b.classList.remove('on'); slot.src = null; } };
-    src.start();
-    slot.src = src;
-    b.classList.add('on');
+    if (b._suppress) { b._suppress = false; return; }   // click after a gate hold
+    firePad();
   });
   // Right-click auditions the pad on the headphone cue bus instead of
   // the master chain — hear a one-shot before it hits the floor, like
