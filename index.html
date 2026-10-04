@@ -581,7 +581,12 @@ class Deck {
     dz.addEventListener('drop', e => {
       e.preventDefault(); dz.classList.remove('drag');
       const f = e.dataTransfer.files && e.dataTransfer.files[0];
-      if (f) this.load(f);
+      if (!f) return;
+      // Same accident class as ->A/->B: a drop on a playing deck
+      // silences the floor — arm the two-gesture confirm here too
+      // (first drop asks 'sure?', a second drop inside 2 s loads).
+      if (this.playing) armConfirm(dz, () => this.load(f));
+      else this.load(f);
     });
     this.playBtn.addEventListener('click', e => {
       // Shift = drop on the one: snap to the next bar downbeat before
