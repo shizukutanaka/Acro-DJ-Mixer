@@ -660,6 +660,44 @@ class Deck {
     this.filterEl.addEventListener('dblclick', () => { this.filterEl.value = 0; this.setFilter(0); });
     this.stemSel.addEventListener('change', () => this.setStem(this.stemSel.value));
     this.el.querySelector('[data-act=tap]').addEventListener('click', () => this.tapTempo());
+    // Manual BPM entry: click the readout for an inline field —
+    // the fastest fix when detection is close-but-wrong (tap handles
+    // unknown tempo, 1-beat shift handles off-by-a-beat phase).
+    this.bpmEl.parentElement.style.cursor = 'pointer';
+    this.bpmEl.parentElement.title = 'Click to type the BPM manually';
+    this.bpmEl.addEventListener('click', () => {
+      if (this._bpmEdit) return;
+      this._bpmEdit = true;
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.value = this.grid ? this.grid.bpm.toFixed(1) : '';
+      inp.style.cssText = 'width:4.5em;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;color:var(--text);font:inherit';
+      const done = commit => {
+        if (commit) {
+          const v = parseFloat(inp.value);
+          if (v > 30 && v < 400) {
+            this.grid = this.grid || { bpm: v, beatOff: 0 };
+            this.grid.bpm = v;
+            this.tagLib({ bpm: v });
+            this._syncDelay();
+            this._drawnPos = undefined;
+            this.drawWave();
+          }
+        }
+        this._bpmEdit = false;
+        this.bpmEl.textContent = this.grid ? this.grid.bpm.toFixed(1) : '—';
+      };
+      inp.addEventListener('keydown', e => {
+        e.stopPropagation();   // deck keys must not fire while typing
+        if (e.key === 'Enter') done(true);
+        else if (e.key === 'Escape') done(false);
+      });
+      inp.addEventListener('blur', () => done(true));
+      this.bpmEl.textContent = '';
+      this.bpmEl.appendChild(inp);
+      inp.focus();
+      inp.select();
+    });
     this.el.querySelector('[data-act=nudgeback]').addEventListener('click', e =>
       this.nudgeGrid(e.shiftKey && this.grid ? -(60 / this.grid.bpm) : -0.01));
     this.el.querySelector('[data-act=nudgefwd]').addEventListener('click', e =>
