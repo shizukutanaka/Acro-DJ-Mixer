@@ -134,7 +134,7 @@
   .looplen button { font-size: 11px; padding: 3px 6px; }
   .hotcues { display: flex; gap: 4px; margin-top: 6px; }
   .hotcues .pad { flex: 1; font-size: 11px; padding: 3px 0; opacity: .45; }
-  .hotcues .pad.set { opacity: 1; background: var(--panel-2); color: var(--text); }
+  .hotcues .pad.set { opacity: 1; background: var(--pc); color: #0e1116; }
   .hotcues .jump { display: inline-flex; gap: 4px; margin-left: auto; }
   .hotcues .jump button { font-size: 11px; padding: 3px 7px; }
   .eq .kill { font-size: 10px; padding: 1px 4px; min-width: 16px; }
@@ -492,7 +492,12 @@ class Deck {
     this.loopEnd = 0;
     this.cueBtn = root.querySelector('[data-act=cueout]');
     this.cueOn = false;
+    // rekordbox-style pad identity: each hot cue owns a color, shared
+    // by the pad and its waveform marker so "which cue" reads instantly.
+    const PAD_COLORS = ['#ff5252', '#ffb142', '#2ed573', '#34ace0'];
+    this.padColors = PAD_COLORS;
     this.pads = [...root.querySelectorAll('.hotcues .pad')];
+    this.pads.forEach((p, i) => p.style.setProperty('--pc', PAD_COLORS[i]));
     this.cues = [null, null, null, null];  // hot-cue marker times (seconds)
     this.cueSend = null;   // pre-fader tap -> cue bus
     this.deckGain = null;
@@ -1237,9 +1242,9 @@ class Deck {
       c.fillRect(x0, 0, x1 - x0, h);
     }
     if (this.buffer) {
-      c.fillStyle = '#d9a03f';  // hot-cue markers
-      for (const t of this.cues) {
+      for (const [i, t] of this.cues.entries()) {   // hot-cue markers, pad-colored
         if (t == null || t < v0 || t > v1) continue;
+        c.fillStyle = this.padColors[i];
         c.fillRect(Math.floor(xOf(t)) - 1, 0, 2, h);
       }
       const x = xOf(this.pos());
