@@ -73,7 +73,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   (see ADR-0023).
 - **Library** — every loaded track is auto-saved to IndexedDB (audio +
   BPM/key analysis, soft-deletable); `→A`/`→B` reloads instantly with
-  cached analysis, survives page reloads. Rows highlight green when the
+  cached analysis, survives page reloads. Reloading a *playing* deck
+  needs a second confirming click ("sure?") — the load lock
+  (see ADR-0104). Rows highlight green when the
   track fits a loaded deck (tempo within ±16% sync range + harmonic key)
   — see ADR-0008/0011. Filter box narrows rows by name as you type
   (see ADR-0032).
