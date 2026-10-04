@@ -1292,16 +1292,16 @@ class Deck {
   }
 
   // 4-beat loop snapped to the detected beat grid — the DJ default of one
-  // bar. On the worklet the read position wraps; on BufferSource the
-  // native loop points do the same thing.
+  // bar. Without a grid it falls back to a 4 s free loop from the press
+  // point (beatLen = 1 s), which is also what moveLoop then slides by.
   toggleLoop() {
-    if (!this.buffer || !this.grid) { this.status('Need BPM analysis for loop.'); return; }
+    if (!this.buffer) return;
     if (!this.loopOn) {
       // Compute bounds BEFORE loopOn flips: pos() reads loopEnd for wrapping.
-      const beatLen = 60 / this.grid.bpm;
-      const n = Math.floor((this.pos() - this.grid.beatOff) / beatLen);
-      const start = quantizeOn ? Math.max(0, this.grid.beatOff + n * beatLen)
-                               : Math.min(this.pos(), this.buffer.duration);
+      const beatLen = this.grid ? 60 / this.grid.bpm : 1;
+      const n = this.grid ? Math.floor((this.pos() - this.grid.beatOff) / beatLen) : 0;
+      const start = (this.grid && quantizeOn) ? Math.max(0, this.grid.beatOff + n * beatLen)
+                                              : Math.min(this.pos(), this.buffer.duration);
       const end = Math.min(start + 4 * beatLen, this.buffer.duration);
       if (end - start < beatLen) { this.status('Not enough track left for a loop.'); return; }
       this.loopStart = start;

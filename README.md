@@ -134,6 +134,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   (see ADR-0055).
 - **Decimal BPM** — the readout shows the fractional estimate
   (`120.2`), so matched decks are visibly matched (see ADR-0056).
+- **Manual loop** — tracks with no detected grid can still loop:
+  `Loop` arms a 4-second free loop from the press point, and halve /
+  double / move all work (see ADR-0057).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
