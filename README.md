@@ -168,7 +168,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Cue colors** — each hot-cue pad owns a color, mirrored by its
   waveform marker (see ADR-0070).
 - **Prep badges** — library rows show `⚑N` saved cues and `∞` for a
-  stored loop (see ADR-0071).
+  stored loop (see ADR-0071). A trailing  counts actual plays
+  (see ADR-0095).
 - **Library export/import** — `⤓` downloads BPM, key, cues and loops
   as JSON; `⤒` merges them onto tracks matched by name+size
   (see ADR-0072).
