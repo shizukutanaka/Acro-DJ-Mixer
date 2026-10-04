@@ -3238,10 +3238,24 @@ document.addEventListener('keydown', e => {
 // pads, 44/45 play A/B. CCs: 1 = crossfader, 7 = master,
 // 20/21 = channel gain A/B — the default CC names every
 // budget controller ships with, so most units work unmapped.
+// Held-note timestamps for the pad gate: the app's own momentary
+// grammar (tap = latch, hold >=250 ms = momentary) ported to MIDI —
+// a short tap still rings the whole one-shot, a held note stops on
+// release.
+const midiNoteT = {};
+function stopSmpPad(i) {
+  const slot = smpSlots[i];
+  if (slot && slot.src) {
+    try { slot.src.stop(); } catch (_) {}
+    slot.src = null;
+    smpPadsEl.children[i].classList.remove('on');
+  }
+}
 function midiMsg(e) {
   const [st, n, v] = e.data;
   const kind = st & 0xf0;
   if (kind === 0x90 && v > 0) {               // note on
+    midiNoteT[n] = performance.now();
     if (n >= 60 && n < 68) deckA.padCue(n - 60);
     else if (n >= 68 && n < 76) deckB.padCue(n - 68);
     // Velocity rides the shot's level: hardware pads translate hit
@@ -3249,6 +3263,11 @@ function midiMsg(e) {
     else if (n >= 36 && n < 40) fireSmpPad(n - 36, v / 127);
     else if (n === 44) deckA.toggle();
     else if (n === 45) deckB.toggle();
+  } else if ((kind === 0x80 || (kind === 0x90 && v === 0)) && n >= 36 && n < 40) {
+    // Note-off on a pad held >=250 ms = gate release, same as a held
+    // mouse press. A quick tap's off arrives well under that and the
+    // shot keeps ringing.
+    if (performance.now() - (midiNoteT[n] || 0) >= 250) stopSmpPad(n - 36);
   } else if (kind === 0xb0) {                 // control change
     const f = v / 127;
     if (n === 1) { xfader.value = f; applyCrossfade(); }
