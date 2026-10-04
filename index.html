@@ -118,6 +118,8 @@
   .hotcues .pad.set { opacity: 1; background: var(--panel-2); color: var(--text); }
   .hotcues .jump { display: inline-flex; gap: 4px; margin-left: auto; }
   .hotcues .jump button { font-size: 11px; padding: 3px 7px; }
+  .eq .kill { font-size: 10px; padding: 1px 4px; min-width: 16px; }
+  .eq .kill.on { border-color: #ff5a5a; color: #ff5a5a; }
   .lib-row.fit .name { color: #3ddc84; }
   .lib-row.fit .name::before { content: '● '; font-size: 9px; vertical-align: 1px; }
   @media (max-width: 760px) {
@@ -147,7 +149,7 @@
     </div>
     <div class="hotcues"><button class="pad" data-pad="0" title="Hot cue — click sets a marker, click jumps, right-click clears">1</button><button class="pad" data-pad="1" title="Hot cue — click sets a marker, click jumps, right-click clears">2</button><button class="pad" data-pad="2" title="Hot cue — click sets a marker, click jumps, right-click clears">3</button><button class="pad" data-pad="3" title="Hot cue — click sets a marker, click jumps, right-click clears">4</button><span class="jump"><button data-act="jumpback" title="Jump back one beat (1 s without BPM)">−1b</button><button data-act="jumpfwd" title="Jump forward one beat (1 s without BPM)">+1b</button></span></div>
     <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1"><output>+0.0%</output></div>
-    <div class="row eq"><label>EQ</label><span class="band">H<input type="range" data-eq="high" min="-1" max="1" step="0.01" value="0" title="High shelf 4 kHz, ±26 dB — double-click resets"></span><span class="band">M<input type="range" data-eq="mid" min="-1" max="1" step="0.01" value="0" title="Mid 1 kHz, ±26 dB — double-click resets"></span><span class="band">L<input type="range" data-eq="low" min="-1" max="1" step="0.01" value="0" title="Low shelf 250 Hz, ±26 dB — double-click resets"></span></div>
+    <div class="row eq"><label>EQ</label><span class="band"><button class="kill" data-kill="high" title="Kill high — instant −26 dB cut, click again to restore">H</button><input type="range" data-eq="high" min="-1" max="1" step="0.01" value="0" title="High shelf 4 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="mid" title="Kill mid — instant −26 dB cut, click again to restore">M</button><input type="range" data-eq="mid" min="-1" max="1" step="0.01" value="0" title="Mid 1 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="low" title="Kill low — instant −26 dB cut, click again to restore">L</button><input type="range" data-eq="low" min="-1" max="1" step="0.01" value="0" title="Low shelf 250 Hz, ±26 dB — double-click resets"></span></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1"><output>100%</output></div>
     <div class="row"><span class="bpm">BPM <b>—</b></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="status"></span></div>
   </section>
@@ -178,7 +180,7 @@
     </div>
     <div class="hotcues"><button class="pad" data-pad="0" title="Hot cue — click sets a marker, click jumps, right-click clears">1</button><button class="pad" data-pad="1" title="Hot cue — click sets a marker, click jumps, right-click clears">2</button><button class="pad" data-pad="2" title="Hot cue — click sets a marker, click jumps, right-click clears">3</button><button class="pad" data-pad="3" title="Hot cue — click sets a marker, click jumps, right-click clears">4</button><span class="jump"><button data-act="jumpback" title="Jump back one beat (1 s without BPM)">−1b</button><button data-act="jumpfwd" title="Jump forward one beat (1 s without BPM)">+1b</button></span></div>
     <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1"><output>+0.0%</output></div>
-    <div class="row eq"><label>EQ</label><span class="band">H<input type="range" data-eq="high" min="-1" max="1" step="0.01" value="0" title="High shelf 4 kHz, ±26 dB — double-click resets"></span><span class="band">M<input type="range" data-eq="mid" min="-1" max="1" step="0.01" value="0" title="Mid 1 kHz, ±26 dB — double-click resets"></span><span class="band">L<input type="range" data-eq="low" min="-1" max="1" step="0.01" value="0" title="Low shelf 250 Hz, ±26 dB — double-click resets"></span></div>
+    <div class="row eq"><label>EQ</label><span class="band"><button class="kill" data-kill="high" title="Kill high — instant −26 dB cut, click again to restore">H</button><input type="range" data-eq="high" min="-1" max="1" step="0.01" value="0" title="High shelf 4 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="mid" title="Kill mid — instant −26 dB cut, click again to restore">M</button><input type="range" data-eq="mid" min="-1" max="1" step="0.01" value="0" title="Mid 1 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="low" title="Kill low — instant −26 dB cut, click again to restore">L</button><input type="range" data-eq="low" min="-1" max="1" step="0.01" value="0" title="Low shelf 250 Hz, ±26 dB — double-click resets"></span></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1"><output>100%</output></div>
     <div class="row"><span class="bpm">BPM <b>—</b></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="status"></span></div>
   </section>
@@ -428,6 +430,8 @@ class Deck {
     this.gainEl = root.querySelector('[data-act=gain]');
     this.eq = null;   // {low, mid, high} BiquadFilters, created lazily with the graph
     this.eqEls = { low: root.querySelector('[data-eq=low]'), mid: root.querySelector('[data-eq=mid]'), high: root.querySelector('[data-eq=high]') };
+    this.kills = { low: false, mid: false, high: false };  // isolator-style band kills
+    this.killEls = { low: root.querySelector('[data-kill=low]'), mid: root.querySelector('[data-kill=mid]'), high: root.querySelector('[data-kill=high]') };
     this.bind();
   }
 
@@ -462,6 +466,11 @@ class Deck {
     for (const [band, el] of Object.entries(this.eqEls)) {
       el.addEventListener('input', () => this.setBand(band, parseFloat(el.value)));
       el.addEventListener('dblclick', () => { el.value = 0; this.setBand(band, 0); });
+      this.killEls[band].addEventListener('click', () => {
+        this.kills[band] = !this.kills[band];
+        this.killEls[band].classList.toggle('on', this.kills[band]);
+        this.setBand(band, parseFloat(el.value));
+      });
     }
     this.wave.addEventListener('click', e => this.seekFromEvent(e));
   }
@@ -696,9 +705,11 @@ class Deck {
   }
 
   // EQ band slider -1..+1 -> dB. -26 dB at full cut approximates the
-  // "kill" travel of DJ isolators; +26 dB of headroom for boosts.
+  // "kill" travel of DJ isolators; +26 dB of headroom for boosts. A
+  // killed band is pinned at the floor regardless of slider position
+  // (the slider keeps its value for restore-on-unkill).
   setBand(band, v) {
-    if (this.eq) this.eq[band].gain.setTargetAtTime(v * 26, ctx.currentTime, 0.01);
+    if (this.eq) this.eq[band].gain.setTargetAtTime(this.kills[band] ? -26 : v * 26, ctx.currentTime, 0.01);
   }
 
   setXf(v) {

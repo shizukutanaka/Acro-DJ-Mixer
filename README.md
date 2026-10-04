@@ -69,6 +69,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
   click again to cancel mid-fade (see ADR-0013).
+- **EQ kills** — the H/M/L letters are buttons: click pins the band at
+  −26 dB, click again restores the slider value (see ADR-0015).
 - **Set recording** — `Rec` button captures the master output to a
   `.webm` (opus) download via `MediaRecorder` on a MediaStream tap
   (see ADR-0014).
