@@ -2910,7 +2910,7 @@ smpSlots.forEach((_, i) => {
   b.className = 'smp';
   b.textContent = '+';
   b.title = 'Sampler — click loads a one-shot, click again plays it (hold = gate), right-click previews on headphones, alt-click stops playback, shift-click clears';
-  const firePad = () => {
+  const firePad = (vel = 1) => {
     const slot = smpSlots[i];
     if (!slot || !slot.buf) return;
     if (slot.src) { try { slot.src.stop(); } catch (_) {} }
@@ -2935,7 +2935,7 @@ smpSlots.forEach((_, i) => {
     // loud one-shot can be parked low without shrinking the smpGain
     // knob for the other pads.
     const g = ac.createGain();
-    g.gain.value = slot.gain != null ? slot.gain : 1;
+    g.gain.value = (slot.gain != null ? slot.gain : 1) * vel;
     src.connect(g);
     g.connect(smpGain);
     slot.g = g;
@@ -3024,7 +3024,15 @@ smpSlots.forEach((_, i) => {
     b.title = slot.name + ' — level ' + slot.gain.toFixed(2) + 'x (wheel trims)';
   }, { passive: false });
   smpPadsEl.appendChild(b);
+  // Shared entry for MIDI notes: click the pad to load, fire if loaded.
+  b.__fire = firePad;
 });
+function fireSmpPad(i, vel) {
+  const pad = smpPadsEl.children[i];
+  if (!pad) return;
+  if (!smpSlots[i] || !smpSlots[i].buf) { pad.click(); return; }
+  pad.__fire(vel);
+}
 document.getElementById('smp-gain').addEventListener('input', e => {
   if (smpGain) smpGain.gain.setTargetAtTime(parseFloat(e.target.value), ctx.currentTime, 0.01);
 });
@@ -3236,7 +3244,9 @@ function midiMsg(e) {
   if (kind === 0x90 && v > 0) {               // note on
     if (n >= 60 && n < 68) deckA.padCue(n - 60);
     else if (n >= 68 && n < 76) deckB.padCue(n - 68);
-    else if (n >= 36 && n < 40) { const pad = smpPadsEl.children[n - 36]; if (pad) pad.click(); }
+    // Velocity rides the shot's level: hardware pads translate hit
+    // strength, and velocity-blind buttons send 127 (full) anyway.
+    else if (n >= 36 && n < 40) fireSmpPad(n - 36, v / 127);
     else if (n === 44) deckA.toggle();
     else if (n === 45) deckB.toggle();
   } else if (kind === 0xb0) {                 // control change
