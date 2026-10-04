@@ -191,7 +191,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   visible before it reaches the floor (see ADR-0115). A fixed
   120 Hz high-pass strips rumble and plosives (see ADR-0122). The
   slider beside it trims mic level in the master, 0–1.5 (past unity
-  for quiet mics; see ADR-0135).
+  for quiet mics; see ADR-0135), and the two following sliders are a
+  DJM-style mic EQ — LOW 200 Hz and HI 4 kHz shelves, ±12 dB (see
+  ADR-0151).
 - **Fader start** — pushing the crossfader fully into a stopped deck's
   side starts it (see ADR-0068).
 - **Tempo range** — `±8 / ±16 / ±50` select per deck trades slider
