@@ -112,6 +112,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Bar downbeats** — every 4th beat-grid tick on the waveform draws
   brighter and wider, so bar boundaries (where phrases and loops live)
   read at a glance (see ADR-0048).
+- **Crossfader reverse** — `Rev` beside the curve select mirrors the
+  fader's A/B assignment (hamster switch for scratching; works with
+  both curves and auto mix) (see ADR-0049).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,

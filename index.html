@@ -178,7 +178,7 @@
     <h2>Mixer</h2>
     <div class="meter"><i id="meter-fill"></i></div>
     <div class="gr" id="gr" title="Limiter gain reduction"></div>
-    <div class="row"><label>A</label><input type="range" id="xfader" min="0" max="1" step="0.005" value="0.5"><label>B</label><select id="xfcurve" title="Crossfader curve — Smooth fades gradually, Cut reaches full in the first/last 10% for scratching"><option value="smooth">Smooth</option><option value="cut">Cut</option></select></div>
+    <div class="row"><label>A</label><input type="range" id="xfader" min="0" max="1" step="0.005" value="0.5"><label>B</label><select id="xfcurve" title="Crossfader curve — Smooth fades gradually, Cut reaches full in the first/last 10% for scratching"><option value="smooth">Smooth</option><option value="cut">Cut</option></select><button id="xfrev" title="HAMSTER — swap which side of the crossfader feeds A and B, for scratching">Rev</button></div>
     <div class="row"><label>Master</label><input type="range" id="master" min="0" max="1" step="0.01" value="0.9"><output id="master-out">90%</output></div>
     <div class="row"><label>Cue&nbsp;out</label><select id="cueout" title="Output device for the headphone cue bus"><option value="">System output</option></select></div>
     <div class="meter cuem" title="Cue bus level"><i id="cuemeter-fill"></i></div>
@@ -733,7 +733,7 @@ class Deck {
     this.deckGain = ac.createGain();
     this.xfGain = ac.createGain();
     this.deckGain.gain.value = parseFloat(this.gainEl.value);
-    const x = parseFloat(document.getElementById('xfader').value);
+    const x = xfPos();
     this.xfGain.gain.value = this.side === 'a' ? Math.cos(x * Math.PI / 2) : Math.sin(x * Math.PI / 2);
     // DJ-style 3-band EQ (post-fader): lowshelf 250 Hz / peaking 1 kHz /
     // highshelf 4 kHz — the standard isolator split points.
@@ -1761,8 +1761,15 @@ deckB.partner = deckA;
 const xfader = document.getElementById('xfader');
 
 const xfcurve = document.getElementById('xfcurve');
+let xfRev = false;   // HAMSTER: mirror the fader so left feeds B, right feeds A
+function xfPos() { const x = parseFloat(xfader.value); return xfRev ? 1 - x : x; }
+document.getElementById('xfrev').addEventListener('click', e => {
+  xfRev = !xfRev;
+  e.target.classList.toggle('on', xfRev);
+  applyCrossfade();
+});
 function applyCrossfade() {
-  const x = parseFloat(xfader.value);
+  const x = xfPos();
   if (xfcurve.value === 'cut') {
     // Scratch curve: each side reaches full level within 10% of travel,
     // so chops/transforms hit instantly; the middle sums both at full.
