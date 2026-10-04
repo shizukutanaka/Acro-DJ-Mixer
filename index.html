@@ -176,7 +176,7 @@
     <div class="row"><label>Filter</label><input type="range" data-act="filter" min="-1" max="1" step="0.01" value="0" title="Color filter — left sweeps low-pass, right sweeps high-pass, center is open. Double-click resets"><output>open</output></div>
     <div class="row"><label>Echo</label><input type="range" data-act="echo" min="0" max="1" step="0.01" value="0" title="Beat delay — 3/4-beat echo synced to the deck grid; 0 is dry. Double-click resets"><output>dry</output></div>
     <div class="row"><label>Stem</label><select data-act="stem" title="Mid/side split — Vocal keeps the centre channel (acapella), Inst keeps the sides (vocal-removed)"><option value="off">Full</option><option value="voc">Vocal</option><option value="inst">Inst</option></select></div>
-    <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1"><output>100%</output></div>
+    <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1" title="Channel gain — double-click resets to unity"><output>100%</output></div>
     <div class="row"><span class="bpm">BPM <b>—</b></span><span class="barcount" title="Bar.beat position on the beat grid — where the phrase is">—</span><span class="beatlamp" title="Beat indicator — pulses each beat, accent on the downbeat"></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="stctl" title="Transpose — shift the deck's key in semitones (needs key lock / http)"><button data-act="pitchdn">−</button><b class="st">±0</b><button data-act="pitchup">+</button></span><button data-act="keysync" title="Key sync — transpose to a key that mixes harmonically with the other deck">Key</button><span class="status"></span></div>
   </section>
 
@@ -184,8 +184,8 @@
     <h2>Mixer</h2>
     <div class="meter"><i id="meter-fill"></i></div>
     <div class="gr" id="gr" title="Limiter gain reduction"></div>
-    <div class="row"><label>A</label><input type="range" id="xfader" min="0" max="1" step="0.005" value="0.5"><label>B</label><select id="xfcurve" title="Crossfader curve — Smooth fades gradually, Cut reaches full in the first/last 10% for scratching"><option value="smooth">Smooth</option><option value="cut">Cut</option></select><button id="xfrev" title="HAMSTER — swap which side of the crossfader feeds A and B, for scratching">Rev</button><button id="qtz" class="on" title="Quantize — hot cues and loops snap to the beat grid; click to place them freehand">Qtz</button></div>
-    <div class="row"><label>Master</label><input type="range" id="master" min="0" max="1" step="0.01" value="0.9"><output id="master-out">90%</output></div>
+    <div class="row"><label>A</label><input type="range" id="xfader" min="0" max="1" step="0.005" value="0.5" title="Crossfader — double-click resets to centre"><label>B</label><select id="xfcurve" title="Crossfader curve — Smooth fades gradually, Cut reaches full in the first/last 10% for scratching"><option value="smooth">Smooth</option><option value="cut">Cut</option></select><button id="xfrev" title="HAMSTER — swap which side of the crossfader feeds A and B, for scratching">Rev</button><button id="qtz" class="on" title="Quantize — hot cues and loops snap to the beat grid; click to place them freehand">Qtz</button></div>
+    <div class="row"><label>Master</label><input type="range" id="master" min="0" max="1" step="0.01" value="0.9" title="Master level — double-click resets to 90%"><output id="master-out">90%</output></div>
     <div class="row"><label>Cue&nbsp;out</label><select id="cueout" title="Output device for the headphone cue bus"><option value="">System output</option></select></div>
     <div class="row"><label>Cue&nbsp;mix</label><input type="range" id="cuemix" min="0" max="1" step="0.01" value="0" title="Cue mix — left is cue (PFL) only, right blends the master output into the phones"><output>cue</output></div>
     <div class="row"><label>Phones</label><button id="mono" title="Mono — fold the master down to one channel to check mono compatibility (club PAs are often mono)">Mono</button><button id="splitcue" title="Split cue — headphone cue (PFL) in the left ear, master PGM in the right">Split</button></div>
@@ -217,7 +217,7 @@
     <div class="row"><label>Filter</label><input type="range" data-act="filter" min="-1" max="1" step="0.01" value="0" title="Color filter — left sweeps low-pass, right sweeps high-pass, center is open. Double-click resets"><output>open</output></div>
     <div class="row"><label>Echo</label><input type="range" data-act="echo" min="0" max="1" step="0.01" value="0" title="Beat delay — 3/4-beat echo synced to the deck grid; 0 is dry. Double-click resets"><output>dry</output></div>
     <div class="row"><label>Stem</label><select data-act="stem" title="Mid/side split — Vocal keeps the centre channel (acapella), Inst keeps the sides (vocal-removed)"><option value="off">Full</option><option value="voc">Vocal</option><option value="inst">Inst</option></select></div>
-    <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1"><output>100%</output></div>
+    <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1" title="Channel gain — double-click resets to unity"><output>100%</output></div>
     <div class="row"><span class="bpm">BPM <b>—</b></span><span class="barcount" title="Bar.beat position on the beat grid — where the phrase is">—</span><span class="beatlamp" title="Beat indicator — pulses each beat, accent on the downbeat"></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="stctl" title="Transpose — shift the deck's key in semitones (needs key lock / http)"><button data-act="pitchdn">−</button><b class="st">±0</b><button data-act="pitchup">+</button></span><button data-act="keysync" title="Key sync — transpose to a key that mixes harmonically with the other deck">Key</button><span class="status"></span></div>
   </section>
 </main>
@@ -626,6 +626,7 @@ class Deck {
       }
     }
     this.gainEl.addEventListener('input', () => this.setGain(parseFloat(this.gainEl.value)));
+    this.gainEl.addEventListener('dblclick', () => { this.gainEl.value = 1; this.setGain(1); });
     for (const [band, el] of Object.entries(this.eqEls)) {
       el.addEventListener('input', () => this.setBand(band, parseFloat(el.value)));
       el.addEventListener('dblclick', () => { el.value = 0; this.setBand(band, 0); });
@@ -1932,6 +1933,7 @@ function applyCrossfade() {
   deckB.setXf(Math.sin(x * Math.PI / 2));
 }
 xfader.addEventListener('input', applyCrossfade);
+xfader.addEventListener('dblclick', () => { xfader.value = 0.5; applyCrossfade(); });
 xfcurve.addEventListener('change', applyCrossfade);
 
 // ----- Auto mix -----
@@ -2035,10 +2037,15 @@ document.getElementById('splitcue').addEventListener('click', e => {
   e.target.classList.toggle('on', on);
 });
 
-document.getElementById('master').addEventListener('input', e => {
+const masterEl = document.getElementById('master');
+masterEl.addEventListener('input', e => {
   const v = parseFloat(e.target.value);
   document.getElementById('master-out').textContent = Math.round(v * 100) + '%';
   if (ctx) masterGain.gain.setTargetAtTime(v, ctx.currentTime, 0.01);
+});
+masterEl.addEventListener('dblclick', () => {
+  masterEl.value = 0.9;
+  masterEl.dispatchEvent(new Event('input'));
 });
 
 document.getElementById('cuemix').addEventListener('input', e => {
