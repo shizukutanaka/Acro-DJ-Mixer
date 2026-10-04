@@ -87,6 +87,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   restored on release (see ADR-0037).
 - **Instant doubles** — `×2` clones the deck into the partner at the
   same position and tempo, playing if it was playing (see ADR-0039).
+- **Vinyl brake** — `Brake` toggle makes pause spin down and play
+  spin up like a turntable; off = instant stop (see ADR-0040).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,

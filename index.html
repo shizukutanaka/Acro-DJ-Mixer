@@ -154,7 +154,7 @@
       <button class="primary" data-act="play">Play</button>
       <button data-act="cue">Cue</button>
       <button data-act="sync">Sync</button>
-      <button data-act="dbl" title="Instant doubles — load this track into the other deck at the same point and tempo">×2</button>
+      <button data-act="dbl" title="Instant doubles — load this track into the other deck at the same point and tempo">×2</button><button data-act="brake" title="Vinyl brake — pause spins down, play spins up">Brake</button>
       <button data-act="loop" title="4-beat loop snapped to the beat grid">Loop</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been">Roll</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button></span>
       <button data-act="cueout" title="Headphone cue — preview this deck on the cue output">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
@@ -192,7 +192,7 @@
       <button class="primary" data-act="play">Play</button>
       <button data-act="cue">Cue</button>
       <button data-act="sync">Sync</button>
-      <button data-act="dbl" title="Instant doubles — load this track into the other deck at the same point and tempo">×2</button>
+      <button data-act="dbl" title="Instant doubles — load this track into the other deck at the same point and tempo">×2</button><button data-act="brake" title="Vinyl brake — pause spins down, play spins up">Brake</button>
       <button data-act="loop" title="4-beat loop snapped to the beat grid">Loop</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been">Roll</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button></span>
       <button data-act="cueout" title="Headphone cue — preview this deck on the cue output">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
@@ -509,6 +509,13 @@ class Deck {
     this.el.querySelector('[data-act=jumpback]').addEventListener('click', () => this.beatJump(-1));
     this.el.querySelector('[data-act=jumpfwd]').addEventListener('click', () => this.beatJump(1));
     this.keylockBtn.addEventListener('click', () => this.toggleKeylock());
+    this.spinMul = 1;
+    this.brake = false;
+    this.brakeBtn = this.el.querySelector('[data-act=brake]');
+    this.brakeBtn.addEventListener('click', () => {
+      this.brake = !this.brake;
+      this.brakeBtn.classList.toggle('on', this.brake);
+    });
     this.tempoEl.addEventListener('input', () => this.setRate(parseFloat(this.tempoEl.value)));
     // Pitch bend: hold bends the deck ±5%, release restores. The bend
     // multiplies the engine rate only — the slider keeps the base tempo.
@@ -747,7 +754,7 @@ class Deck {
   pos() {
     if (!this.buffer) return 0;
     let p = this.playing
-      ? this.offset + (ctx.currentTime - this.startedAt) * this.rate * this.bendMul
+      ? this.offset + (ctx.currentTime - this.startedAt) * this.rate * this.bendMul * this.spinMul
       : this.offset;
     // The engines wrap inside the loop region; mirror that here so the
     // playhead and any pos() consumers see the true position. (Seeks outside
@@ -765,6 +772,7 @@ class Deck {
 
   play() {
     if (!this.buffer || this.playing || !this.engine) return;
+    if (this._spinTimer) { clearInterval(this._spinTimer); this._spinTimer = null; this.spinMul = 1; }
     if (this.offset >= this.buffer.duration - 0.01) this.offset = 0;
     const ac = audio();
     if (this.engine === 'worklet') {
@@ -772,7 +780,7 @@ class Deck {
     } else {
       const src = ac.createBufferSource();
       src.buffer = this.buffer;
-      src.playbackRate.value = this.rate * this.bendMul;
+      src.playbackRate.value = this.rate * this.bendMul * this.spinMul;
       src.connect(this.deckGain);
       src.connect(this.cueSend);
       if (this.loopOn) { src.loop = true; src.loopStart = this.loopStart; src.loopEnd = this.loopEnd; }
@@ -790,6 +798,8 @@ class Deck {
     this.startedAt = ac.currentTime;
     this.playing = true;
     this.playBtn.textContent = 'Pause';
+    if (this.brake) { this.spinMul = 1e-3; this._applySpinRate(); this._spin(1, 0.5); }
+    else this.spinMul = 1;
   }
 
   stopPlayback() {
@@ -806,9 +816,46 @@ class Deck {
 
   pause() {
     if (!this.playing) return;
+    if (this.brake) {
+      // Spin-down: ramp the engine rate to ~0, then actually stop.
+      this.playing = true;   // pos() keeps tracking during the ramp
+      this._spin(0, 0.6, () => {
+        this.offset = this.pos();
+        this.playing = false;
+        this.spinMul = 1;
+        this.stopPlayback();
+      });
+      this.playBtn.textContent = 'Play';
+      return;
+    }
     this.offset = this.pos();
     this.stopPlayback();
     this.playBtn.textContent = 'Play';
+  }
+
+  _applySpinRate() {
+    const eff = this.rate * this.bendMul * this.spinMul;
+    if (this.engine === 'worklet') this.node.port.postMessage({ type: 'rate', rate: eff });
+    else if (this.source) this.source.playbackRate.value = eff;
+  }
+
+  // Ramp spinMul from its current value to `target` over `dur` s,
+  // rebasing the position clock at each step so pos() stays exact.
+  _spin(target, dur, done) {
+    if (this._spinTimer) clearInterval(this._spinTimer);
+    const from = this.spinMul, steps = 10, iv = dur * 1000 / steps;
+    let i = 0;
+    this._spinTimer = setInterval(() => {
+      i++;
+      const t = i / steps;
+      const v = from + (target - from) * t;
+      if (this.playing) { this.offset = this.pos(); this.startedAt = ctx.currentTime; }
+      this.spinMul = i >= steps ? target : Math.max(v, 1e-3);
+      const eff = this.rate * this.bendMul * this.spinMul;
+      if (this.engine === 'worklet') this.node.port.postMessage({ type: 'rate', rate: eff });
+      else if (this.source) this.source.playbackRate.value = eff;
+      if (i >= steps) { clearInterval(this._spinTimer); this._spinTimer = null; done && done(); }
+    }, iv);
   }
 
   cue() {
@@ -824,7 +871,7 @@ class Deck {
   setRate(r) {
     if (this.playing) { this.offset = this.pos(); this.startedAt = ctx.currentTime; }
     this.rate = r;
-    const eff = r * this.bendMul;   // bend multiplies engine rate, not the slider
+    const eff = r * this.bendMul * this.spinMul;   // bend & brake multiply engine rate, not the slider
     if (this.engine === 'worklet') this.node.port.postMessage({ type: 'rate', rate: eff });
     else if (this.source) this.source.playbackRate.value = eff;
     this.tempoOut.textContent = (r >= 1 ? '+' : '') + ((r - 1) * 100).toFixed(1) + '%';
