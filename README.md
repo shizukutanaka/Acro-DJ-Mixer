@@ -184,7 +184,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   click again to cancel mid-fade; Shift+Auto arms a long 32-beat
   blend (see ADR-0013, ADR-0073). During the fade the
   outgoing deck is also low-pass swept 20 kHz → ~400 Hz — a
-  "filter out" transition, not a flat crossfade (see ADR-0020).
+  "filter out" transition, not a flat crossfade (see ADR-0020), and
+  the incoming deck's low band rises from the isolator floor for a
+  bass swap (see ADR-0077).
 - **Pitch bend** — hold `−`/`+` beside the tempo fader to ride the deck
   ±5 % for manual beat alignment; release restores the fader rate
   (see ADR-0017).
