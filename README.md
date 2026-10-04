@@ -84,7 +84,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   and re-armed on reload, like hot cues (see ADR-0038).
 - **Loop roll** — hold `Roll` to loop the current beat, release to
   resume where the track would have been (slip); an armed loop is
-  restored on release (see ADR-0037).
+  restored on release (see ADR-0037); `Shift`+Roll rolls a ½ beat
+  (see ADR-0103).
 - **Instant doubles** — `×2` clones the deck into the partner at the
   same position and tempo, playing if it was playing (see ADR-0039).
 - **Vinyl brake** — `Brake` toggle makes pause spin down and play
