@@ -828,9 +828,24 @@ class Deck {
   // fader) instead of being pumped into the limiter.
   applyAutoGain(mono) {
     const kw = kWeight(mono);
-    let sum = 0;
-    for (let i = 0; i < kw.length; i++) sum += kw[i] * kw[i];
-    const rms = Math.sqrt(sum / kw.length);
+    // EBU R128 gating: measure 400 ms blocks at 75% overlap, drop blocks
+    // below the -70 LUFS absolute gate, then below mean-10 LU relative
+    // gate — intros/outros/breaks no longer deflate the measurement.
+    const block = Math.round(0.4 * ANALYSIS_SR), hop = Math.round(block / 4);
+    const lk = [];
+    for (let b = 0; b + block <= kw.length; b += hop) {
+      let z = 0;
+      for (let i = b; i < b + block; i++) z += kw[i] * kw[i];
+      z /= block;
+      const L = -0.691 + 10 * Math.log10(Math.max(z, 1e-12));
+      if (L >= -70) lk.push([z, L]);
+    }
+    let sum = 0, n = 0;
+    if (lk.length) {
+      const meanL = 10 * Math.log10(lk.reduce((a, p) => a + p[0], 0) / lk.length) - 0.691;
+      for (const [z, L] of lk) if (L >= meanL - 10) { sum += z; n++; }
+    }
+    const rms = n ? Math.sqrt(sum / n) : (kw.length ? Math.sqrt(kw.reduce((a, v) => a + v * v, 0) / kw.length) : 0);
     const g = rms < 1e-4 ? 1 : Math.min(1, Math.max(0.25, 0.18 / rms));
     this.gainEl.value = g;
     this.setGain(g);

@@ -102,7 +102,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   high-pass + +4 dB high shelf, approximating BS.1770 perceived
   loudness) is measured from the same downmix as BPM/key analysis and
   the deck gain is set so it lands near −15 dBFS; attenuation only,
-  slider shows and can override (see ADR-0019/0024).
+  slider shows and can override. Measured with full EBU R128 gating
+  (−70 LUFS absolute + −10 LU relative), so silent tails/intros don't
+  deflate the value (see ADR-0019/0024/0034).
 - **Master limiter** — a fast `DynamicsCompressor` at the end of the
   chain (threshold −3 dB, ratio 20) keeps two-deck sums and EQ boosts
   from clipping; `GR −x.x dB` shows under the meter while it rides
