@@ -80,8 +80,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   (see ADR-0104). Row `×` delete shares the same two-click confirm
   (see ADR-0105). Rows highlight green when the
   track fits a loaded deck (tempo within ±16% sync range + harmonic key)
-  — see ADR-0008/0011. Filter box narrows rows by name as you type
-  (see ADR-0032).
+  — see ADR-0008/0011. A coloured `A`/`B` letter marks the row a deck
+  currently holds (see ADR-0136). Filter box narrows rows by name as
+  you type (see ADR-0032).
 - **Crossfader curve** — `Smooth` (equal-power, default) or `Cut`
   (each side reaches full within 10% of travel for scratch chops; both
   full in the middle), selected next to the fader (see ADR-0036).
