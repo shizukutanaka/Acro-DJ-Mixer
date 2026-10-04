@@ -167,7 +167,7 @@
     <div class="transport">
       <button class="primary" data-act="play" title="Play / pause — shift = start on the next bar downbeat">Play</button>
       <button data-act="cue" title="Cue — jump to cue point (hold while stopped to audition from it; shift = set cue point here)">Cue</button>
-      <button data-act="sync" title="Sync — match tempo and beat phase to the other deck (shift = phase only, keep your tempo)">Sync</button>
+      <button data-act="sync" title="Sync — match tempo and beat phase to the other deck (shift = phase only; alt = sync leader, partner follows)">Sync</button>
       <button data-act="dbl" title="Instant doubles — load this track into the other deck at the same point and tempo">×2</button><button data-act="brake" title="Vinyl brake — pause spins down, play spins up">Brake</button>
       <button data-act="loop" title="Loop — arm an N-beat loop snapped to the beat grid (shift = free-size in/out)">Loop</button><select data-act="loopbeats" title="Loop length in beats for the next armed loop"><option value="2">2b</option><option value="4" selected>4b</option><option value="8">8b</option><option value="16">16b</option></select><button data-act="reloop" title="Reloop — re-enter the last loop you exited (shift = save the armed loop to memory)">↺</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been (shift = ½ beat)">Roll</button><button data-act="slip" title="Slip — held pads play the cue momentarily, release resumes where the track would have been">Slip</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier (shift: in-point a beat earlier, alt: out-point a beat earlier)">◂</button><button data-act="loopfwd" title="Move the loop one length later (shift: in-point a beat later, alt: out-point a beat later)">▸</button></span>
       <button data-act="cueout" title="Headphone cue — preview this deck on the cue output (shift = solo cue)">Phones</button>
@@ -212,7 +212,7 @@
     <div class="transport">
       <button class="primary" data-act="play" title="Play / pause — shift = start on the next bar downbeat">Play</button>
       <button data-act="cue" title="Cue — jump to cue point (hold while stopped to audition from it; shift = set cue point here)">Cue</button>
-      <button data-act="sync" title="Sync — match tempo and beat phase to the other deck (shift = phase only, keep your tempo)">Sync</button>
+      <button data-act="sync" title="Sync — match tempo and beat phase to the other deck (shift = phase only; alt = sync leader, partner follows)">Sync</button>
       <button data-act="dbl" title="Instant doubles — load this track into the other deck at the same point and tempo">×2</button><button data-act="brake" title="Vinyl brake — pause spins down, play spins up">Brake</button>
       <button data-act="loop" title="Loop — arm an N-beat loop snapped to the beat grid (shift = free-size in/out)">Loop</button><select data-act="loopbeats" title="Loop length in beats for the next armed loop"><option value="2">2b</option><option value="4" selected>4b</option><option value="8">8b</option><option value="16">16b</option></select><button data-act="reloop" title="Reloop — re-enter the last loop you exited (shift = save the armed loop to memory)">↺</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been (shift = ½ beat)">Roll</button><button data-act="slip" title="Slip — held pads play the cue momentarily, release resumes where the track would have been">Slip</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier (shift: in-point a beat earlier, alt: out-point a beat earlier)">◂</button><button data-act="loopfwd" title="Move the loop one length later (shift: in-point a beat later, alt: out-point a beat later)">▸</button></span>
       <button data-act="cueout" title="Headphone cue — preview this deck on the cue output (shift = solo cue)">Phones</button>
@@ -611,7 +611,15 @@ class Deck {
         this.cue();
       });
     }
-    this.el.querySelector('[data-act=sync]').addEventListener('click', e => this.syncTo(this.partner, e.shiftKey));
+    this.syncBtn = this.el.querySelector('[data-act=sync]');
+    this.leading = false;
+    this.syncBtn.addEventListener('click', e => {
+      // Alt+Sync = SYNC MASTER: partner continuously follows this
+      // deck's tempo AND phase — ride the leader's fader, the
+      // follower stays glued. Only one leader at a time.
+      if (e.altKey) { this.toggleLead(); return; }
+      this.syncTo(this.partner, e.shiftKey);
+    });
     this.el.querySelector('[data-act=dbl]').addEventListener('click', () => this.instantDouble());
     this.loopBtn.addEventListener('click', e => this.toggleLoop(e.shiftKey));
     this.el.querySelector('[data-act=reloop]').addEventListener('click', e => {
@@ -1243,8 +1251,20 @@ class Deck {
   // Eject: unload the track and return the deck to its empty state.
   // Deck control settings (tempo, EQ, keylock...) survive — the
   // hand-position doctrine is about controls, not the loaded media.
+  toggleLead() {
+    this.leading = !this.leading;
+    this.syncBtn.classList.toggle('on', this.leading);
+    if (this.leading && this.partner.leading) {
+      this.partner.leading = false;
+      this.partner.syncBtn.classList.remove('on');
+    }
+    this.status(this.leading ? 'Sync leader — partner follows this deck.' : 'Leader off.');
+  }
+
   eject() {
     if (!this.buffer) return;
+    this.leading = false;
+    this.syncBtn.classList.remove('on');
     // Bail out of an in-flight auto-mix fade touching this deck first.
     if (autoMix.fade && (autoMix.fade.from === this || autoMix.fade.to === this)) {
       const f = autoMix.fade; autoMix.fade = null;
@@ -2874,6 +2894,20 @@ function tick() {
     }
   }
   autoMixTick();
+  // Sync leader: while armed, the partner re-matches tempo every
+  // frame and re-seeks phase only when drift exceeds ~1/16 beat —
+  // continuous matching without per-frame buffer restarts.
+  for (const [d, l] of [[deckB, deckA], [deckA, deckB]]) {
+    if (!l.leading || !d.grid || !l.grid || !d.playing || !l.playing || !d.buffer || !l.buffer) continue;
+    const need = (l.grid.bpm * l.rate) / d.grid.bpm;
+    const rate = Math.min(Math.max(need, 1 - d.tempoRange), 1 + d.tempoRange);
+    if (Math.abs(d.rate - rate) > 0.0005) { d.tempoEl.value = rate; d.setRate(rate); }
+    const beatL = 60 / l.grid.bpm, beatD = 60 / d.grid.bpm;
+    const phaseL = ((l.pos() - l.grid.beatOff) / beatL) % 1;
+    const drift = (((d.pos() - d.grid.beatOff) / beatD - phaseL) % 1 + 1.5) % 1 - 0.5;
+    if (Math.abs(drift) > 0.06)
+      d.seekTo(d.grid.beatOff + (Math.round((d.pos() - d.grid.beatOff) / beatD - phaseL) + phaseL) * beatD);
+  }
   wakeSync();
   if (micAn) {
     // Mic input indicator: the button pulses brighter with the level,
