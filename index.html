@@ -244,7 +244,7 @@
 let ctx = null;
 let masterGain, limiter, analyser, monoNode, micDuck;
 let cueDest = null, cueAudio = null, cueIn = null, cueAnalyser = null, pgmSend = null, cuePan = null, pgmPan = null, phonesOut = null;
-let micStream = null, micSrc = null, micGain = null;
+let micStream = null, micSrc = null, micGain = null, micAn = null;
 let wsolaModuleReady = false;
 
 // Playback engine: holds the decoded channel data, advances content at `rate`.
@@ -2434,9 +2434,10 @@ async function autoNext(vacated, playing) {
 // recordings (recorder taps limiter).
 document.getElementById('mic').addEventListener('click', async e => {
   if (micSrc) {
-    micSrc.disconnect(); micGain.disconnect();
+    micSrc.disconnect(); micGain.disconnect(); micAn.disconnect();
     micStream.getTracks().forEach(t => t.stop());
-    micSrc = micStream = micGain = null;
+    micSrc = micStream = micGain = micAn = null;
+    e.target.style.filter = '';
     if (micDuck) micDuck.gain.setTargetAtTime(1, ctx.currentTime, 0.15);
     e.target.classList.remove('on');
     return;
@@ -2449,6 +2450,9 @@ document.getElementById('mic').addEventListener('click', async e => {
   micGain = ctx.createGain(); micGain.gain.value = 0.9;
   micSrc.connect(micGain);
   micGain.connect(monoNode);
+  // Level tap for the button's input indicator — readout only.
+  micAn = ctx.createAnalyser(); micAn.fftSize = 256;
+  micGain.connect(micAn);
   if (micDuck) micDuck.gain.setTargetAtTime(0.25, ctx.currentTime, 0.15);   // ~−12 dB talkover duck
   e.target.classList.add('on');
 });
@@ -2610,6 +2614,7 @@ document.addEventListener('keydown', e => {
 
 // ----- Render loop: playheads, time readouts, master meter -----
 
+const micBtn = document.getElementById('mic');
 const meterFill = document.getElementById('meter-fill');
 const meterPeakEl = document.getElementById('meter-peak');
 let meterPeak = 0;
@@ -2665,6 +2670,17 @@ function tick() {
   }
   autoMixTick();
   wakeSync();
+  if (micAn) {
+    // Mic input indicator: the button pulses brighter with the level,
+    // so "is it actually picking up?" is answered by looking at it.
+    micAn.getByteTimeDomainData(meterBuf);
+    let mp = 0;
+    for (let i = 0; i < meterBuf.length; i++) {
+      const v = Math.abs(meterBuf[i] - 128) / 128;
+      if (v > mp) mp = v;
+    }
+    micBtn.style.filter = 'brightness(' + (1 + Math.min(mp, 1) * 0.7).toFixed(2) + ')';
+  }
   // Tab title = now playing, so a background tab or continuous auto-mix
   // still tells you what's on the floor.
   {

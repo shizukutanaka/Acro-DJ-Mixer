@@ -173,6 +173,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   (centre), or Master (90%) to snap back to default (see ADR-0066).
 - **Mic input** — `Mic` button sums a `getUserMedia` microphone into
   the master before the limiter, so it is recorded too (see ADR-0067).
+  While open the button pulses with the input level — a dead mic is
+  visible before it reaches the floor (see ADR-0115).
 - **Fader start** — pushing the crossfader fully into a stopped deck's
   side starts it (see ADR-0068).
 - **Tempo range** — `±8 / ±16 / ±50` select per deck trades slider
