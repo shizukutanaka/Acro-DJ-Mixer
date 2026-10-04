@@ -41,6 +41,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Waveform overview** with playhead per deck.
 - **Auto BPM estimate + beat grid** — energy-flux autocorrelation, 60–180 BPM,
   no dependencies; grid ticks drawn on the waveform (see ADR-0001 / ADR-0002).
+- **Key detection** — chromagram + Krumhansl–Schmuckler profiles → Camelot
+  code shown next to BPM; green = mixes harmonically with the other deck,
+  amber = clash (see ADR-0004).
 - **Sync** — one click matches a deck's tempo and beat phase to the other deck
   (tempo limited to the ±16% slider range, like hardware).
 - **Master level meter** and master gain.
@@ -67,7 +70,8 @@ Ordered by value per the ADR's automation layer:
 
 1. ~~Beat-grid phase alignment + a sync button.~~ Done (ADR-0002).
 2. ~~Keylock / master tempo.~~ Done (ADR-0003) — WSOLA in an AudioWorklet.
-3. Key detection + harmonic-mixing hints.
+3. ~~Key detection + harmonic-mixing hints.~~ Done (ADR-0004) — chroma +
+   Krumhansl–Schmuckler → Camelot compatibility.
 4. Track library with persistence (`id`, `created_at`, `updated_at`,
    `deleted_at`, `version` per table when a store lands).
 5. Stem separation (ML model, worker pipeline).
