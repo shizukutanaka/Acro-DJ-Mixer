@@ -168,7 +168,7 @@
       <button data-act="sync" title="Sync — match tempo and beat phase to the other deck (shift = phase only, keep your tempo)">Sync</button>
       <button data-act="dbl" title="Instant doubles — load this track into the other deck at the same point and tempo">×2</button><button data-act="brake" title="Vinyl brake — pause spins down, play spins up">Brake</button>
       <button data-act="loop" title="Loop — arm an N-beat loop snapped to the beat grid (shift = free-size in/out)">Loop</button><select data-act="loopbeats" title="Loop length in beats for the next armed loop"><option value="2">2b</option><option value="4" selected>4b</option><option value="8">8b</option><option value="16">16b</option></select><button data-act="reloop" title="Reloop — re-enter the last loop you exited">↺</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been (shift = ½ beat)">Roll</button><button data-act="slip" title="Slip — held pads play the cue momentarily, release resumes where the track would have been">Slip</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier (shift: in-point a beat earlier, alt: out-point a beat earlier)">◂</button><button data-act="loopfwd" title="Move the loop one length later (shift: in-point a beat later, alt: out-point a beat later)">▸</button></span>
-      <button data-act="cueout" title="Headphone cue — preview this deck on the cue output">Phones</button>
+      <button data-act="cueout" title="Headphone cue — preview this deck on the cue output (shift = solo cue)">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
       <button data-act="eject" title="Eject — unload the track, reset the deck">⏏</button>
       <select data-act="assign" title="Channel assign — which crossfader side feeds this channel (Thru ignores the fader)"><option value="a">A</option><option value="thru">Thru</option><option value="b">B</option></select>
@@ -212,7 +212,7 @@
       <button data-act="sync" title="Sync — match tempo and beat phase to the other deck (shift = phase only, keep your tempo)">Sync</button>
       <button data-act="dbl" title="Instant doubles — load this track into the other deck at the same point and tempo">×2</button><button data-act="brake" title="Vinyl brake — pause spins down, play spins up">Brake</button>
       <button data-act="loop" title="Loop — arm an N-beat loop snapped to the beat grid (shift = free-size in/out)">Loop</button><select data-act="loopbeats" title="Loop length in beats for the next armed loop"><option value="2">2b</option><option value="4" selected>4b</option><option value="8">8b</option><option value="16">16b</option></select><button data-act="reloop" title="Reloop — re-enter the last loop you exited">↺</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been (shift = ½ beat)">Roll</button><button data-act="slip" title="Slip — held pads play the cue momentarily, release resumes where the track would have been">Slip</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier (shift: in-point a beat earlier, alt: out-point a beat earlier)">◂</button><button data-act="loopfwd" title="Move the loop one length later (shift: in-point a beat later, alt: out-point a beat later)">▸</button></span>
-      <button data-act="cueout" title="Headphone cue — preview this deck on the cue output">Phones</button>
+      <button data-act="cueout" title="Headphone cue — preview this deck on the cue output (shift = solo cue)">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
       <button data-act="eject" title="Eject — unload the track, reset the deck">⏏</button>
       <select data-act="assign" title="Channel assign — which crossfader side feeds this channel (Thru ignores the fader)"><option value="a">A</option><option value="thru">Thru</option><option value="b">B</option></select>
@@ -618,7 +618,7 @@ class Deck {
     this.el.querySelector('[data-act=loopback]').addEventListener('click', e => loopMove(e, -1));
     this.el.querySelector('[data-act=loopfwd]').addEventListener('click', e => loopMove(e, 1));
     this.loopBeats = this.el.querySelector('[data-act=loopbeats]');
-    this.cueBtn.addEventListener('click', () => this.toggleCue());
+    this.cueBtn.addEventListener('click', e => this.toggleCue(e.shiftKey));
     this.pads.forEach((pad, i) => {
       pad.addEventListener('click', e => {
         if (e.shiftKey) { this.clearPad(i); return; }   // shift-click clears — no right-click needed
@@ -1613,8 +1613,11 @@ class Deck {
 
   // Headphone cue: pre-fader signal to the cue bus. Arming works before a
   // track loads — the gain is applied when the graph is built.
-  toggleCue() {
+  toggleCue(solo) {
     this.cueOn = !this.cueOn;
+    // Shift = solo cue: drop the partner's PFL first, so one click gives
+    // you only this deck in the headphones.
+    if (solo && this.cueOn && this.partner.cueOn) this.partner.toggleCue();
     this.cueBtn.classList.toggle('on', this.cueOn);
     if (this.cueSend) this.cueSend.gain.setTargetAtTime(this.cueOn ? 1 : 0, ctx.currentTime, 0.01);
   }
