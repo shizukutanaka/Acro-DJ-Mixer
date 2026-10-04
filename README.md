@@ -222,7 +222,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   like the decks (see ADR-0080, ADR-0108).
 - **Beat FX select** — the FX knob drives `Echo`, `Flng` (LFO-swept
   comb), `Trans` (beat-synced gate chop), `Noise` (swept
-  bandpass riser), `Crush` (staircase lo-fi on the dry path), or
+  bandpass riser that breathes in time with the BEAT division,
+  ADR-0142), `Crush` (staircase lo-fi on the dry path), or
   `Verb` (generated-IR convolver send); only the selected effect
   sounds (see ADR-0081, ADR-0097, ADR-0126, ADR-0127, ADR-0128). The
   `FX` button punches the effect in/out without touching the knob —
