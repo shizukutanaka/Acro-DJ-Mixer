@@ -106,6 +106,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Key sync** — `Key` button transposes the deck to the smallest
   shift that mixes harmonically with the other deck; the key readout
   colours by the effective (transposed) key (see ADR-0046).
+- **Elapsed / remaining** — click the time readout to flip between
+  `pos / dur` and `-remaining / dur`, CDJ TIME-mode style (see
+  ADR-0047).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
