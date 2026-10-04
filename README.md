@@ -199,6 +199,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   auto-loads the next library track and stays armed (see ADR-0086).
 - **Phones volume** — a level knob for the whole cue bus, independent
   of the cue/PGM blend (see ADR-0087).
+- **Wake lock** — the screen can't sleep while a deck is playing,
+  so a set never dies to the OS idle timer (see ADR-0088).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,

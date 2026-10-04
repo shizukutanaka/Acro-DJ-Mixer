@@ -2414,6 +2414,24 @@ const grEl = document.getElementById('gr');
 const cueFill = document.getElementById('cuemeter-fill');
 const phaseEl = document.getElementById('phase');
 const meterBuf = new Uint8Array(256);
+// Screen wake lock: a laptop sleeping mid-set is the worst failure
+// mode a DJ app can have — hold the lock while any deck plays, drop
+// it when everything's stopped.
+let wakeLock = null;
+async function wakeSync() {
+  const want = deckA.playing || deckB.playing;
+  if (want && !wakeLock && navigator.wakeLock) {
+    try { wakeLock = await navigator.wakeLock.request('screen'); } catch (_) {}
+  } else if (!want && wakeLock) {
+    try { await wakeLock.release(); } catch (_) {}
+    wakeLock = null;
+  }
+}
+document.addEventListener('visibilitychange', () => {
+  // The OS releases the lock when the tab hides — reclaim on return.
+  if (document.visibilityState === 'visible') { wakeLock = null; wakeSync(); }
+});
+
 function tick() {
   for (const d of [deckA, deckB]) {
     if (!d.buffer) continue;
@@ -2441,6 +2459,7 @@ function tick() {
     }
   }
   autoMixTick();
+  wakeSync();
   for (const d of [deckA, deckB]) {
     if (d.chAnalyser && d.chFill) {
       d.chAnalyser.getByteTimeDomainData(meterBuf);
