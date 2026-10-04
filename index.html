@@ -2676,6 +2676,13 @@ document.addEventListener('keydown', e => {
     case 'ArrowDown': master.value = Math.max(0, parseFloat(master.value) - 0.05); master.dispatchEvent(new Event('input')); e.preventDefault(); break;
     case 'ArrowUp': master.value = Math.min(1, parseFloat(master.value) + 0.05); master.dispatchEvent(new Event('input')); e.preventDefault(); break;
     case '0': xfader.value = 0.5; applyCrossfade(); break;
+    // Sampler pads on digits — 1-4 fires pads 1-4 (empty pad opens its
+    // file picker, same as clicking it).
+    case '1': case '2': case '3': case '4': {
+      const pad = smpPadsEl.children[Number(e.key) - 1];
+      if (pad) pad.click();
+      break;
+    }
     // Deck A: Z X C V = pads 1-4, E = sync, R = loop
     case 'z': case 'Z': deckA.padCue(0); break;
     case 'x': case 'X': deckA.padCue(1); break;
