@@ -362,8 +362,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   60–75 = deck A/B pads, 36–39 = sampler pads (velocity-sensitive,
   ADR-0168; held ≥250 ms gates the shot like a held mouse pad,
   ADR-0169), 44/45 = play A/B;
-  CC1 = crossfader, CC7 = master, CC20/21 = channel gains —
-  works unmapped on most budget controllers (see ADR-0163).
+  CC1 = crossfader, CC7 = master, CC20/21 = channel gains,
+  CC14/15 = deck tempo, CC16/17 = colour filter —
+  works unmapped on most budget controllers (see ADR-0163, ADR-0172).
 - **Session persistence** — the mixer surface (faders, EQ, filters,
   FX selection, toggles, sampler and mic trims) is saved on change
   and restored on reload through the same handlers (see ADR-0158).
