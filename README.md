@@ -201,6 +201,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   of the cue/PGM blend (see ADR-0087).
 - **Wake lock** — the screen can't sleep while a deck is playing,
   so a set never dies to the OS idle timer (see ADR-0088).
+- **Bar-quantized play** — `Shift+Play` snaps to the next downbeat
+  and starts: drop on the one in a single click (see ADR-0089).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,

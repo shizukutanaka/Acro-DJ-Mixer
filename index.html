@@ -162,7 +162,7 @@
     <canvas class="wave" width="640" height="90" title="Click to seek — scroll to zoom around the playhead"></canvas>
     <div class="meter chm" title="Channel level (post-EQ, pre-crossfader)"><i></i></div>
     <div class="transport">
-      <button class="primary" data-act="play">Play</button>
+      <button class="primary" data-act="play" title="Play / pause — shift = start on the next bar downbeat">Play</button>
       <button data-act="cue" title="Cue — jump to cue point (hold while stopped to audition from it)">Cue</button>
       <button data-act="sync" title="Sync — match tempo and beat phase to the other deck (shift = phase only, keep your tempo)">Sync</button>
       <button data-act="dbl" title="Instant doubles — load this track into the other deck at the same point and tempo">×2</button><button data-act="brake" title="Vinyl brake — pause spins down, play spins up">Brake</button>
@@ -206,7 +206,7 @@
     <canvas class="wave" width="640" height="90" title="Click to seek — scroll to zoom around the playhead"></canvas>
     <div class="meter chm" title="Channel level (post-EQ, pre-crossfader)"><i></i></div>
     <div class="transport">
-      <button class="primary" data-act="play">Play</button>
+      <button class="primary" data-act="play" title="Play / pause — shift = start on the next bar downbeat">Play</button>
       <button data-act="cue" title="Cue — jump to cue point (hold while stopped to audition from it)">Cue</button>
       <button data-act="sync" title="Sync — match tempo and beat phase to the other deck (shift = phase only, keep your tempo)">Sync</button>
       <button data-act="dbl" title="Instant doubles — load this track into the other deck at the same point and tempo">×2</button><button data-act="brake" title="Vinyl brake — pause spins down, play spins up">Brake</button>
@@ -556,7 +556,12 @@ class Deck {
       const f = e.dataTransfer.files && e.dataTransfer.files[0];
       if (f) this.load(f);
     });
-    this.playBtn.addEventListener('click', () => this.toggle());
+    this.playBtn.addEventListener('click', e => {
+      // Shift = drop on the one: snap to the next bar downbeat before
+      // starting, so an entry lands phrase-aligned without jogging.
+      if (!this.playing && e.shiftKey && this.grid && this.buffer) this.jumpBar();
+      this.toggle();
+    });
     const cueBtnEl = this.el.querySelector('[data-act=cue]');
     cueBtnEl.addEventListener('click', () => this.cue());
     // Cue preview (CDJ CUE hold): while stopped, holding the button
