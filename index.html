@@ -2779,9 +2779,23 @@ function autoMixTick() {
     const to = d.partner;
     if (!d.playing || !d.buffer || d.loopOn || to.playing || !to.buffer) continue;
     const beat = d.grid ? 60 / d.grid.bpm : 1;
+    // Phrase alignment: the trigger point is 2*len beats before the
+    // end, but the fade actually fires on the nearest 4-beat bar —
+    // transitions always start on a downbeat like a human DJ
+    // playing a phrase. No grid means no bars, so fall back to the
+    // raw remaining-beats threshold.
+    let fadeAt;
+    if (d.grid) {
+      const bar = 4 * beat;
+      const raw = d.buffer.duration - 2 * autoMix.len * beat;
+      fadeAt = Math.max(0, Math.min(d.buffer.duration,
+        d.grid.beatOff + Math.round((raw - d.grid.beatOff) / bar) * bar));
+    } else {
+      fadeAt = d.buffer.duration - 2 * autoMix.len * beat;
+    }
     // Countdown on the button: beats until the fade fires.
-    autoBtn.textContent = 'Auto ' + Math.max(0, Math.ceil((d.buffer.duration - d.pos()) / beat - 2 * autoMix.len)) + 'b';
-    if (d.buffer.duration - d.pos() > 2 * autoMix.len * beat) continue;
+    autoBtn.textContent = 'Auto ' + Math.max(0, Math.ceil((fadeAt - d.pos()) / beat)) + 'b';
+    if (d.pos() < fadeAt) continue;
     to.seekTo(to.grid ? to.grid.beatOff : 0);
     if (d.grid && to.grid) to.syncTo(d);
     to.play();
