@@ -52,6 +52,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Loop** — one click captures a beat-grid-quantized 4-beat (one bar)
   loop on either engine; the region highlights on the waveform and
   seeking outside it exits the loop (see ADR-0006).
+- **Headphone cue (PFL)** — `Phones` button taps each deck pre-fader onto
+  a cue bus; `Cue out` picks the output device (`setSinkId`, Chrome/Edge).
+  See ADR-0007.
 - **Master level meter** and master gain.
 - **Keyboard** — `Q`/`P` toggle deck A/B, `←`/`→` move the crossfader,
   `0` centers it.
@@ -62,7 +65,8 @@ Single file (`index.html`), vanilla JS + Web Audio API:
 
 ```
 WSOLA worklet (keylock) or BufferSource (fallback)
-        ──> deckGain ──> EQ(low→mid→high) ──> xfGain ──> masterGain ──> analyser ──> destination
+        ┬─> cueSend ──> cue bus ──> <audio setSinkId> (headphone cue)
+        └─> deckGain ──> EQ(low→mid→high) ──> xfGain ──> masterGain ──> analyser ──> destination
 ```
 
 Per deck, instantiated lazily on first play (browser autoplay policy requires a
@@ -81,7 +85,9 @@ Ordered by value per the ADR's automation layer:
 3b. ~~3-band DJ EQ.~~ Done (ADR-0005) — pulled ahead of the library work
    as P1 core mixer functionality.
 3c. ~~Beat-grid loop.~~ Done (ADR-0006) — one-bar quantized loop on both
-   engines; loop-length cycling and headphone cue remain open.
+   engines; loop-length cycling remains open.
+3d. ~~Headphone cue.~~ Done (ADR-0007) — pre-fader cue bus via
+   MediaStream + `setSinkId`.
 4. Track library with persistence (`id`, `created_at`, `updated_at`,
    `deleted_at`, `version` per table when a store lands).
 5. Stem separation (ML model, worker pipeline).
