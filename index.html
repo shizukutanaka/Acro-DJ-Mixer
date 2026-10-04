@@ -198,7 +198,7 @@
     <div class="row"><label>Phones</label><button id="mono" title="Mono — fold the master down to one channel to check mono compatibility (club PAs are often mono)">Mono</button><button id="splitcue" title="Split cue — headphone cue (PFL) in the left ear, master PGM in the right">Split</button></div>
     <div class="meter cuem" title="Cue bus level (tick = peak hold)"><i id="cuemeter-fill"></i><b id="cuemeter-peak"></b></div>
     <div class="phase" id="phase" title="Beat-phase offset between decks"></div>
-    <div class="row"><label>Smpl</label><span id="smp-pads"></span><input id="smp-file" type="file" accept="audio/*" hidden></div>
+    <div class="row"><label>Smpl</label><span id="smp-pads"></span><input type="range" id="smp-gain" min="0" max="1" step="0.01" value="0.8" title="Sampler level — all pads"><input id="smp-file" type="file" accept="audio/*" hidden></div>
     <div class="row"><button id="automix" title="Auto mix — near the end of the playing track the other deck starts synced and the crossfader rides over (8 beats; shift = long 32-beat fade). Keeps going: the empty deck auto-loads the next library track">Auto</button><button id="recbtn" title="Record the master output — click again to stop and download a .webm">Rec</button><button id="mic" title="Microphone — live input summed into the master pre-limiter (use headphones — open speakers will feed back)">Mic</button></div>
     <div class="kbd-hint">Equal-power crossfade.<br>Auto BPM is an estimate — trust your ears.</div>
   </section>
@@ -2458,6 +2458,7 @@ document.getElementById('mic').addEventListener('click', async e => {
 // shift-click clears. One voice per pad; output enters monoNode so
 // it's limited, mono-checked, and recorded like everything else.
 const smpSlots = [null, null, null, null];
+let smpGain = null;
 const smpPadsEl = document.getElementById('smp-pads');
 const smpFile = document.getElementById('smp-file');
 let smpPending = -1;
@@ -2478,9 +2479,14 @@ smpSlots.forEach((_, i) => {
     if (!slot) { smpPending = i; smpFile.value = ''; smpFile.click(); return; }
     if (slot.src) { try { slot.src.stop(); } catch (_) {} }
     const ac = audio();
+    if (!smpGain) {   // shared pad bus — one knob rides all four
+      smpGain = ac.createGain();
+      smpGain.gain.value = parseFloat(document.getElementById('smp-gain').value);
+      smpGain.connect(monoNode);
+    }
     const src = ac.createBufferSource();
     src.buffer = slot.buf;
-    src.connect(monoNode);
+    src.connect(smpGain);
     src.onended = () => { b.classList.remove('on'); if (slot.src === src) slot.src = null; };
     src.start();
     slot.src = src;
@@ -2488,6 +2494,10 @@ smpSlots.forEach((_, i) => {
   });
   smpPadsEl.appendChild(b);
 });
+document.getElementById('smp-gain').addEventListener('input', e => {
+  if (smpGain) smpGain.gain.setTargetAtTime(parseFloat(e.target.value), ctx.currentTime, 0.01);
+});
+
 smpFile.addEventListener('change', async e => {
   const f = e.target.files[0];
   if (!f || smpPending < 0) return;
