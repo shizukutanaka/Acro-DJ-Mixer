@@ -2033,6 +2033,7 @@ autoBtn.addEventListener('click', e => {
   if (autoMix.fade) {                                     // cancel mid-fade
     const f = autoMix.fade; autoMix.fade = null;
     f.from.setFilter(parseFloat(f.from.filterEl.value));  // restore knob position
+    if (f.to && f.to.eq) f.to.setBand('low', parseFloat(f.to.eqEls.low.value));    // restore bass swap
     return;
   }
   autoMix.len = e.shiftKey ? 32 : 8;                      // shift arms a long 32-beat fade
@@ -2057,11 +2058,19 @@ function autoMixTick() {
         f.from.filterOut.textContent = 'LP ' + (freq >= 1000 ? (freq / 1000).toFixed(1) + 'kHz' : Math.round(freq) + 'Hz');
       }
     }
+    // Bass swap: the incoming deck's low band starts at the isolator
+    // floor and returns to its knob as the outgoing deck leaves — the
+    // classic EQ handover that keeps two kick drums from stacking.
+    if (f.to && f.to.eq && !f.to.kills.low) {
+      const target = parseFloat(f.to.eqEls.low.value) * 26;
+      f.to.eq.low.gain.setTargetAtTime(-26 + (target + 26) * k, ctx.currentTime, 0.01);
+    }
     if (k >= 1) {
       autoMix.fade = null;
       autoMix.on = false;
       autoBtn.classList.remove('on');
       f.from.setFilter(parseFloat(f.from.filterEl.value));   // restore knob
+      if (f.to && f.to.eq) f.to.setBand('low', parseFloat(f.to.eqEls.low.value));   // restore bass
       f.from.pause();   // faded out — let it stop rather than play silently
     }
     return;
@@ -2075,7 +2084,7 @@ function autoMixTick() {
     to.seekTo(to.grid ? to.grid.beatOff : 0);
     if (d.grid && to.grid) to.syncTo(d);
     to.play();
-    autoMix.fade = { from: d, t0: ctx.currentTime, dur: autoMix.len * beat,
+    autoMix.fade = { from: d, to, t0: ctx.currentTime, dur: autoMix.len * beat,
                      fromX: d === deckA ? 0 : 1, toX: d === deckA ? 1 : 0 };
   }
 }
