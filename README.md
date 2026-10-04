@@ -109,6 +109,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Elapsed / remaining** — click the time readout to flip between
   `pos / dur` and `-remaining / dur`, CDJ TIME-mode style (see
   ADR-0047).
+- **Bar downbeats** — every 4th beat-grid tick on the waveform draws
+  brighter and wider, so bar boundaries (where phrases and loops live)
+  read at a glance (see ADR-0048).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,

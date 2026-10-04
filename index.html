@@ -1140,12 +1140,14 @@ class Deck {
       c.fillRect(x, mid - amp, pw, amp * 2);
     }
     if (this.buffer && this.grid) {
-      // Beat grid ticks make sync alignment visible.
-      c.fillStyle = 'rgba(255,255,255,0.35)';
+      // Beat grid ticks make sync alignment visible; every 4th beat
+      // (the bar downbeat) is brighter — phrasing happens on bars.
       const beatLen = 60 / this.grid.bpm;
-      const t0 = this.grid.beatOff + Math.max(0, Math.floor((v0 - this.grid.beatOff) / beatLen)) * beatLen;
-      for (let t = t0; t < v1; t += beatLen) {
-        c.fillRect(Math.floor(xOf(t)), 0, 1, h);
+      const n0 = Math.max(0, Math.floor((v0 - this.grid.beatOff) / beatLen));
+      const t0 = this.grid.beatOff + n0 * beatLen;
+      for (let t = t0, n = n0; t < v1; t += beatLen, n++) {
+        c.fillStyle = n % 4 === 0 ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.35)';
+        c.fillRect(Math.floor(xOf(t)) - (n % 4 === 0 ? 1 : 0), 0, n % 4 === 0 ? 2 : 1, h);
       }
     }
     if (this.loopOn && this.buffer) {
