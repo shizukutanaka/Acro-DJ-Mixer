@@ -2675,9 +2675,30 @@ async function autoNext(vacated, playing) {
     const rows = (await Library.all()).filter(t => !t.deleted_at).sort((a, b) => b.updated_at - a.updated_at);
     if (!rows.length) return false;
     const cur = rows.findIndex(t => t.id === playing.libId);
-    const next = rows[(cur + 1) % rows.length];
-    if (!next || next.id === playing.libId) return false;
-    await Library.loadInto(vacated, next.id);
+    const taken = new Set([playing.libId, vacated.libId]);
+    // Prefer a harmonic pick: walk the visible order and take the
+    // first row whose key+tempo mixes into the deck still playing —
+    // same criteria as the green 'fit' highlight (±tempo range and
+    // Camelot-compatible vs the EFFECTIVE transposed key). Falls back
+    // to plain next-in-line rather than leave the deck empty.
+    const eff = playing.key
+      ? { num: ((playing.key.num - 1 + 7 * (playing.st || 0)) % 12 + 12) % 12 + 1,
+          letter: playing.key.letter }
+      : null;
+    const fits = t => eff && playing.grid && t.key && t.bpm
+      && t.bpm / playing.grid.bpm >= 1 - playing.tempoRange
+      && t.bpm / playing.grid.bpm <= 1 + playing.tempoRange
+      && harmonic(eff, t.key);
+    let pick = null, firstFree = null;
+    for (let i = 1; i <= rows.length; i++) {
+      const t = rows[(cur + i) % rows.length];
+      if (!t || taken.has(t.id)) continue;
+      if (!firstFree) firstFree = t;
+      if (fits(t)) { pick = t; break; }
+    }
+    pick = pick || firstFree;
+    if (!pick) return false;
+    await Library.loadInto(vacated, pick.id);
     return true;
   } catch (_) { return false; }
 }
