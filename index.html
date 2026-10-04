@@ -167,7 +167,7 @@
       <button data-act="cue" title="Cue — jump to cue point (hold while stopped to audition from it; shift = set cue point here)">Cue</button>
       <button data-act="sync" title="Sync — match tempo and beat phase to the other deck (shift = phase only, keep your tempo)">Sync</button>
       <button data-act="dbl" title="Instant doubles — load this track into the other deck at the same point and tempo">×2</button><button data-act="brake" title="Vinyl brake — pause spins down, play spins up">Brake</button>
-      <button data-act="loop" title="Loop — arm an N-beat loop snapped to the beat grid (shift = free-size in/out)">Loop</button><select data-act="loopbeats" title="Loop length in beats for the next armed loop"><option value="2">2b</option><option value="4" selected>4b</option><option value="8">8b</option><option value="16">16b</option></select><button data-act="reloop" title="Reloop — re-enter the last loop you exited">↺</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been (shift = ½ beat)">Roll</button><button data-act="slip" title="Slip — held pads play the cue momentarily, release resumes where the track would have been">Slip</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier (shift: in-point a beat earlier, alt: out-point a beat earlier)">◂</button><button data-act="loopfwd" title="Move the loop one length later (shift: in-point a beat later, alt: out-point a beat later)">▸</button></span>
+      <button data-act="loop" title="Loop — arm an N-beat loop snapped to the beat grid (shift = free-size in/out)">Loop</button><select data-act="loopbeats" title="Loop length in beats for the next armed loop"><option value="2">2b</option><option value="4" selected>4b</option><option value="8">8b</option><option value="16">16b</option></select><button data-act="reloop" title="Reloop — re-enter the last loop you exited (shift = save the armed loop to memory)">↺</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been (shift = ½ beat)">Roll</button><button data-act="slip" title="Slip — held pads play the cue momentarily, release resumes where the track would have been">Slip</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier (shift: in-point a beat earlier, alt: out-point a beat earlier)">◂</button><button data-act="loopfwd" title="Move the loop one length later (shift: in-point a beat later, alt: out-point a beat later)">▸</button></span>
       <button data-act="cueout" title="Headphone cue — preview this deck on the cue output (shift = solo cue)">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
       <button data-act="eject" title="Eject — unload the track, reset the deck">⏏</button>
@@ -211,7 +211,7 @@
       <button data-act="cue" title="Cue — jump to cue point (hold while stopped to audition from it; shift = set cue point here)">Cue</button>
       <button data-act="sync" title="Sync — match tempo and beat phase to the other deck (shift = phase only, keep your tempo)">Sync</button>
       <button data-act="dbl" title="Instant doubles — load this track into the other deck at the same point and tempo">×2</button><button data-act="brake" title="Vinyl brake — pause spins down, play spins up">Brake</button>
-      <button data-act="loop" title="Loop — arm an N-beat loop snapped to the beat grid (shift = free-size in/out)">Loop</button><select data-act="loopbeats" title="Loop length in beats for the next armed loop"><option value="2">2b</option><option value="4" selected>4b</option><option value="8">8b</option><option value="16">16b</option></select><button data-act="reloop" title="Reloop — re-enter the last loop you exited">↺</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been (shift = ½ beat)">Roll</button><button data-act="slip" title="Slip — held pads play the cue momentarily, release resumes where the track would have been">Slip</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier (shift: in-point a beat earlier, alt: out-point a beat earlier)">◂</button><button data-act="loopfwd" title="Move the loop one length later (shift: in-point a beat later, alt: out-point a beat later)">▸</button></span>
+      <button data-act="loop" title="Loop — arm an N-beat loop snapped to the beat grid (shift = free-size in/out)">Loop</button><select data-act="loopbeats" title="Loop length in beats for the next armed loop"><option value="2">2b</option><option value="4" selected>4b</option><option value="8">8b</option><option value="16">16b</option></select><button data-act="reloop" title="Reloop — re-enter the last loop you exited (shift = save the armed loop to memory)">↺</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been (shift = ½ beat)">Roll</button><button data-act="slip" title="Slip — held pads play the cue momentarily, release resumes where the track would have been">Slip</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier (shift: in-point a beat earlier, alt: out-point a beat earlier)">◂</button><button data-act="loopfwd" title="Move the loop one length later (shift: in-point a beat later, alt: out-point a beat later)">▸</button></span>
       <button data-act="cueout" title="Headphone cue — preview this deck on the cue output (shift = solo cue)">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
       <button data-act="eject" title="Eject — unload the track, reset the deck">⏏</button>
@@ -505,6 +505,7 @@ class Deck {
     this.loopOn = false;
     this._loopIn = null;
     this._prevLoop = null;
+    this._loopMem = null;
     this.loopStart = 0;
     this.loopEnd = 0;
     this.cueBtn = root.querySelector('[data-act=cueout]');
@@ -606,7 +607,18 @@ class Deck {
     this.el.querySelector('[data-act=sync]').addEventListener('click', e => this.syncTo(this.partner, e.shiftKey));
     this.el.querySelector('[data-act=dbl]').addEventListener('click', () => this.instantDouble());
     this.loopBtn.addEventListener('click', e => this.toggleLoop(e.shiftKey));
-    this.el.querySelector('[data-act=reloop]').addEventListener('click', () => this.reloop());
+    this.el.querySelector('[data-act=reloop]').addEventListener('click', e => {
+      // Shift = loop memory: store the armed loop for later re-entry
+      // instead of re-entering — Serato's LOOP memory slot. Kept in a
+      // dedicated slot so the automatic exit memory can't overwrite it.
+      if (e.shiftKey) {
+        if (!this.loopOn) return;
+        this._loopMem = [this.loopStart, this.loopEnd];
+        this.status('loop saved to memory');
+        return;
+      }
+      this.reloop();
+    });
     const rollBtn = this.el.querySelector('[data-act=roll]');
     rollBtn.addEventListener('pointerdown', e => { e.preventDefault(); this.startRoll(e.shiftKey ? 0.5 : 1); });
     for (const ev of ['pointerup', 'pointerleave', 'pointercancel'])
@@ -1139,6 +1151,7 @@ class Deck {
     this.pads.forEach(p => { p.classList.remove('set'); p.title = 'Hot cue — click sets a marker, click jumps, shift-click or right-click clears'; });
     this.loopOn = false;
     this._prevLoop = null;
+    this._loopMem = null;
     this._loopIn = null;
     this.loopLenEl.hidden = true;
     this.loopBtn.classList.remove('on', 'armed');
@@ -1720,8 +1733,9 @@ class Deck {
   // Reloop: re-enter the last loop that was exited — bounds survive
   // disarm so exit/reloop works like the hardware EXIT/RELOOP button.
   reloop() {
-    if (this.loopOn || !this._prevLoop || !this.buffer) return;
-    const [st, en] = this._prevLoop;
+    const mem = this._loopMem || this._prevLoop;
+    if (this.loopOn || !mem || !this.buffer) return;
+    const [st, en] = mem;
     if (en > this.buffer.duration) return;
     this.loopStart = st; this.loopEnd = en; this.loopOn = true;
     this.applyLoop();
