@@ -158,6 +158,7 @@
     <div class="row"><label>A</label><input type="range" id="xfader" min="0" max="1" step="0.005" value="0.5"><label>B</label></div>
     <div class="row"><label>Master</label><input type="range" id="master" min="0" max="1" step="0.01" value="0.9"><output id="master-out">90%</output></div>
     <div class="row"><label>Cue&nbsp;out</label><select id="cueout" title="Output device for the headphone cue bus"><option value="">System output</option></select></div>
+    <div class="row"><button id="automix" title="Auto mix — when the playing deck reaches its last 16 beats, the other deck starts synced and the crossfader rides over for 8 beats">Auto</button></div>
     <div class="kbd-hint">Equal-power crossfade.<br>Auto BPM is an estimate — trust your ears.</div>
   </section>
 
@@ -1213,6 +1214,47 @@ function applyCrossfade() {
 }
 xfader.addEventListener('input', applyCrossfade);
 
+// ----- Auto mix -----
+// Arm once per transition: at 16 beats before the playing deck ends, the
+// other deck starts on its first grid beat, syncs, and the crossfader
+// rides across over 8 beats. Disarms after each fade; clicking during a
+// fade cancels it and leaves the xfader where it is.
+const autoMix = { on: false, fade: null };
+const autoBtn = document.getElementById('automix');
+autoBtn.addEventListener('click', () => {
+  if (autoMix.fade) { autoMix.fade = null; return; }   // cancel mid-fade
+  autoMix.on = !autoMix.on;
+  autoBtn.classList.toggle('on', autoMix.on);
+});
+
+function autoMixTick() {
+  if (autoMix.fade) {
+    const f = autoMix.fade;
+    const k = Math.min((ctx.currentTime - f.t0) / f.dur, 1);
+    xfader.value = f.fromX + (f.toX - f.fromX) * k;
+    applyCrossfade();
+    if (k >= 1) {
+      autoMix.fade = null;
+      autoMix.on = false;
+      autoBtn.classList.remove('on');
+      f.from.pause();   // faded out — let it stop rather than play silently
+    }
+    return;
+  }
+  if (!autoMix.on || !ctx) return;
+  for (const d of [deckA, deckB]) {
+    const to = d.partner;
+    if (!d.playing || !d.buffer || d.loopOn || to.playing || !to.buffer) continue;
+    const beat = d.grid ? 60 / d.grid.bpm : 1;
+    if (d.buffer.duration - d.pos() > 16 * beat) continue;
+    to.seekTo(to.grid ? to.grid.beatOff : 0);
+    if (d.grid && to.grid) to.syncTo(d);
+    to.play();
+    autoMix.fade = { from: d, t0: ctx.currentTime, dur: 8 * beat,
+                     fromX: d === deckA ? 0 : 1, toX: d === deckA ? 1 : 0 };
+  }
+}
+
 document.getElementById('master').addEventListener('input', e => {
   const v = parseFloat(e.target.value);
   document.getElementById('master-out').textContent = Math.round(v * 100) + '%';
@@ -1258,6 +1300,7 @@ function tick() {
       d.playBtn.textContent = 'Play';
     }
   }
+  autoMixTick();
   if (ctx && analyser) {
     analyser.getByteTimeDomainData(meterBuf);
     let peak = 0;

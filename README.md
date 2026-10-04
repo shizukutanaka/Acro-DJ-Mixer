@@ -65,6 +65,10 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   cached analysis, survives page reloads. Rows highlight green when the
   track fits a loaded deck (tempo within ±16% sync range + harmonic key)
   — see ADR-0008/0011.
+- **Auto mix** — `Auto` button: at 16 beats before the playing deck
+  ends, the other deck starts on its first beat, tempo-synced, and the
+  crossfader rides across over 8 beats; one click per transition,
+  click again to cancel mid-fade (see ADR-0013).
 - **Master level meter** and master gain.
 - **Keyboard** — `Q`/`P` toggle deck A/B, `←`/`→` move the crossfader,
   `0` centers it.
@@ -103,7 +107,8 @@ Ordered by value per the ADR's automation layer:
 4b. ~~Hot cues.~~ Done (ADR-0010) — four per deck, persisted in the
    library. Beat-jump added in ADR-0012.
 5. Stem separation (ML model, worker pipeline).
-6. Recommendation / auto-mix assistance.
+6. ~~Recommendation / auto-mix assistance.~~ Done — harmonic-fit
+   highlighting (ADR-0011) + one-click auto transitions (ADR-0013).
 
 ## Security
 
