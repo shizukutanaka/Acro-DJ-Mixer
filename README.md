@@ -157,7 +157,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Next-bar jump** — `▸bar` on the hot-cue row lands the playhead on
   the next bar downbeat, so drops hit "the one" (see ADR-0061).
 - **Tempo reset** — double-click the tempo slider for an exact ±0.0%,
-  like the hardware TEMPO RESET (see ADR-0062).
+  like the hardware TEMPO RESET (see ADR-0062). Scrolling over the
+  slider trims ±0.1% per notch for fine pitch rides (see ADR-0109).
 - **Cue preview** — hold `Cue` while stopped to audition from the cue
   point; release pauses and snaps back (see ADR-0063).
 - **Split cue** — `Split` on the Phones row pans headphone cue to the
