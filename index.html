@@ -1848,6 +1848,12 @@ class Deck {
         c.fillStyle = '#4fc3f7';
         c.fillRect(Math.floor(xOf(this.cueIn)) - 1, 0, 2, h);
       }
+      if (this._fadeAt != null && this._fadeAt >= v0 && this._fadeAt <= v1) {
+        // Auto-mix fade fires on this beat — the transition zone made
+        // visible on the timeline, not just as a button countdown.
+        c.fillStyle = 'rgba(255,171,64,0.55)';
+        c.fillRect(Math.floor(xOf(this._fadeAt)) - 1, 0, 2, h);
+      }
       for (const [i, t] of this.cues.entries()) {   // hot-cue markers, pad-colored
         if (t == null || t < v0 || t > v1) continue;
         c.fillStyle = this.padColors[i];
@@ -1888,6 +1894,10 @@ class Deck {
       if (this.loopOn) {
         mc.fillStyle = 'rgba(61,220,132,.25)';
         mc.fillRect(xm(this.loopStart), 0, xm(this.loopEnd) - xm(this.loopStart), 18);
+      }
+      if (this._fadeAt != null) {
+        mc.fillStyle = 'rgba(255,171,64,0.7)';
+        mc.fillRect(Math.floor(xm(this._fadeAt)) - 1, 0, 2, 18);
       }
       if (this.zoom > 1) {
         mc.strokeStyle = 'rgba(255,255,255,0.6)';
@@ -2822,11 +2832,11 @@ function autoMixTick() {
     autoBtn.textContent = 'Auto ' + Math.round(k * 100) + '%';
     return;
   }
-  if (!autoMix.on || !ctx) return;
+  if (!autoMix.on || !ctx) { deckA._fadeAt = deckB._fadeAt = null; return; }
   autoBtn.textContent = 'Auto';
   for (const d of [deckA, deckB]) {
     const to = d.partner;
-    if (!d.playing || !d.buffer || d.loopOn || to.playing || !to.buffer) continue;
+    if (!d.playing || !d.buffer || d.loopOn || to.playing || !to.buffer) { d._fadeAt = null; continue; }
     const beat = d.grid ? 60 / d.grid.bpm : 1;
     // Phrase alignment: the trigger point is 2*len beats before the
     // end, but the fade actually fires on the nearest 4-beat bar —
@@ -2845,7 +2855,9 @@ function autoMixTick() {
     }
     // Countdown on the button: beats until the fade fires.
     autoBtn.textContent = 'Auto ' + Math.max(0, Math.ceil((fadeAt - d.pos()) / beat)) + 'b';
+    d._fadeAt = fadeAt;
     if (d.pos() < fadeAt) continue;
+    d._fadeAt = null;
     to.seekTo(to.grid ? to.grid.beatOff : 0);
     if (d.grid && to.grid) to.syncTo(d);
     to.play();

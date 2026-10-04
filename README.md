@@ -293,7 +293,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   the fade (`Auto 14b`) and shows fade progress (`Auto 31%`); with a
   beat grid the fire point snaps to the nearest bar so transitions
   start on a downbeat (see ADR-0170), and it counts back from the
-  last audible sample so silent tails can't delay it (see ADR-0171)
+  last audible sample so silent tails can't delay it (see ADR-0171);
+  an amber tick on the waveform (and mini overview) marks that fire
+  point while the fade is pending (see ADR-0178)
   (see ADR-0111). During the fade the
   outgoing deck is also low-pass swept 20 kHz → ~400 Hz — a
   "filter out" transition, not a flat crossfade (see ADR-0020), and
