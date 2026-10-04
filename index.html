@@ -77,6 +77,7 @@
     cursor: pointer;
   }
   button:hover { border-color: var(--muted); }
+  button.on { border-color: #3ddc84; color: #3ddc84; }
   button.primary { flex: 1; font-weight: 600; }
   .deck.a button.primary { border-color: var(--accent-a); }
   .deck.b button.primary { border-color: var(--accent-b); }
@@ -97,6 +98,9 @@
   .kbd-hint kbd { background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
   footer { padding: 10px 20px; color: var(--muted); font-size: 11px; border-top: 1px solid var(--line); }
   .status { color: #ff7a7a; font-size: 12px; min-height: 14px; }
+  .key { margin-left: .9rem; color: var(--muted); font-weight: 600; }
+  .key.ok { color: #3ddc84; }
+  .key.clash { color: #d9a03f; }
   @media (max-width: 760px) {
     main { grid-template-columns: 1fr; }
   }
@@ -116,11 +120,13 @@
     <div class="transport">
       <button class="primary" data-act="play">Play</button>
       <button data-act="cue">Cue</button>
+      <button data-act="sync">Sync</button>
+      <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
       <span class="time">0:00 / 0:00</span>
     </div>
     <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1"><output>+0.0%</output></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1"><output>100%</output></div>
-    <div class="row"><span class="bpm">BPM <b>—</b></span><span class="status"></span></div>
+    <div class="row"><span class="bpm">BPM <b>—</b></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="status"></span></div>
   </section>
 
   <section class="mixer">
@@ -139,11 +145,13 @@
     <div class="transport">
       <button class="primary" data-act="play">Play</button>
       <button data-act="cue">Cue</button>
+      <button data-act="sync">Sync</button>
+      <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
       <span class="time">0:00 / 0:00</span>
     </div>
     <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1"><output>+0.0%</output></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1"><output>100%</output></div>
-    <div class="row"><span class="bpm">BPM <b>—</b></span><span class="status"></span></div>
+    <div class="row"><span class="bpm">BPM <b>—</b></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="status"></span></div>
   </section>
 </main>
 <footer>Acro DJ Mixer — local files only, nothing is uploaded. See docs/adr/ADR-0001 for scope decisions.</footer>
@@ -152,9 +160,136 @@
 'use strict';
 
 // ----- Audio graph -----
-// source -> deckGain -> xfGain -> masterGain -> analyser -> destination
+// worklet playback engine -> deckGain -> xfGain -> masterGain -> analyser -> destination
 let ctx = null;
 let masterGain, analyser;
+let wsolaModuleReady = false;
+
+// Playback engine: holds the decoded channel data, advances content at `rate`.
+// Keylock off: linear-interp resample (classic varispeed, pitch follows tempo).
+// Keylock on: WSOLA — emit H samples per frame while consuming H*rate input,
+// and pick the frame start within +/-D that best continues the overlap tail,
+// so content runs at `rate` while local periodicity (pitch) is preserved.
+// The whole buffer lives in the processor, so lookahead is free and there is
+// no real-time starvation (unlike pitch-shifting a live stream).
+const WSOLA_SRC = `
+class WsolaProcessor extends AudioWorkletProcessor {
+  constructor() {
+    super();
+    this.W = 2048;   // window (~46 ms @ 44.1 kHz)
+    this.H = 512;    // synthesis hop (75% overlap)
+    this.D = 256;    // similarity search radius
+    this.win = new Float32Array(this.W);
+    // Hann OLA at hop W/4 sums to ~2x — normalize to unity gain.
+    for (let i = 0; i < this.W; i++) this.win[i] = (0.5 - 0.5 * Math.cos(2 * Math.PI * i / (this.W - 1))) * 0.5;
+    this.buf = null;
+    this.rate = 1;
+    this.keylock = false;
+    this.playing = false;
+    this.blocks = 0;
+    this.port.onmessage = e => this.onMsg(e.data);
+  }
+  onMsg(m) {
+    switch (m.type) {
+      case 'load':
+        this.buf = m.channels;
+        this.len = this.buf[0].length;
+        this.syn = this.buf.map(() => new Float32Array(this.W));
+        this.queue = this.buf.map(() => new Float32Array(1 << 17));
+        this.qHead = 0; this.qLen = 0;
+        this.inPos = 0; this.rPos = 0;
+        this.playing = false;
+        break;
+      case 'play': this.playing = true; break;
+      case 'pause': this.playing = false; break;
+      case 'seek':
+        this.inPos = m.pos; this.rPos = m.pos;
+        this.qHead = 0; this.qLen = 0;
+        if (this.syn) for (const s of this.syn) s.fill(0);
+        break;
+      case 'rate': this.rate = m.rate; break;
+      case 'keylock':
+        this.keylock = m.on;
+        // Hand the live position to the other engine, drop stale synthesis.
+        if (m.on) this.inPos = this.rPos; else this.rPos = this.inPos;
+        this.qHead = 0; this.qLen = 0;
+        if (this.syn) for (const s of this.syn) s.fill(0);
+        break;
+    }
+  }
+  posSamples() {
+    if (!this.buf) return 0;
+    return this.keylock ? Math.max(0, this.inPos - this.qLen * this.rate) : this.rPos;
+  }
+  frame() {
+    const OV = this.W - this.H;             // overlapped tail carried between frames
+    const in0 = this.buf[0], synT = this.syn[0];
+    const lo = Math.max(-this.D, Math.ceil(-this.inPos));
+    const hi = Math.min(this.D, Math.floor(this.len - this.W - this.inPos));
+    let best = -1, bd = 0;
+    for (let d = lo; d <= hi; d++) {
+      let s = 0;
+      const base = Math.round(this.inPos + d);
+      for (let i = 0; i < OV; i += 4) s += in0[base + i] * synT[i];
+      if (s > best || (s === best && Math.abs(d) < Math.abs(bd))) { best = s; bd = d; }
+    }
+    let start = Math.round(this.inPos + bd);
+    start = Math.min(Math.max(0, start), this.len - this.W);
+    for (let c = 0; c < this.buf.length; c++) {
+      const inp = this.buf[c], sy = this.syn[c], q = this.queue[c];
+      for (let i = 0; i < this.W; i++) sy[i] += this.win[i] * inp[start + i];
+      for (let i = 0; i < this.H; i++) q[this.qHead + this.qLen + i] = sy[i];
+      for (let i = 0; i < OV; i++) sy[i] = sy[i + this.H];
+      for (let i = OV; i < this.W; i++) sy[i] = 0;
+    }
+    this.qLen += this.H;
+    this.inPos = start + this.H * this.rate;
+  }
+  process(inputs, outputs) {
+    const out = outputs[0];
+    const n = out[0].length;
+    if (!this.buf || !this.playing) {
+      for (const chd of out) chd.fill(0);
+      return true;
+    }
+    if (!this.keylock) {
+      // One shared read position across channels — advance once per block,
+      // not per channel (stereo channels must stay sample-aligned).
+      const p0 = this.rPos;
+      for (let c = 0; c < out.length; c++) {
+        const inp = this.buf[Math.min(c, this.buf.length - 1)], od = out[c];
+        let p = p0;
+        for (let i = 0; i < n; i++) {
+          const i0 = p | 0, f = p - i0;
+          od[i] = i0 + 1 < this.len ? inp[i0] * (1 - f) + inp[i0 + 1] * f : 0;
+          p += this.rate;
+        }
+      }
+      this.rPos = p0 + n * this.rate;
+      if (this.rPos >= this.len) { this.playing = false; this.port.postMessage({ type: 'ended' }); }
+    } else {
+      while (this.qLen < n && this.inPos + this.W + this.D < this.len) this.frame();
+      for (let c = 0; c < out.length; c++) {
+        const q = this.queue[Math.min(c, this.buf.length - 1)], od = out[c];
+        for (let i = 0; i < n; i++) od[i] = i < this.qLen ? q[this.qHead + i] : 0;
+      }
+      this.qHead += n; this.qLen = Math.max(0, this.qLen - n);
+      if (this.qHead > (1 << 16)) {
+        for (const q of this.queue) q.copyWithin(0, this.qHead, this.qHead + this.qLen);
+        this.qHead = 0;
+      }
+      if (this.inPos + this.W + this.D >= this.len && this.qLen <= 0) {
+        this.playing = false;
+        this.port.postMessage({ type: 'ended' });
+      }
+    }
+    if (++this.blocks % 48 === 0) this.port.postMessage({ type: 'pos', pos: this.posSamples() / sampleRate });
+    return true;
+  }
+}
+registerProcessor('wsola', WsolaProcessor);
+`;
+const WSOLA_URL = URL.createObjectURL(new Blob([WSOLA_SRC], { type: 'text/javascript' }));
 
 function audio() {
   if (!ctx) {
@@ -182,16 +317,23 @@ class Deck {
     this.side = side; // 'a' | 'b'
     this.el = root;
     this.buffer = null;
-    this.source = null;
     this.playing = false;
     this.offset = 0;      // seconds into track where playback resumes
     this.startedAt = 0;   // ctx.currentTime at last play
     this.rate = 1;
+    this.keylock = false;
+    this.engine = null;   // 'worklet' (WSOLA, keylock) or 'buffer' (file:// fallback)
+    this.node = null;
+    this.source = null;
+    this.keylockBtn = root.querySelector('[data-act=keylock]');
     this.deckGain = null;
     this.xfGain = null;
     this.peaks = null;
     this.fileName = '';
+    this.grid = null;      // {bpm, beatOff} in track-time seconds, from estimateBpm
+    this.key = null;       // {num, letter, name} from estimateKey (Camelot + name)
     this.bpmEl = root.querySelector('.bpm b');
+    this.keyEl = root.querySelector('.key');
     this.wave = root.querySelector('canvas.wave');
     this.wctx = this.wave.getContext('2d');
     this.timeEl = root.querySelector('.time');
@@ -217,6 +359,8 @@ class Deck {
     });
     this.playBtn.addEventListener('click', () => this.toggle());
     this.el.querySelector('[data-act=cue]').addEventListener('click', () => this.cue());
+    this.el.querySelector('[data-act=sync]').addEventListener('click', () => this.syncTo(this.partner));
+    this.keylockBtn.addEventListener('click', () => this.toggleKeylock());
     this.tempoEl.addEventListener('input', () => this.setRate(parseFloat(this.tempoEl.value)));
     this.gainEl.addEventListener('input', () => this.setGain(parseFloat(this.gainEl.value)));
     this.wave.addEventListener('click', e => this.seekFromEvent(e));
@@ -230,7 +374,13 @@ class Deck {
       const ac = audio();
       const data = await fileObj.arrayBuffer();
       const buf = await ac.decodeAudioData(data);
-      this.stopSource();
+      await this.ensureNodes();
+      this.stopPlayback();
+      if (this.engine === 'worklet') {
+        const chans = [];
+        for (let c = 0; c < buf.numberOfChannels; c++) chans.push(buf.getChannelData(c).slice());
+        this.node.port.postMessage({ type: 'load', channels: chans }, chans.map(c => c.buffer));
+      }
       this.buffer = buf;
       this.offset = 0;
       this.playing = false;
@@ -238,24 +388,57 @@ class Deck {
       this.el.querySelector('.dropzone').textContent = fileObj.name;
       this.playBtn.textContent = 'Play';
       this.status('');
+      this.grid = null;
+      this.key = null;
+      this.keyEl.textContent = '—';
+      this.keyEl.className = 'key';
       this.peaks = computePeaks(buf, this.wave.width);
       this.drawWave();
-      this.estimateBpm(buf);
+      const mono = monoResample(buf); // one downmix feeds both analyses
+      this.estimateBpm(mono);
+      this.estimateKey(mono);
     } catch (err) {
       console.error(err);
       this.status('Could not decode this file.');
     }
   }
 
-  ensureNodes() {
-    if (this.deckGain) return;
+  async ensureNodes() {
+    if (this.engine) return;
     const ac = audio();
     this.deckGain = ac.createGain();
     this.xfGain = ac.createGain();
     this.deckGain.gain.value = parseFloat(this.gainEl.value);
-    this.xfGain.gain.value = this.side === 'a' ? 1 : 0;
+    const x = parseFloat(document.getElementById('xfader').value);
+    this.xfGain.gain.value = this.side === 'a' ? Math.cos(x * Math.PI / 2) : Math.sin(x * Math.PI / 2);
     this.deckGain.connect(this.xfGain);
     this.xfGain.connect(masterGain);
+    try {
+      if (!wsolaModuleReady) { await ac.audioWorklet.addModule(WSOLA_URL); wsolaModuleReady = true; }
+      this.node = new AudioWorkletNode(ac, 'wsola', { numberOfInputs: 0, outputChannelCount: [2] });
+      this.node.port.onmessage = e => this.onMsg(e.data);
+      this.node.connect(this.deckGain);
+      this.engine = 'worklet';
+    } catch (err) {
+      // file:// and opaque origins block worklet module loads — fall back to
+      // BufferSource varispeed; key lock (WSOLA) needs http(s).
+      console.warn('AudioWorklet unavailable, using BufferSource engine:', err);
+      this.engine = 'buffer';
+      this.keylockBtn.disabled = true;
+      this.keylockBtn.title = 'Key Lock needs the app served over http(s) — worklets are blocked on file://';
+    }
+  }
+
+  onMsg(m) {
+    if (m.type === 'pos') {
+      // Periodic truth from the engine: resync playhead bookkeeping.
+      this.offset = m.pos;
+      this.startedAt = ctx.currentTime;
+    } else if (m.type === 'ended') {
+      this.playing = false;
+      if (this.buffer) this.offset = this.buffer.duration;
+      this.playBtn.textContent = 'Play';
+    }
   }
 
   pos() {
@@ -272,64 +455,90 @@ class Deck {
   }
 
   play() {
-    if (!this.buffer || this.playing) return;
+    if (!this.buffer || this.playing || !this.engine) return;
     if (this.offset >= this.buffer.duration - 0.01) this.offset = 0;
-    this.ensureNodes();
     const ac = audio();
-    const src = ac.createBufferSource();
-    src.buffer = this.buffer;
-    src.playbackRate.value = this.rate;
-    src.connect(this.deckGain);
-    src.onended = () => {
-      // Ignore stale sources replaced by seek/stop.
-      if (src !== this.source) return;
-      if (this.pos() >= this.buffer.duration - 0.02) {
-        this.playing = false;
-        this.offset = this.buffer.duration;
-        this.playBtn.textContent = 'Play';
-      }
-    };
-    src.start(0, this.offset);
-    this.source = src;
+    if (this.engine === 'worklet') {
+      this.node.port.postMessage({ type: 'play' });
+    } else {
+      const src = ac.createBufferSource();
+      src.buffer = this.buffer;
+      src.playbackRate.value = this.rate;
+      src.connect(this.deckGain);
+      src.onended = () => {
+        if (src !== this.source) return;
+        if (this.pos() >= this.buffer.duration - 0.02) {
+          this.playing = false;
+          this.offset = this.buffer.duration;
+          this.playBtn.textContent = 'Play';
+        }
+      };
+      src.start(0, this.offset);
+      this.source = src;
+    }
     this.startedAt = ac.currentTime;
     this.playing = true;
     this.playBtn.textContent = 'Pause';
   }
 
-  stopSource() {
-    if (this.source) {
+  stopPlayback() {
+    this.playing = false;
+    if (this.engine === 'worklet') {
+      this.node.port.postMessage({ type: 'pause' });
+    } else if (this.source) {
       this.source.onended = null;
       try { this.source.stop(); } catch (_) {}
       this.source.disconnect();
       this.source = null;
     }
-    this.playing = false;
   }
 
   pause() {
     if (!this.playing) return;
     this.offset = this.pos();
-    this.stopSource();
+    this.stopPlayback();
     this.playBtn.textContent = 'Play';
   }
 
   cue() {
     // Classic cue behaviour: return to track start; keep playing state.
     const wasPlaying = this.playing;
-    this.stopSource();
+    this.stopPlayback();
+    if (this.engine === 'worklet') this.node.port.postMessage({ type: 'seek', pos: 0 });
     this.offset = 0;
     this.playBtn.textContent = 'Play';
     if (wasPlaying) this.play();
   }
 
   setRate(r) {
-    if (this.playing) {
+    if (this.playing) { this.offset = this.pos(); this.startedAt = ctx.currentTime; }
+    this.rate = r;
+    if (this.engine === 'worklet') this.node.port.postMessage({ type: 'rate', rate: r });
+    else if (this.source) this.source.playbackRate.value = r;
+    this.tempoOut.textContent = (r >= 1 ? '+' : '') + ((r - 1) * 100).toFixed(1) + '%';
+  }
+
+  toggleKeylock() {
+    this.keylock = !this.keylock;
+    this.keylockBtn.classList.toggle('on', this.keylock);
+    if (this.engine === 'worklet') {
       this.offset = this.pos();
       this.startedAt = ctx.currentTime;
-      this.source.playbackRate.value = r;
+      this.node.port.postMessage({ type: 'keylock', on: this.keylock });
     }
-    this.rate = r;
-    this.tempoOut.textContent = (r >= 1 ? '+' : '') + ((r - 1) * 100).toFixed(1) + '%';
+  }
+
+  seekTo(fracSeconds) {
+    // Shared by waveform clicks and beat-sync slips.
+    this.offset = fracSeconds;
+    if (this.engine === 'worklet') {
+      this.startedAt = ctx.currentTime;
+      this.node.port.postMessage({ type: 'seek', pos: Math.round(this.offset * this.buffer.sampleRate) });
+    } else {
+      const wasPlaying = this.playing;
+      this.stopPlayback();
+      if (wasPlaying) this.play();
+    }
   }
 
   setGain(g) {
@@ -342,14 +551,12 @@ class Deck {
   }
 
   seekFromEvent(e) {
-    if (!this.buffer) return;
+    if (!this.buffer || !this.engine) return;
     const rect = this.wave.getBoundingClientRect();
     const frac = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
-    const wasPlaying = this.playing;
-    this.stopSource();
-    this.offset = frac * this.buffer.duration;
-    if (wasPlaying) this.play();
-    else this.drawWave();
+    this.seekTo(frac * this.buffer.duration);
+    this._drawnPos = undefined;
+    this.drawWave();
   }
 
   drawWave() {
@@ -368,6 +575,14 @@ class Deck {
       const amp = Math.max(this.peaks[i] * mid, 1);
       c.fillRect(x, mid - amp, Math.max(Math.floor(w / n), 1), amp * 2);
     }
+    if (this.buffer && this.grid) {
+      // Beat grid ticks make sync alignment visible.
+      c.fillStyle = 'rgba(255,255,255,0.35)';
+      const beatLen = 60 / this.grid.bpm;
+      for (let t = this.grid.beatOff; t < this.buffer.duration; t += beatLen) {
+        c.fillRect(Math.floor(t / this.buffer.duration * w), 0, 1, h);
+      }
+    }
     if (this.buffer) {
       const x = (this.pos() / this.buffer.duration) * w;
       c.fillStyle = '#fff';
@@ -375,14 +590,60 @@ class Deck {
     }
   }
 
-  async estimateBpm(buf) {
+  async estimateBpm(monoP) {
     this.bpmEl.textContent = '…';
     try {
-      const bpm = await estimateBpm(buf);
-      this.bpmEl.textContent = bpm ? String(bpm) : '—';
+      const grid = estimateBpm(await monoP);
+      this.grid = grid;
+      this.bpmEl.textContent = grid ? String(grid.bpm) : '—';
+      this._drawnPos = undefined;
+      this.drawWave();
     } catch (err) {
       console.error(err);
       this.bpmEl.textContent = '—';
+    }
+  }
+
+  async estimateKey(monoP) {
+    this.keyEl.textContent = '…';
+    try {
+      this.key = estimateKey(await monoP);
+    } catch (err) {
+      console.error(err);
+      this.key = null;
+    }
+    this.refreshKey();
+    if (this.partner) this.partner.refreshKey();
+  }
+
+  // Camelot code + harmonic-compatibility color vs the partner deck.
+  refreshKey() {
+    const el = this.keyEl;
+    if (!this.key) { el.textContent = '—'; el.className = 'key'; return; }
+    el.textContent = `${this.key.num}${this.key.letter} ${this.key.name}`;
+    const other = this.partner && this.partner.key;
+    el.className = 'key' + (other ? (harmonic(this.key, other) ? ' ok' : ' clash') : '');
+  }
+
+  // Match this deck's tempo and beat phase to the partner deck.
+  // Works in track-time space: pos() already accounts for playbackRate.
+  syncTo(other) {
+    if (!this.buffer || !other || !other.buffer) { this.status('Load a track on both decks.'); return; }
+    if (!this.grid || !other.grid) { this.status('Need BPM on both decks.'); return; }
+    const needRate = (other.grid.bpm * other.rate) / this.grid.bpm;
+    const rate = Math.min(Math.max(needRate, 0.84), 1.16); // deck tempo range
+    if (Math.abs(needRate - rate) > 0.001) this.status('Tempo out of ±16% range — synced as close as possible.');
+    else this.status('Synced to Deck ' + other.side.toUpperCase() + '.');
+    this.tempoEl.value = rate;
+    this.setRate(rate);
+    if (this.playing && other.playing) {
+      const beatLenA = 60 / other.grid.bpm;
+      const beatLenB = 60 / this.grid.bpm;
+      const phaseA = ((other.pos() - other.grid.beatOff) / beatLenA) % 1;
+      // Pick the beat index n minimizing the slip distance.
+      const base = (this.pos() - this.grid.beatOff) / beatLenB - phaseA;
+      const n = Math.round(base);
+      this.seekTo(this.grid.beatOff + (n + phaseA) * beatLenB);
     }
   }
 }
@@ -406,17 +667,24 @@ function computePeaks(buf, buckets) {
   return peaks;
 }
 
-// Energy-flux autocorrelation BPM estimate, 60–180 BPM.
-// Mono-mix -> ~11025 Hz -> onset envelope -> autocorrelate -> pick peak.
-async function estimateBpm(buf) {
-  const targetSr = 11025;
-  const off = new OfflineAudioContext(1, Math.ceil(buf.duration * targetSr), targetSr);
+const ANALYSIS_SR = 11025;
+
+// Shared mono downmix for all analysis — one OfflineAudioContext render feeds
+// BPM and key estimation alike.
+async function monoResample(buf) {
+  const off = new OfflineAudioContext(1, Math.ceil(buf.duration * ANALYSIS_SR), ANALYSIS_SR);
   const src = off.createBufferSource();
   src.buffer = buf;
   src.connect(off.destination);
   src.start();
   const mono = await off.startRendering();
-  const d = mono.getChannelData(0);
+  return mono.getChannelData(0);
+}
+
+// Energy-flux autocorrelation BPM estimate, 60–180 BPM.
+// Mono-mix -> ~11025 Hz -> onset envelope -> autocorrelate -> pick peak.
+function estimateBpm(d) {
+  const targetSr = ANALYSIS_SR;
 
   // Onset envelope: positive energy difference between consecutive frames.
   const frame = 256, hop = 128;
@@ -439,27 +707,132 @@ async function estimateBpm(buf) {
   const fps = targetSr / hop;                 // envelope samples per second
   const minLag = Math.floor(fps * 60 / 180);  // 180 BPM
   const maxLag = Math.floor(fps * 60 / 60);   // 60 BPM
-  let bestLag = 0, best = 0;
+  const scores = new Float32Array(maxLag + 1);
+  let best = 0;
   for (let lag = minLag; lag <= maxLag; lag++) {
     let s = 0;
     for (let i = 0; i + lag < frames; i++) s += flux[i] * flux[i + lag];
-    if (s > best) { best = s; bestLag = lag; }
+    scores[lag] = s;
+    if (s > best) best = s;
   }
-  if (!bestLag) return null;
-  // Octave check: prefer the half-lag if it scores nearly as well (avoids half-tempo reads).
-  const half = Math.round(bestLag / 2);
-  if (half >= minLag) {
+  if (!best) return null;
+  // Octave guard: periodic signals also correlate at 2x/4x the true beat lag,
+  // so take the SMALLEST lag within 92% of the peak — the fastest tempo that
+  // still explains the onsets (avoids half-tempo reads like 64 for 128 BPM).
+  let bestLag = minLag;
+  while (bestLag <= maxLag && scores[bestLag] < best * 0.92) bestLag++;
+  if (bestLag > maxLag) return null;
+  // Beat phase: the comb offset that lands on the strongest onsets
+  // (Ellis 2006-style ODF comb alignment, minus dynamic programming).
+  let bestPhase = 0, bestPhaseScore = -1;
+  for (let p = 0; p < bestLag; p++) {
     let s = 0;
-    for (let i = 0; i + half < frames; i++) s += flux[i] * flux[i + half];
-    if (s > best * 0.85) bestLag = half;
+    for (let i = p; i < frames; i += bestLag) s += flux[i];
+    if (s > bestPhaseScore) { bestPhaseScore = s; bestPhase = p; }
   }
-  return Math.round(fps * 60 / bestLag);
+  return { bpm: Math.round(fps * 60 / bestLag), beatOff: bestPhase * hop / targetSr };
+}
+
+// Iterative radix-2 FFT, in-place on re/im arrays (length a power of two).
+function fft(re, im) {
+  const n = re.length;
+  for (let i = 1, j = 0; i < n; i++) {
+    let bit = n >> 1;
+    for (; j & bit; bit >>= 1) j ^= bit;
+    j ^= bit;
+    if (i < j) {
+      const tr = re[i]; re[i] = re[j]; re[j] = tr;
+      const ti = im[i]; im[i] = im[j]; im[j] = ti;
+    }
+  }
+  for (let len = 2; len <= n; len <<= 1) {
+    const ang = -2 * Math.PI / len, wr = Math.cos(ang), wi = Math.sin(ang);
+    for (let i = 0; i < n; i += len) {
+      let cr = 1, ci = 0;
+      for (let k = 0; k < len / 2; k++) {
+        const j = i + k + len / 2;
+        const vr = re[j] * cr - im[j] * ci, vi = re[j] * ci + im[j] * cr;
+        re[j] = re[i + k] - vr; im[j] = im[i + k] - vi;
+        re[i + k] += vr; im[i + k] += vi;
+        const ncr = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = ncr;
+      }
+    }
+  }
+}
+
+// Krumhansl-Schmuckler key profiles (perceptual major/minor templates).
+const KS_MAJOR = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88];
+const KS_MINOR = [6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17];
+const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+// Key estimate: chromagram -> correlate with K-S profiles at all 12 rotations
+// -> best tonic+mode -> Camelot code. Whole-track average: standard practice
+// for DJ key tags; tracks that modulate mid-song report the dominant key.
+function estimateKey(d) {
+  const N = 8192;                      // ~0.74 s window — resolves low fundamentals
+  if (d.length < N * 2) return null;
+  const win = new Float64Array(N);
+  for (let i = 0; i < N; i++) win[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (N - 1));
+  const re = new Float64Array(N), im = new Float64Array(N);
+  const chroma = new Float64Array(12);
+  const A0 = 27.5;
+  for (let base = 0; base + N <= d.length; base += N) {
+    for (let i = 0; i < N; i++) { re[i] = d[base + i] * win[i]; im[i] = 0; }
+    fft(re, im);
+    for (let k = 1; k < N / 2; k++) {
+      const f = k * ANALYSIS_SR / N;
+      if (f < 55 || f > 4000) continue;
+      // pc in C=0..B=11 naming: A0 is +9 semitones above C0.
+      const pc = ((Math.round(12 * Math.log2(f / A0)) + 9) % 12 + 12) % 12;
+      chroma[pc] += Math.hypot(re[k], im[k]);
+    }
+  }
+  let cSum = 0;
+  for (const v of chroma) cSum += v;
+  if (!cSum) return null;
+  const cMean = cSum / 12;
+
+  const mean = a => a.reduce((s, v) => s + v, 0) / a.length;
+  const pMean = [mean(KS_MAJOR), mean(KS_MINOR)];
+  let best = { r: -2, pc: 0, minor: false };
+  for (let m = 0; m < 2; m++) {
+    const prof = m ? KS_MINOR : KS_MAJOR;
+    for (let t = 0; t < 12; t++) {
+      let num = 0, dx = 0, dy = 0;
+      for (let i = 0; i < 12; i++) {
+        const x = chroma[(t + i) % 12] / cSum - cMean / cSum; // normalized, centered
+        const y = prof[i] - pMean[m];
+        num += x * y; dx += x * x; dy += y * y;
+      }
+      const r = num / Math.sqrt(dx * dy || 1e-12);
+      if (r > best.r) best = { r, pc: t, minor: m === 1 };
+    }
+  }
+  if (best.r < 0.4) return null;   // no confident tonal center (e.g. drum loop)
+
+  // Camelot wheel: Am = 8A, C = 8B; +1 on the wheel = up a fifth (+7 semitones).
+  // steps = fifth-moves from the A (minor) / C (major) anchor, via *7 (7*7≡1 mod 12).
+  const steps = (((best.minor ? best.pc - 9 : best.pc) * 7) % 12 + 12) % 12;
+  return {
+    num: (7 + steps) % 12 + 1,
+    letter: best.minor ? 'A' : 'B',
+    name: NOTE_NAMES[best.pc] + (best.minor ? 'm' : ''),
+  };
+}
+
+// Camelot mixing rule: same code, relative major/minor (same number), or
+// adjacent on the wheel (same letter, +-1) all mix harmonically.
+function harmonic(a, b) {
+  const d = Math.min(Math.abs(a.num - b.num), 12 - Math.abs(a.num - b.num));
+  return a.num === b.num || (a.letter === b.letter && d === 1);
 }
 
 // ----- Mixer wiring -----
 
 const deckA = new Deck(document.getElementById('deck-a'), 'a');
 const deckB = new Deck(document.getElementById('deck-b'), 'b');
+deckA.partner = deckB;
+deckB.partner = deckA;
 const xfader = document.getElementById('xfader');
 
 function applyCrossfade() {
