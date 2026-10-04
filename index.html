@@ -97,6 +97,10 @@
   .gr { min-height: 12px; font-size: 10px; color: #ff5252; text-align: right; }
   .cuem { height: 4px; }
   .cuem i { background: var(--acc); transition: width .08s linear; }
+  .phase { min-height: 12px; font-size: 10px; color: var(--muted); text-align: center; }
+  .phase.ok { color: #3ddc84; }
+  .phase.near { color: #d9a03f; }
+  .phase.far { color: #ff5a5a; }
   .kbd-hint { color: var(--muted); font-size: 11px; text-align: center; }
   .kbd-hint kbd { background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
   footer { padding: 10px 20px; color: var(--muted); font-size: 11px; border-top: 1px solid var(--line); }
@@ -168,6 +172,7 @@
     <div class="row"><label>Master</label><input type="range" id="master" min="0" max="1" step="0.01" value="0.9"><output id="master-out">90%</output></div>
     <div class="row"><label>Cue&nbsp;out</label><select id="cueout" title="Output device for the headphone cue bus"><option value="">System output</option></select></div>
     <div class="meter cuem" title="Cue bus level"><i id="cuemeter-fill"></i></div>
+    <div class="phase" id="phase" title="Beat-phase offset between decks"></div>
     <div class="row"><button id="automix" title="Auto mix — when the playing deck reaches its last 16 beats, the other deck starts synced and the crossfader rides over for 8 beats">Auto</button><button id="recbtn" title="Record the master output — click again to stop and download a .webm">Rec</button></div>
     <div class="kbd-hint">Equal-power crossfade.<br>Auto BPM is an estimate — trust your ears.</div>
   </section>
@@ -1446,6 +1451,7 @@ document.addEventListener('keydown', e => {
 const meterFill = document.getElementById('meter-fill');
 const grEl = document.getElementById('gr');
 const cueFill = document.getElementById('cuemeter-fill');
+const phaseEl = document.getElementById('phase');
 const meterBuf = new Uint8Array(256);
 function tick() {
   for (const d of [deckA, deckB]) {
@@ -1476,6 +1482,19 @@ function tick() {
         if (v > cp) cp = v;
       }
       cueFill.style.width = Math.min(cp * 100, 100).toFixed(1) + '%';
+    }
+    // Beat-phase offset between the decks: how far off-grid the two
+    // playheads are, wrapped to [-0.5, +0.5) of a beat.
+    if (deckA.grid && deckB.grid && deckA.buffer && deckB.buffer) {
+      const ph = d => { const b = 60 / d.grid.bpm; return (((d.pos() - d.grid.beatOff) / b) % 1 + 1) % 1; };
+      let df = ph(deckA) - ph(deckB);
+      df -= Math.round(df);
+      const a = Math.abs(df);
+      phaseEl.textContent = 'Δ ' + (df >= 0 ? '+' : '') + (df * 100).toFixed(0) + '% beat';
+      phaseEl.className = 'phase ' + (a < 0.05 ? 'ok' : a < 0.15 ? 'near' : 'far');
+    } else {
+      phaseEl.textContent = '';
+      phaseEl.className = 'phase';
     }
   }
   requestAnimationFrame(tick);

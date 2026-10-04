@@ -62,7 +62,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Headphone cue (PFL)** — `Phones` button taps each deck pre-fader onto
   a cue bus; `Cue out` picks the output device (`setSinkId`, Chrome/Edge).
   See ADR-0007. A thin level meter under the selector shows what the
-  phones are hearing (see ADR-0022).
+  phones are hearing (see ADR-0022). A `Δ ±x% beat` readout below it
+  shows the live beat-phase offset between decks — green when locked
+  (see ADR-0023).
 - **Library** — every loaded track is auto-saved to IndexedDB (audio +
   BPM/key analysis, soft-deletable); `→A`/`→B` reloads instantly with
   cached analysis, survives page reloads. Rows highlight green when the
