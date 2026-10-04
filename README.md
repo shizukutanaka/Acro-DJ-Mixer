@@ -208,7 +208,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Beat division** — the `¼/½/¾/1` select sets echo time in beats,
   the DJM BEAT parameter (see ADR-0094).
 - **Rec timer** — the Rec button counts `M:SS` while recording so a
-  forgotten take can't hide (see ADR-0082).
+  forgotten take can't hide (see ADR-0082). The browser tab title
+  shows `▶ A: name` while a deck plays, so a background tab still
+  tells you what's on the floor (see ADR-0114).
 - **Cue clear** — `Shift`+pad click deletes a hot cue (right-click
   still works) — trackpad-friendly (see ADR-0083).
 - **Eject** — `⏏` unloads the track and resets deck readouts;
