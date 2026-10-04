@@ -613,6 +613,7 @@ class Deck {
       this.cues = meta && meta.cues ? meta.cues.slice(0, 4) : [null, null, null, null];
       while (this.cues.length < 4) this.cues.push(null);
       this.cues.forEach((c, i) => this.pads[i].classList.toggle('set', c != null));
+      this._savedLoop = meta && meta.loop ? meta.loop : null;
       this.peaks = computePeaks(buf, this.wave.width);
       this.drawWave();
       this.libId = meta ? meta.libId : null;
@@ -636,6 +637,21 @@ class Deck {
       }
       // _libP resolves to the library id once the record exists — tag
       // calls must await it or analysis can race the save and be dropped.
+      // Restore a saved loop: bounds are absolute seconds, so no grid
+      // is needed — arm it visually and hand bounds to the engine.
+      if (this._savedLoop) {
+        const [ls, le] = this._savedLoop;
+        if (le - ls > 0.01 && le <= buf.duration) {
+          this.loopStart = ls;
+          this.loopEnd = le;
+          this.loopOn = true;
+          this.loopBtn.classList.add('on');
+          this.loopLenEl.hidden = false;
+          this.applyLoop();
+          this._drawnPos = undefined;
+          this.drawWave();
+        }
+      }
       this._libP = meta
         ? Promise.resolve(meta.libId)
         : Library.addFromFile(fileObj, buf.duration)
@@ -1090,6 +1106,7 @@ class Deck {
     this.loopLenEl.hidden = !this.loopOn;
     this._drawnPos = undefined;  // region shading changed while pos() may not have
     this.drawWave();
+    this.tagLib({ loop: this.loopOn ? [this.loopStart, this.loopEnd] : null });
   }
 
   // Loop roll (SLIP): while held, a 1-beat loop plays; on release the
@@ -1124,6 +1141,7 @@ class Deck {
     if (this.playing) this.seekTo(Math.min(slip, this.buffer.duration - 0.01));
     this._drawnPos = undefined;
     this.drawWave();
+    this.tagLib({ loop: this.loopOn ? [this.loopStart, this.loopEnd] : null });
   }
 
   applyLoop() {
@@ -1148,6 +1166,7 @@ class Deck {
     this.applyLoop();
     this._drawnPos = undefined;
     this.drawWave();
+    this.tagLib({ loop: [this.loopStart, this.loopEnd] });
   }
 
   // Match this deck's tempo and beat phase to the partner deck.
@@ -1490,7 +1509,7 @@ const Library = {
   async loadInto(deck, id) {
     const rec = await this.get(id);
     if (!rec || rec.deleted_at) return;
-    deck.load(rec.blob, { libId: rec.id, bpm: rec.bpm, beatOff: rec.beatOff, key: rec.key, cues: rec.cues });
+    deck.load(rec.blob, { libId: rec.id, bpm: rec.bpm, beatOff: rec.beatOff, key: rec.key, cues: rec.cues, loop: rec.loop });
   },
 };
 
