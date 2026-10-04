@@ -84,6 +84,8 @@
   .deck.a button.primary { border-color: var(--accent-a); }
   .deck.b button.primary { border-color: var(--accent-b); }
   .time { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12px; margin-left: auto; }
+  .time.urgent { color: #ff5a5a; animation: endblink 0.8s steps(2) infinite; }
+  @keyframes endblink { 50% { opacity: 0.25; } }
   .row { display: flex; align-items: center; gap: 10px; }
   .row label { width: 58px; color: var(--muted); font-size: 12px; }
   .row output { width: 58px; text-align: right; font-variant-numeric: tabular-nums; font-size: 12px; color: var(--muted); }
@@ -1892,6 +1894,10 @@ function tick() {
     if (!d.buffer) continue;
     d.drawWave();
     d.timeEl.textContent = fmt(d.pos()) + ' / ' + fmt(d.buffer.duration);
+    // Track-end warning: flash the readout in the last 30 s — the
+    // "bring the next track in" signal every CDJ gives you.
+    const rem = d.buffer.duration - d.pos();
+    d.timeEl.classList.toggle('urgent', rem > 0 && rem < 30);
     if (d.playing && d.pos() >= d.buffer.duration - 0.02) {
       d.playing = false;
       d.playBtn.textContent = 'Play';
