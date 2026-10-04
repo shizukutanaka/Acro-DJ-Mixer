@@ -2181,7 +2181,9 @@ async function previewTrack(id) {
   previewSrc.buffer = buf;
   previewSrc.connect(cueIn);
   previewSrc.onended = () => { if (previewSrc) { previewSrc.disconnect(); previewSrc = null; previewId = null; } };
-  previewSrc.start();
+  // Audition from the cue point like a deck's auto-cue — the lead-in
+  // silence isn't what you're previewing.
+  previewSrc.start(0, rec.cueIn || 0);
   previewId = id;
 }
 

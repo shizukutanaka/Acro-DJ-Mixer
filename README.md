@@ -196,7 +196,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **BPM edit** — click the BPM readout to type the tempo directly;
   Enter commits, Esc cancels (see ADR-0079).
 - **Library preview** — `▶` on a library row auditions the track on the
-  headphone cue bus without loading a deck (see ADR-0080).
+  headphone cue bus without loading a deck, starting at the cue point
+  like the decks (see ADR-0080, ADR-0108).
 - **Beat FX select** — the FX knob drives `Echo` or `Flng` (LFO-swept
   comb) or  (beat-synced gate chop); only the selected effect
   sounds (see ADR-0081, ADR-0097).
