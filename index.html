@@ -1742,6 +1742,19 @@ class Deck {
         c.fillStyle = this.padColors[i];
         c.fillRect(Math.floor(xOf(t)) - 1, 0, 2, h);
       }
+      // Slip ghost — while a slip maneuver borrows the output (hot-cue
+      // hold, roll, armed loop), the dimmer playhead keeps showing
+      // where the timeline really is, so the landing point is visible.
+      if (this.slip && this.playing) {
+        let ghost = null;
+        if (this._slip) ghost = this._slip.pos + (ctx.currentTime - this._slip.t) * this.rate;
+        else if (this._roll) ghost = this._roll.pos + (ctx.currentTime - this._roll.t) * this.rate;
+        else if (this.loopOn && this._loopT != null) ghost = this._loopEnterPos + (ctx.currentTime - this._loopT) * this.rate;
+        if (ghost != null && ghost >= v0 && ghost <= v1) {
+          c.fillStyle = 'rgba(255,255,255,0.45)';
+          c.fillRect(Math.floor(xOf(ghost)) - 1, 0, 2, h);
+        }
+      }
       const x = xOf(this.pos());
       c.fillStyle = '#fff';
       c.fillRect(x - 1, 0, 2, h);

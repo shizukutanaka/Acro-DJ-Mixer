@@ -164,7 +164,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Slip cues** — `Slip` makes pad presses momentary: hold to play the
   cue, release to snap back to where the track would have been
   (see ADR-0060); with Slip on, loop exits land on the true timeline
-  too (see ADR-0143).
+  too (see ADR-0143), and a dim ghost playhead shows that timeline
+  during any slip borrow (see ADR-0156).
 - **Next-bar jump** — `▸bar` on the hot-cue row lands the playhead on
   the next bar downbeat, so drops hit "the one" (see ADR-0061).
 - **Tempo reset** — double-click the tempo slider for an exact ±0.0%,
