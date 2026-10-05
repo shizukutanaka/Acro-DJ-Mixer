@@ -356,7 +356,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   deck B `B N M ,` `H J K L` `I` `U` (see ADR-0031, ADR-0101,
   ADR-0157).
 - **Web MIDI** — connected controllers drive the surface: notes
-  60–75 = deck A/B pads, 36–39 = sampler pads, 44/45 = play A/B;
+  60–75 = deck A/B pads, 36–39 = sampler pads (velocity-sensitive,
+  see ADR-0168), 44/45 = play A/B;
   CC1 = crossfader, CC7 = master, CC20/21 = channel gains —
   works unmapped on most budget controllers (see ADR-0163).
 - **Session persistence** — the mixer surface (faders, EQ, filters,
