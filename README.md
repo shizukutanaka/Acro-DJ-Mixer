@@ -365,7 +365,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Web MIDI** — connected controllers drive the surface: notes
   60–75 = deck A/B pads, 36–39 = sampler pads (velocity-sensitive,
   ADR-0168; held ≥250 ms gates the shot like a held mouse pad,
-  ADR-0169), 44/45 = play A/B, 46/47 = sync, 48/49 = loop,
+  ADR-0169), 44/45 = play A/B, 40/41 = instant doubles A→B / B→A
+  (ADR-0183), 46/47 = sync, 48/49 = loop,
   50/51 = cue (ADR-0173);
   CC1 = crossfader, CC7 = master, CC20/21 = channel gains,
   CC14/15 = deck tempo, CC16/17 = colour filter —
