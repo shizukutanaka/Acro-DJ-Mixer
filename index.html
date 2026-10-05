@@ -625,6 +625,12 @@ class Deck {
       this.toggle();
     });
     const cueBtnEl = this.el.querySelector('[data-act=cue]');
+    this._cueBtnEl = cueBtnEl;
+    this._cueTitle = () => {
+      cueBtnEl.title = 'Cue — jump to cue point (hold while stopped to audition from it; ' +
+        'shift = set cue point here) · cue at ' + fmt(this.cueIn || 0);
+    };
+    this._cueTitle();
     cueBtnEl.addEventListener('click', e => {
       // Shift = set the cue point here (rekordbox-style re-cue): auto-cue's
       // first-sound pick isn't always where the DJ wants the Cue landing.
@@ -635,6 +641,7 @@ class Deck {
         this.tagLib({ cueIn: this.cueIn });   // survives reload like hot cues
         this._drawnPos = undefined;
         this.drawWave();
+        this._cueTitle();
         this.status('cue set ' + fmt(this.cueIn));
         return;
       }
@@ -1127,6 +1134,7 @@ class Deck {
       this._playCounted = false;   // a fresh track re-earns its play
       this.el.querySelector('.dropzone').textContent = fileObj.name;
       this.playBtn.textContent = 'Play';
+      this._cueTitle();
       this.status(this.cueIn > 0.05 ? 'auto-cue +' + this.cueIn.toFixed(1) + 's' : '');
       this.grid = null;
       this.key = null;
@@ -1481,6 +1489,7 @@ class Deck {
     this.grid = null;
     this.key = null;
     this.cueIn = 0;
+    this._cueTitle();
     this.offset = 0;
     this.cues = [null, null, null, null, null, null, null, null];
     this.pads.forEach(p => { p.classList.remove('set'); p.title = 'Hot cue — click sets a marker, click jumps, shift-click or right-click clears'; });
