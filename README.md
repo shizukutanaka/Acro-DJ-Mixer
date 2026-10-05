@@ -117,7 +117,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   the visible slice (see ADR-0043).
 - **Auto-cue** — loading a track skips lead-in silence: the playhead
   starts at the first sample over −50 dBFS and `Cue` returns there
-  (see ADR-0044).
+  (see ADR-0044). Pressing `Play` after a track ends restarts at that
+  same cue point (see ADR-0257).
 - **Track-end warning** — the time readout flashes red during the
   last 30 s of a track, CDJ-style (see ADR-0045).
 - **Key sync** — `Key` button transposes the deck to the smallest
