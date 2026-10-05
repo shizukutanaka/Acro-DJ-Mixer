@@ -605,6 +605,15 @@ class Deck {
     const dz = this.el.querySelector('.dropzone');
     const file = this.el.querySelector('input[type=file]');
     dz.addEventListener('click', () => file.click());
+    // Right-click an empty deck undoes the last eject: the library
+    // record still carries grid, key, cues and loop, so loadInto
+    // restores the deck exactly as it was.
+    dz.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      if (this.buffer || this._ejected == null) return;
+      const id = this._ejected; this._ejected = null;
+      Library.loadInto(this, id);
+    });
     file.addEventListener('change', e => { if (e.target.files[0]) this.load(e.target.files[0]); file.value = ''; });
     dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
     dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
@@ -1464,6 +1473,9 @@ class Deck {
 
   eject() {
     if (!this.buffer) return;
+    // Stash for right-click-on-dropzone undo — file-loaded tracks
+    // (no libId) can't be restored, so don't promise them.
+    this._ejected = this.libId != null ? this.libId : null;
     this.leading = false;
     this.syncBtn.classList.remove('on');
     // Bail out of an in-flight auto-mix fade touching this deck first.
