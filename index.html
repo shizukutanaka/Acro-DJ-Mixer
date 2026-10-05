@@ -3670,6 +3670,14 @@ try {
     }
   }
 } catch {}
+
+// Accessibility: every control already carries a descriptive title —
+// mirror it into aria-label so icon-only buttons announce a verb
+// instead of their glyph, and let deck status lines announce updates.
+document.querySelectorAll('button[title], select[title], input[title]').forEach(el => {
+  if (!el.getAttribute('aria-label')) el.setAttribute('aria-label', el.title);
+});
+document.querySelectorAll('.status').forEach(el => el.setAttribute('aria-live', 'polite'));
 </script>
 </body>
 </html>

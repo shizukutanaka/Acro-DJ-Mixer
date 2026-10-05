@@ -413,6 +413,12 @@ Ordered by value per the ADR's automation layer:
 6. ~~Recommendation / auto-mix assistance.~~ Done — harmonic-fit
    highlighting (ADR-0011) + one-click auto transitions (ADR-0013).
 
+## Accessibility
+
+Every control's tooltip is mirrored into `aria-label` at boot, so
+icon buttons announce verbs to assistive tech, and deck status
+lines are `aria-live` (see ADR-0236).
+
 ## Security
 
 Local files only; no network calls, no telemetry, no secrets. Report
