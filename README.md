@@ -212,6 +212,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   (see ADR-0154). Holding the Mic button while off works as
   press-to-talk — tap latches, hold is momentary like kills, mute,
   FX, pads, and Phones (see ADR-0155, ADR-0175).
+- **Channel fader start** — pulling a deck's upfader off zero
+  starts a stopped deck, the same FADER START idiom as the
+  crossfader (see ADR-0216).
 - **Fader start** — pushing the crossfader fully into a stopped deck's
   side starts it (see ADR-0068).
 - **Tempo range** — `±8 / ±16 / ±50` select per deck trades slider
