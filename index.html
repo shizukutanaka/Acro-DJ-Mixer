@@ -192,6 +192,7 @@
     <h2>Mixer</h2>
     <div class="meter" title="Master level (post-limiter; tick = peak hold)"><i id="meter-fill"></i><b id="meter-peak"></b></div>
     <div class="gr" id="gr" title="Limiter gain reduction"></div>
+    <div class="gr" id="lu" title="Master loudness — K-weighted momentary level (~400 ms window), like an LUFS meter. −14 LU is the common streaming target"></div>
     <div class="row"><label>A</label><input type="range" id="xfader" min="0" max="1" step="0.005" value="0.5" title="Crossfader — double-click resets to centre; pushing fully into a stopped deck starts it"><label>B</label><select id="xfcurve" title="Crossfader curve — Smooth fades gradually, Cut reaches full in the first/last 10% for scratching"><option value="smooth">Smooth</option><option value="cut">Cut</option></select><button id="xfrev" title="HAMSTER — swap which side of the crossfader feeds A and B, for scratching">Rev</button><button id="qtz" class="on" title="Quantize — hot cues and loops snap to the beat grid; click to place them freehand">Qtz</button></div>
     <div class="row"><label>Master</label><input type="range" id="master" min="0" max="1" step="0.01" value="0.9" title="Master level — double-click resets to 90%"><output id="master-out">90%</output></div>
     <div class="row"><label>Cue&nbsp;out</label><select id="cueout" title="Output device for the headphone cue bus"><option value="">System output</option></select></div>
@@ -427,6 +428,14 @@ function audio() {
     cutGain.connect(limiter);
     limiter.connect(analyser);
     analyser.connect(ctx.destination);
+    // Live K-weighting for the LU readout: same 38 Hz HPF + 4 dB
+    // high-shelf as the offline auto-gain path, carried as persistent
+    // biquad states at the real sample rate.
+    kwF1 = biquadCoeffs('highpass', 38, 0.5, 0, ctx.sampleRate);
+    kwF2 = biquadCoeffs('highshelf', 1681, Math.SQRT1_2, 4, ctx.sampleRate);
+    kwS1 = { x1: 0, x2: 0, y1: 0, y2: 0 };
+    kwS2 = { x1: 0, x2: 0, y1: 0, y2: 0 };
+    luRing.length = 0;
   }
   if (ctx.state === 'suspended') ctx.resume();
   return ctx;
@@ -2921,6 +2930,16 @@ const cuePeakEl = document.getElementById('cuemeter-peak');
 let cuePeak = 0;
 const phaseEl = document.getElementById('phase');
 const meterBuf = new Uint8Array(256);
+const luBuf = new Float32Array(256);
+let kwF1 = null, kwF2 = null, kwS1 = null, kwS2 = null;
+const luRing = [];
+const luEl = document.getElementById('lu');
+function kwp(v, c, st) {
+  const [b0, b1, b2, a1, a2] = c;
+  const y = b0 * v + b1 * st.x1 + b2 * st.x2 - a1 * st.y1 - a2 * st.y2;
+  st.x2 = st.x1; st.x1 = v; st.y2 = st.y1; st.y1 = y;
+  return y;
+}
 // Screen wake lock: a laptop sleeping mid-set is the worst failure
 // mode a DJ app can have — hold the lock while any deck plays, drop
 // it when everything's stopped.
@@ -3028,6 +3047,20 @@ function tick() {
     meterPeakEl.style.left = Math.min(meterPeak * 100, 98).toFixed(1) + '%';
     const gr = limiter ? limiter.reduction : 0;
     grEl.textContent = gr < -0.5 ? 'GR ' + gr.toFixed(1) + ' dB' : '';
+    // Momentary loudness: K-weight the float tap, average mean-square
+    // energy over a ~400 ms ring (R128 momentary window), show LUFS.
+    if (kwF1) {
+      analyser.getFloatTimeDomainData(luBuf);
+      let e = 0;
+      for (let i = 0; i < luBuf.length; i++) {
+        const y = kwp(kwp(luBuf[i], kwF1, kwS1), kwF2, kwS2);
+        e += y * y;
+      }
+      luRing.push(e / luBuf.length);
+      if (luRing.length > 24) luRing.shift();
+      const ms = luRing.reduce((a, b) => a + b, 0) / luRing.length;
+      luEl.textContent = ms > 1e-7 ? (10 * Math.log10(ms) - 0.691).toFixed(1) + ' LU' : '';
+    }
     if (cueAnalyser) {
       cueAnalyser.getByteTimeDomainData(meterBuf);
       let cp = 0;
