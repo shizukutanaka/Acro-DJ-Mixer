@@ -2682,6 +2682,45 @@ async function previewTrack(id) {
   previewId = id;
 }
 
+// Background analysis — crate digging shouldn't require loading every
+// track to a deck first. Rows whose records never got BPM/key are
+// scanned one at a time through the same worker pipeline the decks
+// use, but only while both decks are stopped: a set in progress always
+// wins the main thread and the worker. Results tag the library record,
+// so harmonic-fit rows light up without ever touching a deck.
+let bgScanRunning = false;
+async function bgScan() {
+  if (bgScanRunning) return;
+  bgScanRunning = true;
+  let painted = false;
+  try {
+    const rows = (await Library.all()).filter(t => !t.deleted_at && t.blob && (typeof t.bpm !== 'number' || !t.key));
+    const ac = audio();
+    for (const t of rows) {
+      if (deckA.playing || deckB.playing) break;   // a set is on — yield
+      try {
+        const buf = await ac.decodeAudioData(await t.blob.arrayBuffer());
+        if (deckA.playing || deckB.playing) break; // decode took a while — re-check
+        const mono = await monoResample(buf);
+        const res = await analyzeTrack(mono);
+        const rec = await Library.get(t.id);
+        if (!rec || rec.deleted_at) continue;
+        let dirty = false;
+        if (res.bpm && res.bpm.bpm && typeof rec.bpm !== 'number') { rec.bpm = res.bpm.bpm; rec.beatOff = res.bpm.beatOff; dirty = true; }
+        if (res.key && !rec.key) { rec.key = res.key; dirty = true; }
+        if (dirty) { rec.version++; await Library.put(rec); painted = true; }
+      } catch (_) { /* un-decodable blob — skip it, keep walking the crate */ }
+    }
+  } finally {
+    bgScanRunning = false;
+  }
+  if (painted) renderLibrary();    // one re-render after the walk, not per track
+}
+// Kick off after boot and re-scan periodically for tracks added later —
+// the playing-decks check inside makes the interval a no-op mid-set.
+setTimeout(() => { audio(); bgScan(); }, 2000);
+setInterval(() => { if (!deckA.playing && !deckB.playing) bgScan(); }, 45000);
+
 async function renderLibrary() {
   const rowsEl = document.getElementById('lib-rows');
   let rows;
