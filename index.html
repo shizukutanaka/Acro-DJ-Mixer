@@ -711,8 +711,21 @@ class Deck {
         e.preventDefault();
         // Right-click = preview, the same idiom as library rows and
         // sampler pads: audition this hot cue on the cue bus.
-        // Clearing lives on shift-click (ADR-0083).
-        if (this.cues[i] == null || !this.buffer) return;
+        // Clearing lives on shift-click (ADR-0083). On an EMPTY pad,
+        // right-click restores the last cleared cue — a one-level undo.
+        if (this.cues[i] == null || !this.buffer) {
+          if (this.cues[i] == null && this._lastClear && this.buffer) {
+            const lc = this._lastClear; this._lastClear = null;
+            this.cues[lc.i] = lc.t;
+            this.pads[lc.i].classList.add('set');
+            this.pads[lc.i].title = 'Hot cue ' + fmt(lc.t) + ' — click jumps, shift-click clears';
+            this.tagLib({ cues: this.cues });
+            this._drawnPos = undefined;
+            this.drawWave();
+            this.status('cue restored ' + fmt(lc.t));
+          }
+          return;
+        }
         if (padPrev) { try { padPrev.stop(); } catch (_) {} padPrev.disconnect(); padPrev = null; }
         const src = audio().createBufferSource();
         src.buffer = this.buffer;
@@ -1978,6 +1991,9 @@ class Deck {
 
   clearPad(i) {
     if (this.cues[i] == null) return;
+    // Remember the last cleared cue — right-click on an empty pad
+    // brings it back (undo, one level deep).
+    this._lastClear = { i, t: this.cues[i] };
     this.cues[i] = null;
     this.pads[i].classList.remove('set');
     this.pads[i].title = 'Hot cue — click sets a marker, click jumps, right-click clears';
