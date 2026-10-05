@@ -237,7 +237,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   Enter commits, Esc cancels (see ADR-0079).
 - **Library preview** — `▶` on a library row auditions the track on the
   headphone cue bus without loading a deck, starting at the cue point
-  like the decks (see ADR-0080, ADR-0108).
+  like the decks; rapid row clicks can never layer two auditions
+  (see ADR-0080, ADR-0108, ADR-0260).
 - **Beat FX select** — the FX knob drives `Echo`, `Flng` (LFO-swept
   comb), `Trans` (beat-synced gate chop), `Noise` (swept
   bandpass riser that breathes in time with the BEAT division,

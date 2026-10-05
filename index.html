@@ -2662,16 +2662,20 @@ let libQuery = '';
 // Library preview (rekordbox-style): audition a row's audio on the
 // headphone cue bus without touching a deck — the "is this the right
 // track" check before committing a load.
-let previewSrc = null, previewId = null;
+let previewSrc = null, previewId = null, previewToken = 0;
 const setLog = [];   // every track actually played this session, in order
 async function previewTrack(id) {
   const wasPlaying = previewId === id;
+  const tok = ++previewToken;
   if (previewSrc) { try { previewSrc.stop(); } catch (_) {} previewSrc.disconnect(); previewSrc = previewId = null; }
   if (wasPlaying) return;   // second click on the same row = stop
   const rec = await Library.get(id);
-  if (!rec || !rec.blob) return;
+  if (!rec || !rec.blob || tok !== previewToken) return;
   const ac = audio(); cueBus();
   const buf = await ac.decodeAudioData(await rec.blob.arrayBuffer());
+  // A newer preview started while this decode was in flight — let it
+  // win instead of layering a second source on the cue bus.
+  if (tok !== previewToken) return;
   previewSrc = ac.createBufferSource();
   previewSrc.buffer = buf;
   previewSrc.connect(cueIn);
