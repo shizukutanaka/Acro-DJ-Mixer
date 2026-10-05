@@ -199,7 +199,7 @@
     <div class="meter cuem" title="Cue bus level (tick = peak hold)"><i id="cuemeter-fill"></i><b id="cuemeter-peak"></b></div>
     <div class="phase" id="phase" title="Beat-phase offset between decks"></div>
     <div class="row"><label>Smpl</label><span id="smp-pads"></span><input type="range" id="smp-gain" min="0" max="1" step="0.01" value="0.8" title="Sampler level — all pads"><input id="smp-file" type="file" accept="audio/*" hidden></div>
-    <div class="row"><button id="automix" title="Auto mix — near the end of the playing track the other deck starts synced and the crossfader rides over (8 beats; shift = long 32-beat fade). Keeps going: the empty deck auto-loads the next library track">Auto</button><button id="recbtn" title="Record the master output — click again to stop and download a .webm">Rec</button><button id="mic" title="Microphone — live input summed into the master pre-limiter (use headphones — open speakers will feed back)">Mic</button></div>
+    <div class="row"><button id="automix" title="Auto mix — near the end of the playing track the other deck starts synced and the crossfader rides over (8 beats; shift = long 32-beat fade). Keeps going: the empty deck auto-loads the next library track">Auto</button><button id="recbtn" title="Record the master output — click again to stop and download a .webm">Rec</button><button id="mic" title="Microphone — live input summed into the master pre-limiter (use headphones — open speakers will feed back)">Mic</button><input type="range" id="mic-gain" min="0" max="1.5" step="0.01" value="0.9" title="Mic level — trim the mic in the master; double-click resets to 0.9. Range goes past unity for quiet mics"></div>
     <div class="kbd-hint">Equal-power crossfade.<br>Auto BPM is an estimate — trust your ears.</div>
   </section>
 
@@ -2617,7 +2617,7 @@ document.getElementById('mic').addEventListener('click', async e => {
   } catch { return; }   // permission denied — stay off
   audio();
   micSrc = ctx.createMediaStreamSource(micStream);
-  micGain = ctx.createGain(); micGain.gain.value = 0.9;
+  micGain = ctx.createGain(); micGain.gain.value = parseFloat(document.getElementById('mic-gain').value);
   micSrc.connect(micGain);
   // Rumble/pop filter — the mic section's fixed HPF. Mic inputs are
   // the dirtiest source in the room; ~120 Hz takes handling noise
@@ -2879,6 +2879,13 @@ document.addEventListener('keydown', e => {
 // ----- Render loop: playheads, time readouts, master meter -----
 
 const micBtn = document.getElementById('mic');
+// Mic level trim — DJM mic-section LEVEL knob. Range goes past
+// unity (1.5) because laptop mics sit low; double-click resets.
+const micGainEl = document.getElementById('mic-gain');
+micGainEl.addEventListener('input', e => {
+  if (micGain && ctx) micGain.gain.setTargetAtTime(parseFloat(e.target.value), ctx.currentTime, 0.02);
+});
+micGainEl.addEventListener('dblclick', () => { micGainEl.value = 0.9; micGainEl.dispatchEvent(new Event('input')); });
 const meterFill = document.getElementById('meter-fill');
 const meterPeakEl = document.getElementById('meter-peak');
 let meterPeak = 0;
