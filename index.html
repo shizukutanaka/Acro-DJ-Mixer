@@ -1868,6 +1868,12 @@ class Deck {
         c.fillStyle = '#4fc3f7';
         c.fillRect(Math.floor(xOf(this.cueIn)) - 1, 0, 2, h);
       }
+      // Free-size loop in-point (shift+Loop first press): a half-height
+      // amber tick so the pending mark is visible before the loop arms.
+      if (this._loopIn != null && this._loopIn >= v0 && this._loopIn <= v1) {
+        c.fillStyle = 'rgba(255,171,64,0.9)';
+        c.fillRect(Math.floor(xOf(this._loopIn)) - 1, h / 4, 2, h / 2);
+      }
       if (this._fadeAt != null && this._fadeAt >= v0 && this._fadeAt <= v1) {
         // Auto-mix fade fires on this beat — the transition zone made
         // visible on the timeline, not just as a button countdown.
@@ -1918,6 +1924,17 @@ class Deck {
       if (this._fadeAt != null) {
         mc.fillStyle = 'rgba(255,171,64,0.7)';
         mc.fillRect(Math.floor(xm(this._fadeAt)) - 1, 0, 2, 18);
+      }
+      // Hot-cue ticks on the overview too — when zoomed in, the strip is
+      // the only place all the pad positions are visible at once.
+      for (const [i, t] of this.cues.entries()) {
+        if (t == null) continue;
+        mc.fillStyle = this.padColors[i];
+        mc.fillRect(Math.floor(xm(t)) - 1, 0, 2, 18);
+      }
+      if (this._loopIn != null) {
+        mc.fillStyle = 'rgba(255,171,64,0.9)';
+        mc.fillRect(Math.floor(xm(this._loopIn)) - 1, 4, 2, 10);
       }
       if (this.zoom > 1) {
         mc.strokeStyle = 'rgba(255,255,255,0.6)';

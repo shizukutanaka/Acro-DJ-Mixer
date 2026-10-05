@@ -225,7 +225,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   `Setlist` downloads the session's playlist as a dated .txt
   (see ADR-0093).
 - **Cue marker** — the deck cue point (auto-cue or track start) shows
-  as a cyan tick on the waveform (see ADR-0074).
+  as a cyan tick on the waveform (see ADR-0074). Hot-cue ticks also
+  appear on the mini overview, and a pending free-size loop's
+  in-point shows as an amber half-tick (see ADR-0238).
 - **Beat sync** — `Shift+Sync` slips beat phase only, leaving the
   tempo fader alone (see ADR-0075).
 - **Waveform scrub** — hold and drag on the waveform to jog the
