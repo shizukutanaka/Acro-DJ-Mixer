@@ -2896,9 +2896,13 @@ async function autoNext(vacated, playing) {
       if (!firstFree) firstFree = t;
       if (fits(t)) { pick = t; break; }
     }
+    // Say why: the autopilot earns trust by explaining its pick —
+    // 'harmonic fit' vs a plain 'next in line' fallback.
+    const reason = pick ? 'harmonic fit' : 'next in line';
     pick = pick || firstFree;
     if (!pick) return false;
     await Library.loadInto(vacated, pick.id);
+    vacated.status('Auto-load: ' + (pick.name || 'track') + ' — ' + reason);
     return true;
   } catch (_) { return false; }
 }
