@@ -2589,9 +2589,17 @@ const Library = {
     const rec = await this.get(id);
     if (!rec) return;
     rec.deleted_at = Date.now();
+    rec.blob = null; // free the audio bytes; the metadata row stays for soft-delete history
     rec.version++;
     await this.put(rec);
     renderLibrary();
+  },
+  // Reclaims blobs left behind by deletions predating blob-strip-on-remove.
+  async gc() {
+    const rows = await this.all();
+    for (const rec of rows) {
+      if (rec.deleted_at && rec.blob) { rec.blob = null; rec.version++; await this.put(rec); }
+    }
   },
   async loadInto(deck, id) {
     const rec = await this.get(id);
@@ -3256,6 +3264,7 @@ document.getElementById('lib-rows').addEventListener('click', e => {
   }
 });
 renderLibrary();
+Library.gc(); // strip blobs from records soft-deleted before blob-on-remove freeing
 
 // Wheel nudge on every fader/knob: one notch = one input step —
 // mouse resolution where a drag is too coarse. The tempo slider
