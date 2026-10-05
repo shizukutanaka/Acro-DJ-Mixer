@@ -2643,6 +2643,9 @@ const Library = {
   async remove(id) {
     const rec = await this.get(id);
     if (!rec) return;
+    // A track that's auditioning on the cue bus keeps ringing after
+    // its row is gone — silence the ghost before deleting.
+    if (previewId === id && previewSrc) { try { previewSrc.stop(); } catch (_) {} }
     rec.deleted_at = Date.now();
     rec.version++;
     await this.put(rec);
