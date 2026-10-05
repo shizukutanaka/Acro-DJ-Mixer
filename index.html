@@ -3112,6 +3112,15 @@ function fireSmpPad(i, vel) {
 document.getElementById('smp-gain').addEventListener('input', e => {
   if (smpGain) smpGain.gain.setTargetAtTime(parseFloat(e.target.value), ctx.currentTime, 0.01);
 });
+// K-weighted normalization for one-shots — same pipeline and target
+// as the deck auto-gain, minus the R128 gating (a one-shot is all
+// "on" material; there are no quiet breaks to gate out).
+async function smpAutoGain(buf) {
+  const mono = await monoResample(buf);
+  const kw = kWeight(mono);
+  const rms = kw.length ? Math.sqrt(kw.reduce((a, v) => a + v * v, 0) / kw.length) : 0;
+  return rms < 1e-4 ? 1 : Math.min(1.5, Math.max(0.25, 0.18 / rms));
+}
 const smpPitchEl = document.getElementById('smp-pitch');
 smpPitchEl.addEventListener('dblclick', () => { smpPitchEl.value = 1; });
 
@@ -3121,7 +3130,12 @@ smpFile.addEventListener('change', async e => {
   smpPending = -1;                // later pad clicks can't steal it
   if (!f || i < 0) return;
   const buf = await audio().decodeAudioData(await f.arrayBuffer());
-  smpSlots[i] = { buf, name: f.name, src: null, gain: 1 };
+  // Auto-gain like the decks (ADR-0019): one-shots come in at their
+  // file loudness — a whisper snare next to a slammed clap. Normalize
+  // to the same K-weighted target so pads start level; the per-pad
+  // wheel still trims from there. Clamp opens up to 1.5 (wheel max)
+  // so a quiet shot can actually come up.
+  smpSlots[i] = { buf, name: f.name, src: null, gain: await smpAutoGain(buf) };
   const b = smpPadsEl.children[i];
   b.textContent = f.name.length > 6 ? f.name.slice(0, 6) : f.name;
   b.classList.add('set');
