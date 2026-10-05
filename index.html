@@ -3040,7 +3040,7 @@ smpSlots.forEach((_, i) => {
   const b = document.createElement('button');
   b.className = 'smp';
   b.textContent = '+';
-  b.title = 'Sampler — click loads a one-shot, click again plays it (hold = gate), right-click previews on headphones, alt-click stops playback, shift-click clears';
+  b.title = 'Sampler — click loads a one-shot, click again plays it (hold = gate); wheel trims this pad\'s level; shift+empty pad resamples the playing loop; right-click previews on headphones, alt-click stops, shift-click clears';
   const firePad = (vel = 1) => {
     const slot = smpSlots[i];
     if (!slot || !slot.buf) return;
