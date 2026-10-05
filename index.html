@@ -766,7 +766,7 @@ class Deck {
     // leaving the deck. Same order as the library (updated_at desc);
     // playing decks route through the two-click load guard.
     const stepLib = async (dir, btn) => {
-      const rows = (await Library.all()).filter(t => !t.deleted_at).sort((a, b) => b.updated_at - a.updated_at);
+      const rows = (await Library.all()).filter(t => !t.deleted_at && !t.pad).sort((a, b) => b.updated_at - a.updated_at);
       if (!rows.length) return;
       const cur = rows.findIndex(t => t.id === this.libId);
       const next = rows[cur < 0 ? 0 : (cur + dir + rows.length) % rows.length];
@@ -2561,7 +2561,7 @@ const Library = {
   async addFromFile(fileObj, duration) {
     // Dedupe by name+size: re-loading the same track refreshes its record.
     const rows = await this.all();
-    const ex = rows.find(t => t.name === fileObj.name && t.size === fileObj.size && !t.deleted_at);
+    const ex = rows.find(t => t.name === fileObj.name && t.size === fileObj.size && !t.deleted_at && !t.pad);
     const now = Date.now();
     const rec = ex || { created_at: now, deleted_at: null, version: 0 };
     rec.name = fileObj.name;
@@ -2630,7 +2630,7 @@ async function previewTrack(id) {
 async function renderLibrary() {
   const rowsEl = document.getElementById('lib-rows');
   let rows;
-  try { rows = (await Library.all()).filter(t => !t.deleted_at).sort((a, b) => b.updated_at - a.updated_at); }
+  try { rows = (await Library.all()).filter(t => !t.deleted_at && !t.pad).sort((a, b) => b.updated_at - a.updated_at); }
   catch (_) { return; }
   const q = libQuery.trim().toLowerCase();
   if (q) rows = rows.filter(t => (t.name || '').toLowerCase().includes(q));
@@ -2872,7 +2872,7 @@ function autoMixTick() {
 // IS the playing track (library of one) or nothing's left.
 async function autoNext(vacated, playing) {
   try {
-    const rows = (await Library.all()).filter(t => !t.deleted_at).sort((a, b) => b.updated_at - a.updated_at);
+    const rows = (await Library.all()).filter(t => !t.deleted_at && !t.pad).sort((a, b) => b.updated_at - a.updated_at);
     if (!rows.length) return false;
     const cur = rows.findIndex(t => t.id === playing.libId);
     const taken = new Set([playing.libId, vacated.libId]);
@@ -2975,6 +2975,52 @@ micBtn2.title = 'Microphone — click toggles live input into the master pre-lim
 // shift-click clears. One voice per pad; output enters masterGain so
 // master level, ducking, mono fold, cut, and recording all apply.
 const smpSlots = [null, null, null, null];
+// Pad persistence: each loaded pad's audio is stored as planar
+// float PCM in a pad-marked library record (filtered out of every
+// track surface), so prepared one-shots survive reloads like the
+// rest of the prep state.
+async function padSave(i) {
+  try {
+    const slot = smpSlots[i];
+    const rows = (await Library.all()).filter(t => t.pad === i && !t.deleted_at);
+    const rec = rows[0] || { created_at: Date.now(), deleted_at: null, version: 0 };
+    for (const extra of rows.slice(1)) { extra.deleted_at = Date.now(); extra.version++; await Library.put(extra); }
+    if (!slot || !slot.buf) {
+      if (rec.id) { rec.deleted_at = Date.now(); rec.version++; await Library.put(rec); }
+      return;
+    }
+    const ch = slot.buf.numberOfChannels, n = slot.buf.length;
+    const pcm = new Float32Array(n * ch);
+    for (let c = 0; c < ch; c++) pcm.set(slot.buf.getChannelData(c), c * n);
+    rec.pad = i; rec.name = slot.name || ('pad' + (i + 1));
+    rec.blob = new Blob([pcm]); rec.padCh = ch; rec.padSr = slot.buf.sampleRate;
+    rec.gain = slot.gain; rec.start = slot.start || 0;
+    rec.updated_at = Date.now(); rec.version++;
+    rec.id = await Library.put(rec);
+    slot.padRecId = rec.id;
+  } catch (_) {}
+}
+let padTimer = null;
+const padsSaveSoon = () => { clearTimeout(padTimer); padTimer = setTimeout(() => { for (let i = 0; i < 4; i++) padSave(i); }, 600); };
+async function padsRestore() {
+  try {
+    const rows = (await Library.all()).filter(t => t.pad != null && !t.deleted_at);
+    for (const rec of rows) {
+      const i = rec.pad; if (i < 0 || i > 3 || !rec.blob) continue;
+      const f = new Float32Array(await rec.blob.arrayBuffer());
+      const ch = rec.padCh || 1, n = Math.floor(f.length / ch);
+      if (n <= 0) continue;
+      const nb = audio().createBuffer(ch, n, rec.padSr || 44100);
+      for (let c = 0; c < ch; c++) nb.getChannelData(c).set(f.subarray(c * n, (c + 1) * n));
+      smpSlots[i] = { buf: nb, name: rec.name, src: null, gain: rec.gain, start: rec.start || 0, padRecId: rec.id };
+      const b = smpPadsEl.children[i];
+      b.textContent = (rec.name || '').length > 6 ? rec.name.slice(0, 6) : (rec.name || 'pad');
+      b.classList.add('set');
+      b.title = rec.name;
+    }
+  } catch (_) {}
+}
+
 let smpGain = null;
 let smpPrev = null;
 let padPrev = null;   // deck hot-cue preview voice (right-click audition)    // cue-bus audition voice
@@ -3063,11 +3109,13 @@ smpSlots.forEach((_, i) => {
         smpSlots[i] = { buf: nb, name: 'loop@' + d.name, src: null, gain: 1 };
         b.textContent = 'loop'; b.classList.add('set');
         b.title = 'Resampled loop — ' + d.name + ' ' + (d.loopEnd - d.loopStart).toFixed(2) + 's';
+        padsSaveSoon();
         return;
       }
       smpSlots[i] = null;
       b.textContent = '+'; b.classList.remove('set', 'on');
       b.title = 'Sampler — click loads a one-shot, click again plays it, alt-click stops playback, shift-click clears';
+      padsSaveSoon();
       return;
     }
     if (!slot) { smpPending = i; smpFile.value = ''; smpFile.click(); return; }
@@ -3098,11 +3146,13 @@ smpSlots.forEach((_, i) => {
     slot.gain = Math.min(1.5, Math.max(0.1, (slot.gain != null ? slot.gain : 1) - Math.sign(e.deltaY) * 0.05));
     if (slot.g) slot.g.gain.setTargetAtTime(slot.gain, ctx.currentTime, 0.01);
     b.title = slot.name + ' — level ' + slot.gain.toFixed(2) + 'x (wheel trims)';
+    padsSaveSoon();
   }, { passive: false });
   smpPadsEl.appendChild(b);
   // Shared entry for MIDI notes: click the pad to load, fire if loaded.
   b.__fire = firePad;
 });
+padsRestore();
 function fireSmpPad(i, vel) {
   const pad = smpPadsEl.children[i];
   if (!pad) return;
@@ -3126,6 +3176,7 @@ smpFile.addEventListener('change', async e => {
   b.textContent = f.name.length > 6 ? f.name.slice(0, 6) : f.name;
   b.classList.add('set');
   b.title = f.name;
+  padsSaveSoon();
 });
 
 {
@@ -3188,7 +3239,7 @@ document.getElementById('lib-search').addEventListener('input', e => {
 // so entries match by name+size on the other side.
 const LIB_META_KEYS = ['name', 'size', 'type', 'duration', 'bpm', 'beatOff', 'key', 'cues', 'cueIn', 'loop'];
 document.getElementById('lib-exp').addEventListener('click', async () => {
-  const rows = (await Library.all()).filter(t => !t.deleted_at);
+  const rows = (await Library.all()).filter(t => !t.deleted_at && !t.pad);
   const data = rows.map(t => Object.fromEntries(LIB_META_KEYS.filter(k => t[k] !== undefined).map(k => [k, t[k]])));
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' }));
@@ -3214,7 +3265,7 @@ libImpFile.addEventListener('change', async () => {
   let data;
   try { data = JSON.parse(await f.text()); } catch { return; }
   if (!Array.isArray(data)) return;
-  const rows = (await Library.all()).filter(t => !t.deleted_at);
+  const rows = (await Library.all()).filter(t => !t.deleted_at && !t.pad);
   for (const e of data) {
     const rec = rows.find(t => t.name === e.name && t.size === e.size);
     if (!rec) continue;   // audio not loaded here — nothing to tag
