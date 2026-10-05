@@ -3661,7 +3661,7 @@ const sessDeckQ = root => sel => root.querySelector(sel);
 function sessSave() {
   try {
     const v = {};
-    for (const id of ['xfader','xfcurve','master','cuemix','smp-gain','smp-pitch','mic-gain','mic-low','mic-high']) {
+    for (const id of ['xfader','xfcurve','master','cuemix','cuevol','smp-gain','smp-pitch','mic-gain','mic-low','mic-high']) {
       const el = document.getElementById(id);
       v[id] = el.value;
     }
@@ -3679,6 +3679,7 @@ function sessSave() {
         fx: q('[data-act=fx]').value, fxbeat: q('[data-act=fxbeat]').value, fxtap: q('[data-act=fxtap]').value,
         fxon: q('[data-act=fxon]').classList.contains('on'),
         assign: q('[data-act=assign]').value, range: q('[data-act=range]').value,
+        loopbeats: q('[data-act=loopbeats]').value,
         slip: q('[data-act=slip]').classList.contains('on'),
       };
     }
@@ -3691,7 +3692,7 @@ for (const ev of ['input', 'change', 'click']) document.addEventListener(ev, ses
 try {
   const saved = JSON.parse(localStorage.getItem(sessKey) || 'null');
   if (saved) {
-    for (const id of ['xfader','xfcurve','master','cuemix','smp-gain','smp-pitch','mic-gain','mic-low','mic-high']) {
+    for (const id of ['xfader','xfcurve','master','cuemix','cuevol','smp-gain','smp-pitch','mic-gain','mic-low','mic-high']) {
       if (saved.v[id] == null) continue;
       const el = document.getElementById(id);
       el.value = saved.v[id];
@@ -3723,6 +3724,7 @@ try {
       setV('[data-act=echo]', s2.echo);
       setV('[data-act=assign]', s2.assign);
       setV('[data-act=range]', s2.range);
+      if (s2.loopbeats != null) setV('[data-act=loopbeats]', s2.loopbeats);
       const fxBtn = q('[data-act=fxon]');
       if (fxBtn.classList.contains('on') !== !!s2.fxon) fxBtn.click();
       const slipB = q('[data-act=slip]');

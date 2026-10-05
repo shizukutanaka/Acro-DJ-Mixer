@@ -375,8 +375,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   CC14/15 = deck tempo, CC16/17 = colour filter —
   works unmapped on most budget controllers (see ADR-0163, ADR-0172).
 - **Session persistence** — the mixer surface (faders, EQ, filters,
-  FX selection, toggles, sampler and mic trims) is saved on change
-  and restored on reload through the same handlers (see ADR-0158).
+  FX selection, toggles, sampler, mic trims, phones volume and loop
+  length selects) is saved on change and restored on reload through
+  the same handlers (see ADR-0158, ADR-0252).
 
 ## Architecture
 
