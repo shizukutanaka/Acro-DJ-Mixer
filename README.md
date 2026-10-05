@@ -265,7 +265,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Eject** — `⏏` unloads the track and resets deck readouts;
   control settings survive (see ADR-0084). `‹`/`›` beside it step
   the deck through the library in list order — crate-dig without
-  leaving the deck; playing decks still confirm (see ADR-0124).
+  leaving the deck; playing decks still confirm (see ADR-0124). Hold
+  `Shift` to step through unplayed tracks only (see ADR-0225).
 - **Channel assign** — `A/Thru/B` select routes each deck to a
   crossfader side or bypasses it; fader-start follows the assign
   (see ADR-0085).
