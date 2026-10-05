@@ -272,7 +272,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Continuous auto-mix** — after each auto fade the vacated deck
   auto-loads the next library track and stays armed (see ADR-0086);
   the pick prefers a Camelot+tempo fit to the playing deck before
-  falling back to list order (see ADR-0146).
+  falling back to list order (see ADR-0146), and the picked row
+  carries an amber left edge while armed (see ADR-0179).
 - **Phones volume** — a level knob for the whole cue bus, independent
   of the cue/PGM blend (see ADR-0087).
 - **Wake lock** — the screen can't sleep while a deck is playing,
