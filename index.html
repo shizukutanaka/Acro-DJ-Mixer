@@ -127,6 +127,7 @@
   .eq .band { display: flex; align-items: center; gap: 3px; flex: 1; color: var(--muted); font-size: 11px; font-weight: 600; }
   .eq .band input { flex: 1; min-width: 0; }
   .library { padding: 10px 20px; border-top: 1px solid var(--line); }
+  .library.drag { outline: 1px dashed var(--accent-a); outline-offset: -4px; }
   .library h2 { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
   #lib-search { width: 100%; box-sizing: border-box; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; color: var(--text); font-size: 12px; padding: 5px 8px; margin-bottom: 6px; }
   .lib-row { display: grid; grid-template-columns: 1fr auto auto auto auto; gap: 10px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
@@ -3262,6 +3263,33 @@ document.getElementById('lib-set').addEventListener('click', () => {
 });
 const libImpFile = document.getElementById('lib-impfile');
 document.getElementById('lib-imp').addEventListener('click', () => libImpFile.click());
+
+// Drop files straight onto the library — crate building shouldn't
+// require loading each track into a deck first. Every dropped audio
+// file lands as a library row (decks take files[0]; the crate takes
+// them all). Duration is probed via <audio> metadata, no full decode —
+// BPM/key fill in later through bgScan while the app idles.
+const libDropEl = document.querySelector('.library');
+const libDurOf = f => new Promise(res => {
+  const a = new Audio();
+  a.preload = 'metadata';
+  a.onloadedmetadata = () => { URL.revokeObjectURL(a.src); res(a.duration || 0); };
+  a.onerror = () => res(0);
+  a.src = URL.createObjectURL(f);
+});
+libDropEl.addEventListener('dragover', e => { e.preventDefault(); libDropEl.classList.add('drag'); });
+libDropEl.addEventListener('dragleave', () => libDropEl.classList.remove('drag'));
+libDropEl.addEventListener('drop', async e => {
+  e.preventDefault(); libDropEl.classList.remove('drag');
+  const files = [...(e.dataTransfer.files || [])]
+    .filter(f => (f.type || '').startsWith('audio') || /\.(mp3|wav|ogg|ogm|flac|m4a|aac|aiff?|webm)$/i.test(f.name));
+  if (!files.length) return;
+  let n = 0;
+  for (const f of files) {
+    try { await Library.addFromFile(f, await libDurOf(f)); n++; } catch (_) {}
+  }
+  deckA.status('added ' + n + ' track' + (n === 1 ? '' : 's') + ' to library');
+});
 libImpFile.addEventListener('change', async () => {
   const f = libImpFile.files[0];
   libImpFile.value = '';
