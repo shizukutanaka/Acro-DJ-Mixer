@@ -1085,11 +1085,19 @@ class Deck {
 
   async load(fileObj, meta) {
     this.status('decoding…');
+    // Two rapid loads must never interleave: the last caller wins.
+    // Guard every await — a stale continuation that kept writing
+    // would leave file A's buffer under file B's name.
+    const seq = this._loadSeq = (this._loadSeq || 0) + 1;
+    const live = () => seq === this._loadSeq;
     try {
       const ac = audio();
       const data = await fileObj.arrayBuffer();
+      if (!live()) return;
       const buf = await ac.decodeAudioData(data);
+      if (!live()) return;
       await this.ensureNodes();
+      if (!live()) return;
       this.stopPlayback();
       if (this.engine === 'worklet') {
         const chans = [];
@@ -1152,6 +1160,7 @@ class Deck {
       // would just lean on the limiter.
       const mono = monoResample(buf);   // promise — estimators await it internally
       this.applyAutoGain(await mono);
+      if (!live()) return;
       if (meta && meta.bpm) {
         // Cached analysis from the library — instant, no recompute.
         this.grid = { bpm: meta.bpm, beatOff: meta.beatOff || 0 };

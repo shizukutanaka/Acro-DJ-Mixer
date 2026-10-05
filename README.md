@@ -30,7 +30,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 ## Features
 
 - **Two decks** — load audio by click or drag & drop (MP3/WAV/OGG/FLAC/M4A,
-  whatever the browser's `decodeAudioData` supports).
+  whatever the browser's `decodeAudioData` supports). Rapid loads
+  can't interleave — the last caller wins (see ADR-0261).
 - **Transport** — play/pause, cue-to-start, click waveform to seek.
 - **Tempo** — ±16% playback-rate slider per deck.
 - **Key lock** — preserve pitch while tempo changes (WSOLA time-stretching
