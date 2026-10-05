@@ -3030,6 +3030,7 @@ micBtn2.title = 'Microphone — click toggles live input into the master pre-lim
 // shift-click clears. One voice per pad; output enters masterGain so
 // master level, ducking, mono fold, cut, and recording all apply.
 const smpSlots = [null, null, null, null];
+let smpCleared = null;   // last shift-cleared slot — right-click an empty pad restores it (one level)
 let smpGain = null;
 let smpPrev = null;
 let padPrev = null;   // deck hot-cue preview voice (right-click audition)    // cue-bus audition voice
@@ -3120,9 +3121,10 @@ smpSlots.forEach((_, i) => {
         b.title = 'Resampled loop — ' + d.name + ' ' + (d.loopEnd - d.loopStart).toFixed(2) + 's';
         return;
       }
+      smpCleared = { i, slot, label: b.textContent, title: b.title };
       smpSlots[i] = null;
       b.textContent = '+'; b.classList.remove('set', 'on');
-      b.title = 'Sampler — click loads a one-shot, click again plays it, alt-click stops playback, shift-click clears';
+      b.title = 'Sampler — click loads a one-shot, click again plays it, alt-click stops playback, shift-click clears (right-click an empty pad restores the last clear)';
       return;
     }
     if (!slot) { smpPending = i; smpFile.value = ''; smpFile.click(); return; }
@@ -3135,7 +3137,18 @@ smpSlots.forEach((_, i) => {
   b.addEventListener('contextmenu', e => {
     e.preventDefault();
     const slot = smpSlots[i];
-    if (!slot || !slot.buf) return;
+    if (!slot) {
+      // Undo a shift-clear: right-click an empty pad puts the last
+      // cleared sample back — one level, like the hot-cue undo.
+      if (!smpCleared) return;
+      const c = smpCleared; smpCleared = null;
+      smpSlots[c.i] = c.slot;
+      const cb = smpPadsEl.children[c.i];
+      cb.textContent = c.label; cb.classList.add('set');
+      cb.title = c.title;
+      return;
+    }
+    if (!slot.buf) return;
     if (smpPrev) { try { smpPrev.stop(); } catch (_) {} smpPrev = null; }
     const src = audio().createBufferSource();
     src.buffer = slot.buf;
