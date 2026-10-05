@@ -2616,7 +2616,14 @@ async function previewTrack(id) {
   const rec = await Library.get(id);
   if (!rec || !rec.blob) return;
   const ac = audio(); cueBus();
-  const buf = await ac.decodeAudioData(await rec.blob.arrayBuffer());
+  let buf;
+  try { buf = await ac.decodeAudioData(await rec.blob.arrayBuffer()); }
+  catch (err) {
+    console.warn('preview decode failed:', err);
+    const row = document.querySelector('.lib-row[data-id="' + id + '"]');
+    if (row) row.title = 'Could not decode this file for preview.';
+    return;
+  }
   previewSrc = ac.createBufferSource();
   previewSrc.buffer = buf;
   previewSrc.connect(cueIn);
@@ -2873,7 +2880,7 @@ function autoMixTick() {
 async function autoNext(vacated, playing) {
   try {
     const rows = (await Library.all()).filter(t => !t.deleted_at).sort((a, b) => b.updated_at - a.updated_at);
-    if (!rows.length) return false;
+    if (!rows.length) { vacated.status('Library empty — auto-mix stops.'); return false; }
     const cur = rows.findIndex(t => t.id === playing.libId);
     const taken = new Set([playing.libId, vacated.libId]);
     // Prefer a harmonic pick: walk the visible order and take the
@@ -2897,10 +2904,14 @@ async function autoNext(vacated, playing) {
       if (fits(t)) { pick = t; break; }
     }
     pick = pick || firstFree;
-    if (!pick) return false;
+    if (!pick) { vacated.status('No next track available.'); return false; }
     await Library.loadInto(vacated, pick.id);
     return true;
-  } catch (_) { return false; }
+  } catch (err) {
+    console.warn('autoNext failed:', err);
+    vacated.status('Auto-load failed.');
+    return false;
+  }
 }
 
 // Mic input: summed into the master at monoNode — pre-limiter and
@@ -3120,7 +3131,17 @@ smpFile.addEventListener('change', async e => {
   const i = smpPending;           // pin the destination now —
   smpPending = -1;                // later pad clicks can't steal it
   if (!f || i < 0) return;
-  const buf = await audio().decodeAudioData(await f.arrayBuffer());
+  let buf;
+  try { buf = await audio().decodeAudioData(await f.arrayBuffer()); }
+  catch (err) {
+    // Loud fail: a pad that swallows the error looks armed but
+    // never loads — say so on the pad itself.
+    console.warn('sampler decode failed:', err);
+    const b = smpPadsEl.children[i];
+    b.textContent = '!';
+    b.title = 'Could not decode ' + f.name;
+    return;
+  }
   smpSlots[i] = { buf, name: f.name, src: null, gain: 1 };
   const b = smpPadsEl.children[i];
   b.textContent = f.name.length > 6 ? f.name.slice(0, 6) : f.name;
