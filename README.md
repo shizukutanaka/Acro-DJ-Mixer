@@ -328,7 +328,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   the deck gain is set so it lands near −15 dBFS; attenuation only,
   slider shows and can override. Measured with full EBU R128 gating
   (−70 LUFS absolute + −10 LU relative), so silent tails/intros don't
-  deflate the value (see ADR-0019/0024/0034).
+  deflate the value (see ADR-0019/0024/0034). The BPM/key estimators
+  run in a Web Worker, so analyzing a long track never freezes the
+  surface (see ADR-0233).
 - **Channel meters** — a thin strip under each waveform shows the
   deck's post-EQ/filter, pre-crossfader peak level, so gain staging is
   visible before the fader opens (see ADR-0035); a tick holds the
