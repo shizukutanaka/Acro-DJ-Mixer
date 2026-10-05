@@ -14,7 +14,12 @@
     --accent-a: #4da3ff;
     --accent-b: #ff7a59;
     --line: #2a3341;
+    /* Deck-agnostic accent for shared surfaces (sampler, cue meter);
+       each deck overrides it with its own colour for .bend etc. */
+    --acc: #4da3ff;
   }
+  .deck.a { --acc: var(--accent-a); }
+  .deck.b { --acc: var(--accent-b); }
   * { box-sizing: border-box; }
   body {
     margin: 0;
