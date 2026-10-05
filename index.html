@@ -68,6 +68,7 @@
   .stctl button { font-size: 10px; padding: 1px 5px; }
   .stctl b { font-weight: 500; font-size: 11px; min-width: 24px; display: inline-block; text-align: center; }
   canvas.wave { width: 100%; height: 90px; background: var(--panel-2); border-radius: 6px; cursor: pointer; display: block; }
+  canvas.wave-mini { width: 100%; height: 18px; background: var(--panel-2); border-radius: 4px; display: block; margin-top: 2px; }
   .transport { display: flex; gap: 8px; align-items: center; }
   button {
     background: var(--panel-2);
@@ -165,6 +166,7 @@
     <div class="dropzone" data-deck="a">Drop track or click to load</div>
     <input type="file" accept="audio/*" hidden>
     <canvas class="wave" width="640" height="90" title="Click to seek — scroll to zoom around the playhead"></canvas>
+    <canvas class="wave-mini" width="640" height="18"></canvas>
     <div class="meter chm" title="Channel level (post-EQ, pre-crossfader; tick = peak hold)"><i></i><b></b></div>
     <div class="transport">
       <button class="primary" data-act="play" title="Play / pause — shift = start on the next bar downbeat">Play</button>
@@ -211,6 +213,7 @@
     <div class="dropzone" data-deck="b">Drop track or click to load</div>
     <input type="file" accept="audio/*" hidden>
     <canvas class="wave" width="640" height="90" title="Click to seek — scroll to zoom around the playhead"></canvas>
+    <canvas class="wave-mini" width="640" height="18"></canvas>
     <div class="meter chm" title="Channel level (post-EQ, pre-crossfader; tick = peak hold)"><i></i><b></b></div>
     <div class="transport">
       <button class="primary" data-act="play" title="Play / pause — shift = start on the next bar downbeat">Play</button>
@@ -550,10 +553,12 @@ class Deck {
     this.lampEl = root.querySelector('.beatlamp');
     this.keyEl = root.querySelector('.key');
     this.wave = root.querySelector('canvas.wave');
+    this.waveMini = root.querySelector('canvas.wave-mini');
     this.chFill = root.querySelector('.chm i');
     this.chPeakEl = root.querySelector('.chm b');
     this.chPeak = 0;
     this.wctx = this.wave.getContext('2d');
+    this.wmctx = this.waveMini.getContext('2d');
     this.timeEl = root.querySelector('.time');
     this.statusEl = root.querySelector('.status');
     this.playBtn = root.querySelector('[data-act=play]');
@@ -1793,6 +1798,33 @@ class Deck {
       const x = xOf(this.pos());
       c.fillStyle = '#fff';
       c.fillRect(x - 1, 0, 2, h);
+    }
+    // Mini overview: whole-track strip so "where am I" is always
+    // answered — peaks, loop band, playhead, and the zoomed
+    // viewport box when the main wave is zoomed in.
+    const mc = this.wmctx;
+    mc.clearRect(0, 0, 640, 18);
+    if (this.peaks) {
+      const n = this.peaks.length;
+      mc.fillStyle = 'rgba(140,160,200,0.45)';
+      for (let x2 = 0; x2 < 640; x2++) {
+        const i = Math.min(n - 1, Math.floor(x2 / 640 * n));
+        const amp = Math.max(this.peaks[i] * 9, 0.5);
+        mc.fillRect(x2, 9 - amp, 1, amp * 2);
+      }
+      const dur2 = this.buffer.duration;
+      const xm = t => t / dur2 * 640;
+      if (this.loopOn) {
+        mc.fillStyle = 'rgba(61,220,132,.25)';
+        mc.fillRect(xm(this.loopStart), 0, xm(this.loopEnd) - xm(this.loopStart), 18);
+      }
+      if (this.zoom > 1) {
+        mc.strokeStyle = 'rgba(255,255,255,0.6)';
+        mc.lineWidth = 1;
+        mc.strokeRect(xm(v0), 0, (v1 - v0) / dur2 * 640, 18);
+      }
+      mc.fillStyle = '#fff';
+      mc.fillRect(xm(cur) - 1, 0, 2, 18);
     }
   }
 
