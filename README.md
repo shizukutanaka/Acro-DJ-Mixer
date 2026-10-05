@@ -315,8 +315,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   one-beat kill stabs (see ADR-0117).
 - **Set recording** — `Rec` button captures the master output to a
   `.webm` (opus) download via `MediaRecorder` on a MediaStream tap;
-  the take also lands in the library as a track you can replay, cue,
-  or resample (see ADR-0148)
+  shift+Rec pauses/resumes the take (paused time doesn't count —
+  see ADR-0241); the take also lands in the library as a track you
+  can replay, cue, or resample (see ADR-0148)
   (see ADR-0014).
 - **Stem split** — per-deck `Full / Vocal / Inst` mid/side matrix:
   `Vocal` keeps the centre channel (acapella extraction), `Inst` keeps
