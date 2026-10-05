@@ -2517,8 +2517,8 @@ document.getElementById('mic').addEventListener('click', async e => {
 
 // ----- Sampler: 4 one-shot pads into the master chain -----
 // Click loads a file, click again fires it (retrigger restarts),
-// shift-click clears. One voice per pad; output enters monoNode so
-// it's limited, mono-checked, and recorded like everything else.
+// shift-click clears. One voice per pad; output enters masterGain so
+// master level, ducking, mono fold, cut, and recording all apply.
 const smpSlots = [null, null, null, null];
 let smpGain = null;
 const smpPadsEl = document.getElementById('smp-pads');
@@ -2551,12 +2551,12 @@ smpSlots.forEach((_, i) => {
     if (!smpGain) {   // shared pad bus — one knob rides all four
       smpGain = ac.createGain();
       smpGain.gain.value = parseFloat(document.getElementById('smp-gain').value);
-      smpGain.connect(monoNode);
+      smpGain.connect(masterGain);
     }
     const src = ac.createBufferSource();
     src.buffer = slot.buf;
     src.connect(smpGain);
-    src.onended = () => { b.classList.remove('on'); if (slot.src === src) slot.src = null; };
+    src.onended = () => { if (slot.src === src) { b.classList.remove('on'); slot.src = null; } };
     src.start();
     slot.src = src;
     b.classList.add('on');
@@ -2569,14 +2569,15 @@ document.getElementById('smp-gain').addEventListener('input', e => {
 
 smpFile.addEventListener('change', async e => {
   const f = e.target.files[0];
-  if (!f || smpPending < 0) return;
+  const i = smpPending;           // pin the destination now —
+  smpPending = -1;                // later pad clicks can't steal it
+  if (!f || i < 0) return;
   const buf = await audio().decodeAudioData(await f.arrayBuffer());
-  smpSlots[smpPending] = { buf, name: f.name, src: null };
-  const b = smpPadsEl.children[smpPending];
+  smpSlots[i] = { buf, name: f.name, src: null };
+  const b = smpPadsEl.children[i];
   b.textContent = f.name.length > 6 ? f.name.slice(0, 6) : f.name;
   b.classList.add('set');
   b.title = f.name;
-  smpPending = -1;
 });
 
 {
