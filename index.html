@@ -669,8 +669,21 @@ class Deck {
         if (e.shiftKey) { this.clearPad(i); return; }   // shift-click clears — no right-click needed
         if (!this.slip) this.padCue(i);
       });
-      pad.addEventListener('contextmenu', e => { e.preventDefault(); this.clearPad(i); });
-      pad.addEventListener('pointerdown', e => { if (!e.shiftKey) this.slipCueStart(i); });
+      pad.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        // Right-click = preview, the same idiom as library rows and
+        // sampler pads: audition this hot cue on the cue bus.
+        // Clearing lives on shift-click (ADR-0083).
+        if (this.cues[i] == null || !this.buffer) return;
+        if (padPrev) { try { padPrev.stop(); } catch (_) {} padPrev.disconnect(); padPrev = null; }
+        const src = audio().createBufferSource();
+        src.buffer = this.buffer;
+        src.connect(cueBus());
+        src.onended = () => { if (padPrev === src) padPrev = null; };
+        src.start(0, this.cues[i]);
+        padPrev = src;
+      });
+      pad.addEventListener('pointerdown', e => { if (e.button === 0 && !e.shiftKey) this.slipCueStart(i); });
       for (const ev of ['pointerup', 'pointerleave', 'pointercancel'])
         pad.addEventListener(ev, () => this.slipCueEnd());
     });
@@ -2832,7 +2845,8 @@ micBtn2.title = 'Microphone — click toggles live input into the master pre-lim
 // master level, ducking, mono fold, cut, and recording all apply.
 const smpSlots = [null, null, null, null];
 let smpGain = null;
-let smpPrev = null;    // cue-bus audition voice
+let smpPrev = null;
+let padPrev = null;   // deck hot-cue preview voice (right-click audition)    // cue-bus audition voice
 const smpPadsEl = document.getElementById('smp-pads');
 const smpFile = document.getElementById('smp-file');
 let smpPending = -1;
