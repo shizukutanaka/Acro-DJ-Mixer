@@ -1451,6 +1451,10 @@ class Deck {
       const f = autoMix.fade; autoMix.fade = null;
       f.from.setFilter(parseFloat(f.from.filterEl.value));
       if (f.to && f.to.eq) f.to.setBand('low', parseFloat(f.to.eqEls.low.value));
+      // Fader rollback: park the fader on whichever deck survives
+      // the eject so it doesn't stay silent mid-fade (ADR-0193).
+      xfader.value = f.to === this ? f.fromX : f.toX;
+      applyCrossfade();
     }
     this.stopPlayback();
     if (this.engine === 'worklet' && this.node)
