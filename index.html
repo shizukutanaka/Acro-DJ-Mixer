@@ -1069,6 +1069,7 @@ class Deck {
       const ac = audio();
       const data = await fileObj.arrayBuffer();
       const buf = await ac.decodeAudioData(data);
+      stat('loads');
       await this.ensureNodes();
       this.stopPlayback();
       if (this.engine === 'worklet') {
@@ -1385,6 +1386,7 @@ class Deck {
 
   play() {
     if (!this.buffer || this.playing || !this.engine) return;
+    stat('plays');
     if (this._spinTimer) { clearInterval(this._spinTimer); this._spinTimer = null; this.spinMul = 1; }
     if (this.offset >= this.buffer.duration - 0.01) this.offset = 0;
     if (!this._setLogged && this.fileName) {
@@ -2052,6 +2054,7 @@ class Deck {
       this.loopStart = start;
       this.loopEnd = end;
       this.loopOn = true;
+      stat('loops');
       this._loopT = ctx.currentTime; this._loopEnterPos = this.pos();
     } else if (!this.loopOn) {
       // Compute bounds BEFORE loopOn flips: pos() reads loopEnd for wrapping.
@@ -2064,6 +2067,7 @@ class Deck {
       this.loopStart = start;
       this.loopEnd = end;
       this.loopOn = true;
+      stat('loops');
       this._loopT = ctx.currentTime; this._loopEnterPos = this.pos();
     } else {
       this.loopOn = false;
@@ -2750,6 +2754,7 @@ recBtn.addEventListener('click', () => {
       Library.addFromFile(new File([blob], fname, { type: 'audio/webm' }),
         (performance.now() - recStart) / 1000)
         .catch(err => console.warn('library save failed:', err));
+      stat('recs');
       recorder = null;
       recBtn.classList.remove('on');
       clearInterval(recTick);
@@ -2861,6 +2866,7 @@ function autoMixTick() {
     to.seekTo(to.grid ? to.grid.beatOff : 0);
     if (d.grid && to.grid) to.syncTo(d);
     to.play();
+    stat('autos');
     autoMix.fade = { from: d, to, t0: ctx.currentTime, dur: autoMix.len * beat, beat,
                      fromX: d === deckA ? 0 : 1, toX: d === deckA ? 1 : 0 };
   }
@@ -3596,6 +3602,24 @@ requestAnimationFrame(tick);
 // replayed on load through the same input/change/click handlers, so
 // restored values drive nodes exactly like live input. Deck chain
 // params built later (on track load) read the restored elements too.
+// Telemetry-lite, local-only: lifetime event counters in localStorage —
+// nothing ever leaves the browser (same doctrine as everything else
+// here). Hover the footer to read them.
+const statsKey = 'acro-stats';
+const stats = (() => { try { return JSON.parse(localStorage.getItem(statsKey)) || {}; } catch (_) { return {}; } })();
+function statPaint() {
+  const f = document.querySelector('footer');
+  if (f) f.title = 'local counters — loads ' + (stats.loads || 0)
+    + ' · plays ' + (stats.plays || 0) + ' · loops ' + (stats.loops || 0)
+    + ' · auto transitions ' + (stats.autos || 0) + ' · recordings ' + (stats.recs || 0);
+}
+function stat(k) {
+  stats[k] = (stats[k] || 0) + 1;
+  try { localStorage.setItem(statsKey, JSON.stringify(stats)); } catch (_) {}
+  statPaint();
+}
+statPaint();
+
 const sessKey = 'acro-session';
 const sessDeckQ = root => sel => root.querySelector(sel);
 function sessSave() {
