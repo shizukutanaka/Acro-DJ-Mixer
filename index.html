@@ -3249,6 +3249,17 @@ document.getElementById('lib-rows').addEventListener('click', e => {
     else Library.loadInto(d, id);
   }
 });
+// Double-click a row = load into whichever deck is free — the
+// one-handed "put it in the open slot" from every track browser.
+// If both decks are stopped, deck A gets it; if both are playing,
+// nothing happens (a blind replace is what the load guard is for).
+document.getElementById('lib-rows').addEventListener('dblclick', e => {
+  const row = e.target.closest('.lib-row');
+  if (!row || e.target.dataset.del !== undefined || e.target.dataset.prev !== undefined
+      || e.target.dataset.to !== undefined) return;
+  const free = !deckA.playing ? deckA : (!deckB.playing ? deckB : null);
+  if (free) Library.loadInto(free, Number(row.dataset.id));
+});
 renderLibrary();
 
 // Wheel nudge on every fader/knob: one notch = one input step —
