@@ -160,8 +160,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   `Loop` arms a 4-second free loop from the press point, and halve /
   double / move all work (see ADR-0057).
 - **Free-size loop** — `Shift` + `Loop` marks the IN point, a second
-  press marks OUT: any-length loops (button blinks while armed)
-  (see ADR-0058).
+  press marks OUT: any-length loops (button blinks while armed);
+  honours Quantize like hot cues (see ADR-0058, ADR-0176).
 - **Reloop** — `↺` beside `Loop` re-enters the last exited loop with
   its exact bounds; seeking out of a loop is also reloop-able
   (see ADR-0059). `Shift+↺` stores the armed loop in a dedicated
