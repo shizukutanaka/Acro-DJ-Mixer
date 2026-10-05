@@ -165,7 +165,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   like the hardware TEMPO RESET (see ADR-0062). Scrolling over the
   slider trims ±0.1% per notch for fine pitch rides (see ADR-0109);
   a center detent snaps ±0.3% of unity to exact 1.000 (see ADR-0129).
-  Alt+Sync arms that deck as **sync leader** — the partner
+  Eject on a playing deck needs a second click within 2 s (`sure?`),
+  matching the load/stepper guards (see ADR-0131). Alt+Sync arms that deck as **sync leader** — the partner
   continuously re-matches its tempo and beat phase (drift-seek past
   1/16 beat), so riding the leader's fader keeps the blend glued
   (SYNC MASTER; see ADR-0130).
