@@ -3296,6 +3296,18 @@ function midiMsg(e) {
     else if (n === 7) { master.value = f; master.dispatchEvent(new Event('input')); }
     else if (n === 20) { deckA.gainEl.value = f; deckA.setGain(f); }
     else if (n === 21) { deckB.gainEl.value = f; deckB.setGain(f); }
+    // Tempo: full CC travel maps onto the deck's own range (±8/16/50
+    // select included), with the same centre detent as the slider.
+    else if (n === 14 || n === 15) {
+      const d = n === 14 ? deckA : deckB;
+      let r = 1 - d.tempoRange + f * 2 * d.tempoRange;
+      if (Math.abs(r - 1) < 0.003) r = 1;
+      d.tempoEl.value = r;
+      d.setRate(r);
+    }
+    // Colour filter: CC 0..127 maps onto the -1..1 bipolar knob.
+    else if (n === 16) { deckA.filterEl.value = f * 2 - 1; deckA.setFilter(f * 2 - 1); }
+    else if (n === 17) { deckB.filterEl.value = f * 2 - 1; deckB.setFilter(f * 2 - 1); }
   }
 }
 if (navigator.requestMIDIAccess) {
