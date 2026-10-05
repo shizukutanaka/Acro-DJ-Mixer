@@ -2718,17 +2718,18 @@ async function autoNext(vacated, playing) {
 // post-master-fader? No: monoNode is before the limiter, so the mic
 // shares the protection chain exactly like deck audio, and lands in
 // recordings (recorder taps limiter).
-document.getElementById('mic').addEventListener('click', async e => {
-  if (micSrc) {
-    micSrc.disconnect(); micGain.disconnect(); micHp.disconnect(); micAn.disconnect();
-    if (micLow) { micLow.disconnect(); micHigh.disconnect(); micGate.disconnect(); }
-    micStream.getTracks().forEach(t => t.stop());
-    micSrc = micStream = micGain = micHp = micAn = micLow = micHigh = micGate = null;
-    e.target.style.filter = '';
-    if (micDuck) micDuck.gain.setTargetAtTime(1, ctx.currentTime, 0.15);
-    e.target.classList.remove('on');
-    return;
-  }
+const micBtn2 = document.getElementById('mic');
+const micClose = () => {
+  if (!micSrc) return;
+  micSrc.disconnect(); micGain.disconnect(); micHp.disconnect(); micAn.disconnect();
+  if (micLow) { micLow.disconnect(); micHigh.disconnect(); micGate.disconnect(); }
+  micStream.getTracks().forEach(t => t.stop());
+  micSrc = micStream = micGain = micHp = micAn = micLow = micHigh = micGate = null;
+  micBtn2.style.filter = '';
+  if (micDuck) micDuck.gain.setTargetAtTime(1, ctx.currentTime, 0.15);
+  micBtn2.classList.remove('on');
+};
+const micOpen = async () => {
   try {
     micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
   } catch { return; }   // permission denied — stay off
@@ -2759,8 +2760,26 @@ document.getElementById('mic').addEventListener('click', async e => {
   micAn = ctx.createAnalyser(); micAn.fftSize = 256;
   micGain.connect(micAn);
   if (micDuck) micDuck.gain.setTargetAtTime(0.25, ctx.currentTime, 0.15);   // ~−12 dB talkover duck
-  e.target.classList.add('on');
+  micBtn2.classList.add('on');
+};
+micBtn2.addEventListener('click', async () => {
+  if (micBtn2._suppress) { micBtn2._suppress = false; return; }  // click after a PTT hold
+  if (micSrc) micClose(); else await micOpen();
 });
+// Press-to-talk (same hold idiom as kills/mute/FX/pads): while the
+// mic is latched OFF, holding the button opens it until release —
+// radio-style talkback. Tap = latch as before.
+micBtn2.addEventListener('pointerdown', () => {
+  if (micSrc) return;
+  micBtn2._momTimer = setTimeout(() => { micBtn2._mom = true; micOpen(); }, 250);
+});
+const micMomEnd = () => {
+  clearTimeout(micBtn2._momTimer);
+  if (micBtn2._mom) { micBtn2._mom = false; micBtn2._suppress = true; micClose(); }
+};
+micBtn2.addEventListener('pointerup', micMomEnd);
+micBtn2.addEventListener('pointercancel', micMomEnd);
+micBtn2.title = 'Microphone — click toggles live input into the master pre-limiter (hold = press-to-talk; use headphones — open speakers will feed back)';
 
 // ----- Sampler: 4 one-shot pads into the master chain -----
 // Click loads a file, click again fires it (retrigger restarts),
