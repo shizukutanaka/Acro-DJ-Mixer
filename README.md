@@ -175,7 +175,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   during any slip borrow (see ADR-0156). Hold `Slip` ≥250 ms for
   momentary mode — one-off slips without a second click (see ADR-0177).
 - **Next-bar jump** — `▸bar` on the hot-cue row lands the playhead on
-  the next bar downbeat, so drops hit "the one" (see ADR-0061).
+  the next bar downbeat, so drops hit "the one" (see ADR-0061);
+  shift jumps back one bar to re-drop (see ADR-0201).
 - **Tempo reset** — double-click the tempo slider for an exact ±0.0%,
   like the hardware TEMPO RESET (see ADR-0062). Scrolling over the
   slider trims ±0.1% per notch for fine pitch rides (see ADR-0109);
