@@ -3040,15 +3040,17 @@ smpSlots.forEach((_, i) => {
   const b = document.createElement('button');
   b.className = 'smp';
   b.textContent = '+';
-  b.title = 'Sampler — click loads a one-shot, click again plays it (hold = gate), right-click previews on headphones, alt-click stops playback, shift-click clears';
+  b.title = 'Sampler — click loads a one-shot, click again plays it (hold = gate), right-click previews on headphones, alt-click stops playback, shift-click clears — pads 1+2 and 3+4 are choke groups';
   const firePad = (vel = 1) => {
     const slot = smpSlots[i];
     if (!slot || !slot.buf) return;
     if (slot.src) { try { slot.src.stop(); } catch (_) {} }
-    // Single voice like the DJM sampler: a new shot chokes the others,
-    // so one-shots can never pile up mid-set.
+    // MPC-style choke groups: pads 1+2 share group A and 3+4 share
+    // group B — a new shot chokes only its groupmate, so a kick on one
+    // group can ring under a stab on the other while same-group
+    // one-shots still can't pile up.
     smpSlots.forEach((sl, j) => {
-      if (j === i || !sl || !sl.src) return;
+      if (j === i || (j >> 1) !== (i >> 1) || !sl || !sl.src) return;
       try { sl.src.stop(); } catch (_) {}
       smpPadsEl.children[j].classList.remove('on');
     });
