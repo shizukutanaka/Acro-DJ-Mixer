@@ -361,7 +361,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   `0` centers it, `↑`/`↓` ride the master level; mirrored pad/sync/loop
   keys: deck A `Z X C V` (cues 1–4) `A S D F` (cues 5–8) `E` `R`,
   deck B `B N M ,` `H J K L` `I` `U` (see ADR-0031, ADR-0101,
-  ADR-0157).
+  ADR-0157). `?` (or `/`) toggles a gesture-legend overlay listing the
+  modifier grammar — click/hold/double-click/wheel/shift/alt/
+  right-click — and the key map (see ADR-0231).
 - **Web MIDI** — connected controllers drive the surface: notes
   60–75 = deck A/B pads, 36–39 = sampler pads (velocity-sensitive,
   ADR-0168; held ≥250 ms gates the shot like a held mouse pad,
