@@ -164,7 +164,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   honours Quantize like hot cues (see ADR-0058, ADR-0176).
 - **Reloop** — `↺` beside `Loop` re-enters the last exited loop with
   its exact bounds; seeking out of a loop is also reloop-able
-  (see ADR-0059). `Shift+↺` stores the armed loop in a dedicated
+  (see ADR-0059); the button's title lists each saved slot's
+  region so recall is inspectable before firing (see ADR-0220).
+  `Shift+↺` stores the armed loop in a dedicated
   memory slot that survives later exits — Serato's loop memory
   (see ADR-0116); `Alt+↺` owns a second slot the same way: armed
   loop saves, disarmed click recalls (see ADR-0166).
