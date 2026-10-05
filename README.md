@@ -227,7 +227,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Cue marker** — the deck cue point (auto-cue or track start) shows
   as a cyan tick on the waveform (see ADR-0074).
 - **Beat sync** — `Shift+Sync` slips beat phase only, leaving the
-  tempo fader alone (see ADR-0075).
+  tempo fader alone (see ADR-0075); right-click matches tempo
+  only, leaving this deck's position untouched (see ADR-0206).
 - **Waveform scrub** — hold and drag on the waveform to jog the
   playhead continuously (see ADR-0076); `Shift`-drag while playing
   bends pitch like a finger on the platter (see ADR-0102).
