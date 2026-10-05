@@ -1340,6 +1340,8 @@ class Deck {
     this._prevLoop = null;
     this._loopMem = null;
     this._loopIn = null;
+    this._loopT = null;
+    this._loopEnterPos = 0;
     this.loopLenEl.hidden = true;
     this.loopBtn.classList.remove('on', 'armed');
     this.loopBtn.textContent = 'Loop';
@@ -1863,6 +1865,7 @@ class Deck {
       this.loopStart = start;
       this.loopEnd = end;
       this.loopOn = true;
+      this._loopT = ctx.currentTime; this._loopEnterPos = this.pos();
     } else if (!this.loopOn) {
       // Compute bounds BEFORE loopOn flips: pos() reads loopEnd for wrapping.
       const beatLen = this.grid ? 60 / this.grid.bpm : 1;
@@ -1874,9 +1877,18 @@ class Deck {
       this.loopStart = start;
       this.loopEnd = end;
       this.loopOn = true;
+      this._loopT = ctx.currentTime; this._loopEnterPos = this.pos();
     } else {
       this.loopOn = false;
       this._prevLoop = [this.loopStart, this.loopEnd];
+      // Slip-aware exit (CDJ SLIP loop out): with Slip on, the deck
+      // lands where the track would have been without the loop —
+      // same doctrine as roll release and slip cues.
+      if (this.slip && this.playing && this._loopT != null) {
+        const wouldBe = this._loopEnterPos + (ctx.currentTime - this._loopT) * this.rate;
+        if (wouldBe < this.loopStart || wouldBe > this.loopEnd)
+          this.seekTo(Math.min(wouldBe, this.buffer.duration - 0.01));
+      }
     }
     this._loopIn = null;
     this.loopBtn.classList.remove('armed');
@@ -1900,6 +1912,7 @@ class Deck {
     this.loopStart = start;
     this.loopEnd = start + beatLen;
     this.loopOn = true;
+    this._loopT = null;   // rolls own their slip bookkeeping; no stale arm time
     this.applyLoop();
     this.rollBtn.classList.add('on');
     this._drawnPos = undefined;
