@@ -2009,13 +2009,14 @@ class Deck {
   refreshKey() {
     renderLibrary();  // harmonic-fit highlighting re-scores on key changes
     const el = this.keyEl;
-    if (!this.key) { el.textContent = '—'; el.className = 'key'; return; }
+    if (!this.key) { el.textContent = '—'; el.className = 'key'; el.title = ''; return; }
     el.textContent = `${this.key.num}${this.key.letter} ${this.key.name}`;
     const other = this.partner && this.partner.key;
     // Colour by the EFFECTIVE key — the detected key shifted by the
     // current transpose (st), +7 Camelot hours per semitone.
     const eff = { num: ((this.key.num - 1 + 7 * (this.st || 0)) % 12 + 12) % 12 + 1, letter: this.key.letter };
     el.className = 'key' + (other ? (harmonic(eff, other) ? ' ok' : ' clash') : '');
+    el.title = 'harmonic with ' + camelotCompat(eff).join(' · ');
   }
 
   // Headphone cue: pre-fader signal to the cue bus. Arming works before a
@@ -2527,6 +2528,15 @@ function estimateKey(d) {
 function harmonic(a, b) {
   const d = Math.min(Math.abs(a.num - b.num), 12 - Math.abs(a.num - b.num));
   return a.num === b.num || (a.letter === b.letter && d === 1);
+}
+
+// The Camelot codes a key mixes with: same code, ±1 hour on the same
+// letter, and the relative major/minor — what harmonic() accepts, as a
+// readable list for tooltips.
+function camelotCompat(k) {
+  const p = ((k.num + 10) % 12) + 1, n = (k.num % 12) + 1;
+  return [`${p}${k.letter}`, `${k.num}${k.letter}`, `${n}${k.letter}`,
+          `${k.num}${k.letter === 'A' ? 'B' : 'A'}`];
 }
 
 // ----- Library (IndexedDB) -----
