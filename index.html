@@ -1081,17 +1081,23 @@ class Deck {
       // start at the first sample above −50 dBFS (scans max 30 s).
       this.cueIn = 0;
       {
-        const ch0 = buf.getChannelData(0);
-        const end = Math.min(ch0.length, buf.sampleRate * 30);
-        for (let i = 0; i < end; i++) {
-          if (Math.abs(ch0[i]) > 0.003) { this.cueIn = i / buf.sampleRate; break; }
+        const chs = [];
+        for (let c = 0; c < buf.numberOfChannels; c++) chs.push(buf.getChannelData(c));
+        const end = Math.min(chs[0].length, buf.sampleRate * 30);
+        outer: for (let i = 0; i < end; i++) {
+          for (const ch of chs) {
+            if (Math.abs(ch[i]) > 0.003) { this.cueIn = i / buf.sampleRate; break outer; }
+          }
         }
         // Effective end: the last sample above the same −50 dBFS
-        // floor. Tracks with a silent tail would otherwise make
-        // auto-mix fire late — it counts back from this point.
+        // floor on ANY channel — a right-channel tail that outlasts
+        // the left must not be faded out early. Tracks with a silent
+        // tail would otherwise make auto-mix fire late.
         this._endAt = buf.duration;
-        for (let i = ch0.length - 1; i >= 0; i--) {
-          if (Math.abs(ch0[i]) > 0.003) { this._endAt = i / buf.sampleRate; break; }
+        outer: for (let i = chs[0].length - 1; i >= 0; i--) {
+          for (const ch of chs) {
+            if (Math.abs(ch[i]) > 0.003) { this._endAt = i / buf.sampleRate; break outer; }
+          }
         }
       }
       // A cue point set by hand (shift+Cue) beats the auto-detected
