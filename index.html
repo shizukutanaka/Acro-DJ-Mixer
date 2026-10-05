@@ -202,7 +202,7 @@
     <div class="meter cuem" title="Cue bus level (tick = peak hold)"><i id="cuemeter-fill"></i><b id="cuemeter-peak"></b></div>
     <div class="phase" id="phase" title="Beat-phase offset between decks"></div>
     <div class="row"><label>Smpl</label><span id="smp-pads"></span><input type="range" id="smp-gain" min="0" max="1" step="0.01" value="0.8" title="Sampler level — all pads"><label title="Loop pads — fired shots repeat until stopped (alt-click / choke)" style="font-size:10px;display:flex;align-items:center;gap:2px"><input type="checkbox" id="smp-loop">Loop</label><input id="smp-file" type="file" accept="audio/*" hidden></div>
-    <div class="row"><button id="automix" title="Auto mix — near the end of the playing track the other deck starts synced and the crossfader rides over (8 beats; shift = long 32-beat fade). Keeps going: the empty deck auto-loads the next library track">Auto</button><button id="recbtn" title="Record the master output — click again to stop and download a .webm">Rec</button><button id="mic" title="Microphone — live input summed into the master pre-limiter (use headphones — open speakers will feed back)">Mic</button><input type="range" id="mic-gain" min="0" max="1.5" step="0.01" value="0.9" title="Mic level — trim the mic in the master; double-click resets to 0.9. Range goes past unity for quiet mics"></div>
+    <div class="row"><button id="automix" title="Auto mix — near the end of the playing track the other deck starts synced and the crossfader rides over (8 beats; shift = long 32-beat fade). Keeps going: the empty deck auto-loads the next library track">Auto</button><button id="recbtn" title="Record the master output — click again to stop and download a .webm">Rec</button><button id="mic" title="Microphone — live input summed into the master pre-limiter (use headphones — open speakers will feed back)">Mic</button><input type="range" id="mic-gain" min="0" max="1.5" step="0.01" value="0.9" title="Mic level — trim the mic in the master; double-click resets to 0.9. Range goes past unity for quiet mics"><input type="range" id="mic-low" min="-1" max="1" step="0.01" value="0" title="Mic LOW — 200 Hz low shelf ±12 dB, double-click resets"><input type="range" id="mic-high" min="-1" max="1" step="0.01" value="0" title="Mic HI — 4 kHz high shelf ±12 dB, double-click resets"></div>
     <div class="kbd-hint">Equal-power crossfade.<br>Auto BPM is an estimate — trust your ears.</div>
   </section>
 
@@ -250,7 +250,7 @@
 let ctx = null;
 let masterGain, limiter, analyser, monoNode, micDuck, cutGain;
 let cueDest = null, cueAudio = null, cueIn = null, cueAnalyser = null, pgmSend = null, cuePan = null, pgmPan = null, phonesOut = null;
-let micStream = null, micSrc = null, micGain = null, micHp = null, micAn = null;
+let micStream = null, micSrc = null, micGain = null, micHp = null, micAn = null, micLow = null, micHigh = null;
 let wsolaModuleReady = false;
 
 // Playback engine: holds the decoded channel data, advances content at `rate`.
@@ -2716,8 +2716,9 @@ async function autoNext(vacated, playing) {
 document.getElementById('mic').addEventListener('click', async e => {
   if (micSrc) {
     micSrc.disconnect(); micGain.disconnect(); micHp.disconnect(); micAn.disconnect();
+    if (micLow) { micLow.disconnect(); micHigh.disconnect(); }
     micStream.getTracks().forEach(t => t.stop());
-    micSrc = micStream = micGain = micHp = micAn = null;
+    micSrc = micStream = micGain = micHp = micAn = micLow = micHigh = null;
     e.target.style.filter = '';
     if (micDuck) micDuck.gain.setTargetAtTime(1, ctx.currentTime, 0.15);
     e.target.classList.remove('on');
@@ -2736,7 +2737,15 @@ document.getElementById('mic').addEventListener('click', async e => {
   micHp = ctx.createBiquadFilter();
   micHp.type = 'highpass'; micHp.frequency.value = 120; micHp.Q.value = 0.7;
   micGain.connect(micHp);
-  micHp.connect(monoNode);
+  // DJM mic section: fixed HPF, then a 2-band shelving EQ (LOW
+  // 200 Hz / HI 4 kHz, ±12 dB) before the master sum.
+  micLow = ctx.createBiquadFilter();
+  micLow.type = 'lowshelf'; micLow.frequency.value = 200;
+  micLow.gain.value = 12 * parseFloat(document.getElementById('mic-low').value);
+  micHigh = ctx.createBiquadFilter();
+  micHigh.type = 'highshelf'; micHigh.frequency.value = 4000;
+  micHigh.gain.value = 12 * parseFloat(document.getElementById('mic-high').value);
+  micHp.connect(micLow); micLow.connect(micHigh); micHigh.connect(monoNode);
   // Level tap for the button's input indicator — readout only.
   micAn = ctx.createAnalyser(); micAn.fftSize = 256;
   micGain.connect(micAn);
@@ -3055,6 +3064,14 @@ micGainEl.addEventListener('input', e => {
   if (micGain && ctx) micGain.gain.setTargetAtTime(parseFloat(e.target.value), ctx.currentTime, 0.02);
 });
 micGainEl.addEventListener('dblclick', () => { micGainEl.value = 0.9; micGainEl.dispatchEvent(new Event('input')); });
+// Mic 2-band EQ (DJM mic HI/LOW): shelving trims on the mic chain.
+for (const [id, node] of [['mic-low', () => micLow], ['mic-high', () => micHigh]]) {
+  const el = document.getElementById(id);
+  el.addEventListener('input', e => {
+    const n = node(); if (n && ctx) n.gain.setTargetAtTime(12 * parseFloat(e.target.value), ctx.currentTime, 0.02);
+  });
+  el.addEventListener('dblclick', () => { el.value = 0; el.dispatchEvent(new Event('input')); });
+}
 const meterFill = document.getElementById('meter-fill');
 const meterPeakEl = document.getElementById('meter-peak');
 let meterPeak = 0;
