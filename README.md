@@ -78,6 +78,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   (see ADR-0022, ADR-0107). A `Δ ±x% beat` readout below it
   shows the live beat-phase offset between decks — green when locked
   (see ADR-0023).
+- **Track identity** — records match by content hash (size +
+  head/tail SHA-256), so renames keep their prep and same-name
+  impostors can't steal it (see ADR-0211).
 - **Library** — every loaded track is auto-saved to IndexedDB (audio +
   BPM/key analysis, soft-deletable); `→A`/`→B` reloads instantly with
   cached analysis, survives page reloads. Reloading a *playing* deck
