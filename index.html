@@ -1140,7 +1140,13 @@ class Deck {
       this.keyEl.className = 'key';
       this.cues = meta && meta.cues ? meta.cues.slice(0, 8) : [null, null, null, null, null, null, null, null];
       while (this.cues.length < 8) this.cues.push(null);
-      this.cues.forEach((c, i) => this.pads[i].classList.toggle('set', c != null));
+      // Restored cues keep the same pad contract as freshly set ones:
+      // .set styling plus the stored time in the title (the generic
+      // hint would lie about an occupied pad — ADR-0253 pattern).
+      this.cues.forEach((c, i) => {
+        this.pads[i].classList.toggle('set', c != null);
+        if (c != null) this.pads[i].title = 'Hot cue ' + fmt(c) + ' — click jumps, shift-click clears';
+      });
       this._savedLoop = meta && meta.loop ? meta.loop : null;
       this.peaks = computePeaks(buf, this.wave.width);
       this.drawWave();
