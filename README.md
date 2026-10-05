@@ -377,6 +377,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Session persistence** — the mixer surface (faders, EQ, filters,
   FX selection, toggles, sampler and mic trims) is saved on change
   and restored on reload through the same handlers (see ADR-0158).
+- **Status line** — deck status messages are ephemeral: they confirm
+  the action that just happened, then clear themselves after 5 s so a
+  stale message never reads like live state (see ADR-0245).
 
 ## Architecture
 
