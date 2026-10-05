@@ -3221,16 +3221,22 @@ libImpFile.addEventListener('change', async () => {
   libImpFile.value = '';
   if (!f) return;
   let data;
-  try { data = JSON.parse(await f.text()); } catch { return; }
-  if (!Array.isArray(data)) return;
+  try { data = JSON.parse(await f.text()); } catch { deckA.status('import: not a library file'); return; }
+  if (!Array.isArray(data)) { deckA.status('import: not a library file'); return; }
   const rows = (await Library.all()).filter(t => !t.deleted_at);
+  let n = 0;
   for (const e of data) {
     const rec = rows.find(t => t.name === e.name && t.size === e.size);
     if (!rec) continue;   // audio not loaded here — nothing to tag
     const patch = {};
     for (const k of ['duration', 'bpm', 'beatOff', 'key', 'cues', 'cueIn', 'loop']) if (e[k] !== undefined) patch[k] = e[k];
     await Library.tag(rec.id, patch);
+    n++;
   }
+  // Report the outcome like every other honest status — the old
+  // silent finish left "did that file even parse?" unknowable.
+  deckA.status(n ? 'imported ' + n + ' record' + (n === 1 ? '' : 's')
+                 : 'import: no matching tracks');
 });
 
 // Two-click confirm: arms the button for 2 s ("sure?"), a second

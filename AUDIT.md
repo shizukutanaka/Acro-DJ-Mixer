@@ -1,168 +1,141 @@
-# Acro-DJ-Mixer — 第一原理・ソクラテス式監査
+# Product Audit v2 — Acro DJ Mixer (2026-10)
+Supersedes the v1 audit (PR #210). Method: first-principles
+("what must be true for a DJ in 2026 to trust this on a floor?")
++ Socratic cross-examination of every claim against the code.
 
-監査日: 2026-10-04 / 対象: index.html (3669行) + README + docs/adr/* (ADR-0178までmainマージ済み)
+## 長所 (Strengths) — 50
 
-問い: 「DJソフトウェアに本当に必要なものは何か」「その仮定は実装と一致しているか」
+### Signal path & sound
+1. Full hardware-style chain: trim→mid/side→EQ→filter→gate→crusher→fader→xfader→master→limiter.
+2. AudioWorklet playback engine with a graceful buffer fallback.
+3. WSOLA time-stretch + pitch shift in the worklet — key-lock and transpose without resampling.
+4. EBU R128 gated auto-gain (K-weighting + absolute/relative gates), attenuation only.
+5. Master limiter + live GR readout — clipping is engineered out, not hoped out.
+6. Momentary mono fold-down before the limiter for booth checks.
+7. Isolator-style 3-band EQ (−26 dB floor) with letter-key kills.
+8. Color filter knob LP↔HP, per deck.
+9. Beat-synced FX bank (echo/flanger/gate/noise/crush/reverb/ping) sharing one send knob.
+10. Pre/post send tap — echo-out tails survive fader cuts.
+11. Mid/side stem split (Vocal/Inst) — zero-dep stem-ish mixing.
+12. Mic channel with HPF, 2-band EQ, noise gate, talkover duck, PTT momentary.
+13. Sampler: 4 single-voice pads, gate/loop/pitch/per-pad level, velocity, choke.
+14. Pad resampling of an armed loop straight off a deck.
+15. Split cue (PFL left / PGM right) + cue-mix blend knob + cue-bus meter + device pick via setSinkId.
 
----
+### Beat intelligence
+16. Onset-based BPM detection with fractional interpolation + octave-safe UI.
+17. Tap tempo entry with phase.
+18. Beat grid with nudge, beat-shift, downbeat accents, quantized cues/loops.
+19. Phase meter with live sub-frame delta + click-to-sync.
+20. Sync grammar: tempo+phase / phase-only / leader-follow / tempo-only.
+21. Quantize toggle governs cue, loop-in/out, and cue-point writes uniformly.
+22. Beat/bar counter, beat lamp, jump-to-next-bar, beat jump ±1/±4.
+23. Auto-mix: bar-aligned fire point, filter sweep, bass swap, echo-out, countdown display.
+24. Alt+Auto fires the transition immediately through the same path.
+25. Auto-mix skips already-played tracks and says *why* it picked the next one.
+26. Emergency last-4-beats loop on gridded tracks.
 
-## 長所 50
+### Prep & persistence
+27. IndexedDB library with soft-delete, dedupe, version stamps.
+28. Per-track persistence: cues, cueIn, loop, loop memory ×2, grid, key, stem, hash.
+29. Export/import of all analysis + prep as JSON — portable between machines.
+30. Session persistence restores the whole mixer surface across reloads.
+31. Cue output device survives reloads (origin-stable deviceIds).
+32. Setlist logs every played track, exportable, persisted in localStorage.
+33. Track identity moving to content hash, killing name-collision misfires.
+34. Library preview on the cue bus starting at cueIn, normalized by the deck's own gated gain.
+35. Play counts + dimmed played rows + prep badges (⚑n, ∞, ×N).
+36. Row ↔ deck on-load highlight (A/B letters).
 
-### 音響・コア
-1. Web Audio単体でデコード〜ミックス〜リミッターの全信号経路を完結（外部依存ゼロ）
-2. WSOLAキーロックをAudioWorkletで実装——テンポ変更時ピッチ保持
-3. ビートグリッドは小数BPM＋サブフレーム位相補正（ADR-0027/0025）まで到達
-4. Syncはテンポ比＋位相再シークを両方処理、±レンジにクランプ＋通知
-5. Shift+Sync（フェーズのみ）で「レートは自分のものを保つ」実戦的文法
-6. 手動BPM入力・タップテンポ・グリッドナッジで解析ミスを人手修正可能
-7. キー検出＋Camelotホイール適合判定（トランスポーズ込み実効キー）
-8. keySyncでワンクリック和声トランスポーズ
-9. 3バンドDJ EQ（アイソレータ式±26dB）＋独立キルスイッチ
-10. カラーフィルターがLP/HP双方向1ノブ
-11. オートゲインがK加重RMS→EBU R128ゲーティングまで到達（ADR-0024/0034）
-12. マスターリミッター＋GR表示でクリップを防ぐ
-13. モノラル畳み込みチェック（クラブPA対応）— ラッチ＋モメンタリ両対応
-14. マスターカット（トランスフォーマースイッチ）でスクラッチ演出
-15. 実質終端（-50dBFS）スキャンで無音テールをフェード計算から除外
-16. フェード中イジェクト・キャンセル時のフェーダー/デッキ完全ロールバック
-17. エマージェンシーループ対応版（PR #199）
+### Interaction grammar
+37. Consistent momentary grammar across 9+ controls (tap=latch, hold=momentary).
+38. armConfirm shared two-click guard on every destructive mid-set action.
+39. Double-click reset on every continuous control; wheel nudge everywhere.
+40. Modifier keys carry consistent semantics (shift=alternate, alt=deep/expert, right-click=preview/tempo-only).
+41. Load guard: playing decks can't be silently replaced (click, drop, steppers, auto-mix share it).
+42. Waveform: peaks render, zoom, drag-scrub, pitch-jog, cue/loop/marker dragging, mini overview.
+43. Keyboard map covers transport, pads, sync, loop, masters.
+44. Web MIDI: pads, transport, tempo/filter/gain/fader CCs, pitch-bend wheel, velocity.
+45. Honest status lines — failures surface text instead of dying quietly.
 
-### 演奏性
-18. モメンタリ文法が9箇所で統一（タップ=ラッチ、ホールド=モメンタリ）
-19. ホットキュー8個/デッキ＋パッド色と波形マーカー色の一致
-20. ループ長選択(2/4/8/16b)＋ビート刻みトリム＋全体スライド＋メモリ2スロット
-21. フリーサイズループ（in/out手動）＋Qtz吸着
-22. ループロール 1/½/¼拍（alt含む）でスタッター演奏
-23. スリップモード＋スリップゴーストプレイヘッド＋スリップ対応ループ退出
-24. ビニールブレーキ（スピンダウン/アップ）
-25. ピッチベンド±5%（ボタン、shift+波形ドラッグ、MIDIピッチホイールの3入力）
-26. インスタントダブル＋デッキスワップ（状態保持の完全交換、PR #196）
-27. ビートジャンプ±1拍/小節＋次/前小節頭ジャンプ（PR #205）
-28. フェーダースタート（フェーダーを側へ掃くだけで再生）
-29. フェーズメータークリック=シンク（PR #200）
-30. 波形スクラブ/ジョグ/ズーム＋ループ端・キュー・マーカードラッグ（PR #192-194）
+### Engineering hygiene
+46. 176 ADRs — every behavior carries its "why", discoverable and revisable.
+47. Zero runtime dependencies, no build step — one file opens anywhere.
+48. Committed smoke gate (tests/smoke.mjs) makes the core contract re-verifiable.
+49. The audit itself exists — the project self-examines instead of accruing blind spots.
+50. Velocity of iteration: 230+ rounds of small reversible increments with working verification each time.
 
-### FX・サンプラー
-31. ビートFX 7種（echo/flange/trans/noise/crush/rev/ping）を1ノブ+選択+オン/オフで統一
-32. 全FXがBPM/小節同期（エコー時間、フランジャLFO、トランスチョップ）
-33. FXオフ時センドを閉じテールを自然減衰（実機DJM挙動、PR #186）
-34. FXモメンタリパンチ（ワンスタブ投入）
-35. サンプラー4パッド：ベロシティ、チョーク、ゲート/ループモード、ピッチ、パッド別レベル
-36. パッドへの直接ドロップ＋ファイルピッカー＋ループリサンプルの3ロード経路
-37. サンプラー自動正規化（PR #201/#206で全経路カバー）
+## 短所 (Weaknesses) — 50
 
-### ライブラリ・運用
-38. IndexedDB永続化：BPM/キー/キュー/ループ/再生回数/削除
-39. ライブラリ行の準備バッジ（⚑キュー数、∞ループ、×再生回数）
-40. 再生済み行グレー＋オンデッキハイライト＋ハーモニック適合ハイライト
-41. 行をデッキへドラッグ＆ドロップ（PR #198）＋→A/→Bボタン＋‹›ステップ
-42. 連続オートミックス：ハーモニック優先ピック＋再生済みスキップ（PR #207）＋次曲表示（PR #183）
-43. フェード発火点マーカー（PR #181相当の琥珀tick）＋拍カウントダウン＋即発火（PR #208）
-44. セットリスト記録＋録音(.webm)がライブラリへ自動格納
-45. メタデータexport/importでキュー・キー・グリッドがポータブル
-46. ヘッドホンキュー系が充実：PFL/PGMブレンド、スプリットキュー、モメンタリ、ボリューム、メーター
-47. セッション永続化でミキサー面がリロードを生き延びる
-48. Web MIDI：ノート36–75＋CC1/7/14–21＋ピッチベンドで主要操作を網羅
-49. ロードガード/イジェクトガード/削除ガードの2クリック確認が全破壊的経路を統一
-50. ゼロ依存・単一HTML・ビルド不要——コピーして開くだけで動く
+### Structure
+1. 3669-line single file — every edit risks touching everything; no seams for tests.
+2. No modular boundary between audio engine, deck state, DOM, and persistence.
+3. tests/smoke.mjs exists only in an unmerged PR — main still has zero committed gates.
+4. ~45 open unmerged PRs — main diverges far behind the reviewed surface; merge-order stacks (#218→#219/#220) must land in sequence.
+5. Duplicate gestural logic scattered (modifiers re-derived per handler; no single gesture interpreter).
+6. Global mutable singletons (deckA/deckB/smpSlots/ctx) make every feature implicitly coupled.
+7. ADRs document intent but nothing enforces behavior — docs drift from code silently.
+8. No lint/format/type gate — a syntax slip is found by the browser, not a tool.
+9. Two audio engines (worklet vs buffer fallback) diverge in capability but share one API surface — subtle behavioral deltas are untested.
+10. Inline styles + class toggles mix state into DOM — no single source of truth for "on".
 
----
+### Correctness risks
+11. `pos()`/worklet seek interplay re-derived in several places — edge cases when looping + slipping + seeking simultaneously.
+12. Library dedupe still partially name+size in legacy records — hash migration unfinished (PR open).
+13. IndexedDB has no schema version — record shape changes rely on tolerant reads.
+14. Soft-deleted pad records accumulate audio blobs (no vacuum/GC of deleted blob payloads).
+15. localStorage writes are fire-and-forget — quota errors degrade silently.
+16. Session restore replays synthetic events — a handler added without the replay contract is silently skipped.
+17. Several `catch (_)` remain on secondary paths — the loud-fail doctrine is not exhaustive.
+18. No error path for decode of huge files — multi-hundred-MB WAVs can exhaust memory with no guard.
+19. `setTargetAtTime` races when a control is hammered (cancelScheduledValues coverage varies by control).
+20. Timers (`setTimeout`-driven _mom/_arm) aren't cancelled on deck eject/load — latent edge bugs.
 
-## 短所 50
+### Missing features (vs. a 2026 floor expectation)
+21. No real stem separation — mid/side matrix only works on centre-heavy mixes; no spectral/ML option.
+22. No recording time-stamp splitting or multi-format export beyond wav/webm.
+23. No streaming input — local files only; a browser DJ in 2026 still can't pull a URL/track link.
+24. No visual key/Camelot wheel — harmonic fit is row-highlight only.
+25. No per-pad choke groups — single-voice only (fine for 4 pads, limiting if expanded).
+26. No deck C/D or routing beyond 2 channels + sends.
+27. No undo beyond single-level cue-clear restore.
+28. No macro/FX presets — FX state persists per session but can't be saved/recalled by name.
+29. No touch-optimized surface — pointer events work, but the layout is mouse-first at small sizes.
+30. No accessibility pass — buttons rely on title attributes; no ARIA, no focus model, screen readers get little.
 
-### 音響・精度
-1. WSOLAは近似品質——+6%超で位相伸長の可聴アーティファクト（リサンプル+WSOLAの限界）
-2. BPM推定が倍/半のオクターブ誤りを起こし得る（補正UIはPR #31で却下済み）
-3. キー検出は概算——短い/無調パートで誤判定、信頼度表示なし
-4. グリッド推定がダウンビートの4分の1ズレを起こし得る（拍は合うが小小節が違う）
-5. `_endAt`実質終端スキャンが片chのみ→右chテール見逃し（PR #182で修正済みだが未マージ）
-6. 解析（ピーク/BPM/キー）はロード時一括——大曲で数秒UI待ち、プログレス表示なし
-7. 解析結果が`load()`に非同期で遅れて着くため即Sync不可な一瞬がある
-8. マスターLUはモメンタリ/インテグレーテッドだがR128完全ゲーティングではない
-9. リミッターが閾値固定——出力レベル/シーリングの可変化なし
-10. モノフォールドは中高音のみ実用的——低域の位相相殺は評価しない
-11. ミッド/サイドスプリットの「Vocal/Inst」はM/S近似で分離品質は限定的
-12. エコー/リバーブのテールは`fxOn`オフで持続するが、FXセレクト切替時の遷移は未処理
-13. ビートFXがディビジョン選択をテンポ後付けで再同期しない場合がある
-14. サンプラーのピッチはレート変更のみ（ピッチ/長さトレードオフ、品質劣化）
-15. リサンプルループはデッキEQ/フィルター通過後でなく生バッファから切り出し（音源と表示の齟齬があり得る）
+### Performance & scale
+31. Peaks/waveform recompute is O(track) at load and O(zoom) per wheel tick — long sets stutter on redraw.
+32. `renderLibrary` rebuilds all rows' HTML on every tag write — O(library) DOM churn per cue save.
+33. monoResample runs full-length on every load even when analysis is cached (gain re-derive could reuse).
+34. Analyser taps run rAF unthrottled — meters + wave + lamps all repaint every frame.
+35. Float32 pad records double memory at save time (planar copy before Blob).
+36. No virtualized library rows — thousands of tracks degrade linearly.
+37. decodeAudioData holds the full float copy per deck — 2 decks + 4 pads + preview can pin GBs.
+38. `Library.all()` fetches every record incl. blobs wherever only metadata is needed.
+39. localStorage setlog/session blobs serialize entire objects per write — O(state) per keypress-debounce.
+40. No worker offload for analysis — BPM/key compute on the main thread blocks input on big tracks.
 
-### 構造・保守性
-16. 3669行の単一ファイル——分割しない設計だが新規参入者の読解コストが極大
-17. テストコード皆無（検証は全て手動ブラウザ駆動）——リグレッション検知が人依存
-18. CIがリント/構文チェックのみで動作検証なし
-19. Deckクラスが~2000行のゴッドオブジェクト（UI+再生+解析+永続化が同居）
-20. モジュールスコープ変数が暗黙の結合（`autoMix`,`xfader`,`deckA/B`の相互参照）
-21. 状態永続化が部分的——キュー/ループ/コントロールは残るがデッキ位置/再生状態は消える
-22. タグ付け（tagLib）がname+sizeのファイル同一性に依存——同名ファイルで誤爆し得る
-23. エラーパスが`catch(_){return false}`等で飲み込まれ、失敗が静かに握り潰される箇所あり
-24. armConfirmの2秒タイムアウトが暗黙——経過表示なし（ユーザーには「反応しない」に見える）
-25. イベントリスナーが大量に重複構築されるパターンで潜在リークの懸念（要素生成系）
+### Process & product
+41. One maintainer, one branch cadence — PR backlog means "shipped" and "written" diverge by dozens of features.
+42. Feature surface is now wider than the README gesture legend can honestly compress.
+43. No usage telemetry (even local counters) — which of 200 gestures are actually used is unknown.
+44. Help/discoverability is title-attribute-driven — a new user cannot learn the modifier grammar in-app.
+45. No onboarding state — first-run shows an empty mixer with no guided first track.
+46. ADR numbering races across parallel sessions (gaps/renumber risk noted before).
+47. Screenshot/visual regression is manual — CSS changes to the dense layout ship unverified visually.
+48. Non-Chrome support is partial (setSinkId absent → cue bus degrades silently on Firefox/Safari).
+49. No automated checks on PRs (no CI) — the smoke gate isn't wired to run per-PR.
+50. "AI" in the product's mission remains implicit — auto-pick + analysis exist, but no model/ML path or learning from the user's own sets is articulated.
 
-### 演奏・操作
-26. アップフェーダー（チャンネル音量）が存在しない——ゲインノブで代替しているが実機DJ文法と違う
-27. エコーアウト/フィルターアウトの「フェーダー越しの離れ技」はフェード中のみ——手動で演出不可
-28. キーボード操作がパッド/デッキ/サンプラーを網羅するもショートカット一覧UIがない
-29. タッチ/モバイル対応が未検証——pointer系イベント前提で小画面レイアウト破綻
-30. undo機能なし——キュー消去やループ解除は不可逆
-31. cueInマーカーがoffsetと複数所に同時書き込みされる箇所が散在（整合は維持されるが読み難い）
-32. サンプラーパッドがファイル参照のみ——セッションまたぎで消える
-33. 波形が前計算ピーク配列のみ——オーディオ変更（EQ等）を反映しない（表示のみだが誤解を招く）
-34. ズーム状態がデッキ入替/リロードで保持されない
-35. Slipゴーストはドラッグ中のみで、ループロール中の真タイムライン表示に拡張されていない
-36. `instantDouble`/`swapWith`が`_fileObj`必須——ライブラリ外ロードやリサンプル経路で複製不可
-37. オートミックスが単一フェード長プリセット（8/32拍）——楽曲のフレーズ長に適応しない
-38. フェーズメーターが%beat表示のみ——拍のサイン（遅れ/進み）の色分けが読み取りにくい
+## Socratic reframes (assumptions worth re-questioning)
+- "Features = completeness." → The product now solves breadth; the open-PR pileup says depth-of-landing is the real bottleneck.
+- "Single file = simplicity." → True at 800 lines; at 3669 it's indirection-free but seam-free — the test gate exists because the file can't be trusted by reading.
+- "More modifiers = more power." → The grammar is consistent but invisible; discoverability is now the binding constraint on power users.
+- "AI-era = automation." → The strongest current claim is *explainable* automation (pick reasons); the weakest is that nothing learns from the DJ's own history.
+- "Zero deps = principled." → Holds for runtime; the test tooling is already a sanctioned exception — extend the exception to a lint/type check, not to app deps.
 
-### 機能欠落・統合
-39. ストリーミング/URLロードなし——ローカルファイル限定
-40. 録音が.webm(Opus)のみ——WAV/MP3書き出し不可
-41. セットリストがセッション内のみ——アプリ再起動で履歴消失（ライブラリのplaysは残るが時系列は消える）
-42. キューバスのデバイス選択UIなし（setSinkIdはあるがプルダウン未提供）
-43. インポート形式がJSON限定——rekordbox XML/Seratoのライブラリと非互換
-44. グリッド編集の粒度が拍/小節のみ——スイング/変拍子を前提にしない
-45. 4バンド以上のEQ/フルキル帯域設定不可——3バンド固定
-46. マイクがモノラル挿入のみ——ステレオAUX/外部入力なし
-47. FXユニットがデッキ固定——マスターFX（全体エコー等）なし
-48. ループの保存は1デッキ内スロットのみ——ライブラリ横断で共有されるネームドループなし
-49. ビートスライサー（グリッド分割パッド再生）がない——現代DJの主要演奏法を未カバー
-50. 学習済み「おまかせ改善」群のPRが約20件未マージ滞留——マージされないとmainとの乖離が積み上がる
-
----
-
-## 第一原理からの問い直し（ソクラテス式）
-
-- 「DJソフトウェアは2デッキ＋クロスフェーダーである」という仮定は妥当か？ → 妥当。ただしチャンネルアップフェーダー欠落は実機文法からの逸脱であり、レイアウトリスクを取ってでも補完価値あり（短所26）
-- 「波形は表示でよい」という仮定 → 部分的に破綻済み。キュー/ループ端ドラッグで編集面になりつつあるが、波形がEQ後の音を反映しない（短所33）は「表示と音の一致」原則に反する——ただし実装上の価値は小
-- 「ゼロ依存は正しいか」 → 正しい。配布・耐久・監査可能性が最大化されている。ただしテスト皆無（短所17）とはトレードオフ——依存を入れずとも`test/`にplaywrightスクリプトを置く余地はある
-- 「AI時代のDJ」という当初の軸 → 自動化（autoNext/ハーモニック/実質終端/エマージェンシーループ）は積み上がったが、「提案の理由を説明するAI」はまだ存在しない。次曲の根拠（fit/再生済み/BPM差）を一行で出すだけで「自動化」が「共同操縦」に変わる
-
----
-
-## 改善優先度
-
-**P0（正しさ・信頼性）**
-1. 右chテールスキャン修正（PR #182）を含む未マージ重要修正の統合
-2. 無音フェイルパスの可視化（catch→status表示）で「静かに失敗」を撲滅
-3. tagLibのファイル同一性を名前+サイズから内容ハッシュへ（誤爆防止）
-
-**P1（演奏の完成度）**
-4. ビートスライサー（短所49）——唯一残った現代DJの主要欠落機能
-5. チャンネルアップフェーダー（短所26）——実機文法への回帰
-6. オートミックス「次曲の理由」表示（fit/新鮮度/BPM差の一行説明）
-7. undoの最小版（直近のキュー消去/ループ解除を戻す）
-
-**P2（耐久・品質）**
-8. /testへのplaywright検証スクリプト集約（現在は/tmpで散逸）
-9. Deckの段階的分割（deck-ui/deck-audio/deck-persistへの責務分離——ただし単一ファイル原則と要相談）
-10. モバイル/タッチ検証＋小画面レイアウト
-11. WAV録音オプション
-
-**P3（拡張・接続）**
-12. 録音履歴/セットリストのIndexedDB永続化
-13. キューバス出力デバイス選択UI
-14. URL/共有リンクからのロード
-
----
-
-*この監査はコード実読に基づく（3669行・ADR-0178までのmainを対象）*
+## 改善優先度 (prioritized)
+- P0 (broken/structural): land the ~45-PR backlog (in stack order), commit the smoke gate to main (PR #221), wire it to PR checks, finish hash migration (#215).
+- P1 (core gaps): real stem separation path (spectral subtraction or bundled ONNX-style model — biggest mission gap), first-run onboarding (drop-anywhere → auto-analyze → guided cue), gesture legend overlay (? key), blob GC for soft-deleted records, analysis in a Worker.
+- P2 (quality): FX macro presets, Camelot wheel readout, undo ring (cue/loop/grid ops), ARIA + focus model, per-PR CI on the smoke gate.
+- P3 (polish): visual diff checks on layout, telemetry-lite local counters, deck C, choke groups, split recordings.
