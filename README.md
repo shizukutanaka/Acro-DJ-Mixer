@@ -288,7 +288,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
-  click again to cancel mid-fade; Shift+Auto arms a long 32-beat
+  click again to cancel mid-fade — the fader and the incoming deck
+  roll back to pre-fade state (ADR-0191); Shift+Auto arms a long 32-beat
   blend (see ADR-0013, ADR-0073). The button counts down beats to
   the fade (`Auto 14b`) and shows fade progress (`Auto 31%`); with a
   beat grid the fire point snaps to the nearest bar so transitions
