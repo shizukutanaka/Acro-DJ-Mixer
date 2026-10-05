@@ -242,7 +242,7 @@
 <section class="library">
   <h2>Library</h2>
   <input type="text" id="lib-search" placeholder="Filter tracks…" autocomplete="off">
-  <div class="row"><button id="lib-exp" title="Export library metadata (BPM, key, cues, loops) as JSON">⤓ Export</button><button id="lib-imp" title="Import library metadata — matches tracks by file name+size">⤒ Import</button><input type="file" id="lib-impfile" accept=".json,application/json" hidden><button id="lib-set" title="Setlist — download every track played this session, in order, as a .txt">Setlist</button></div>
+  <div class="row"><button id="lib-exp" title="Export library metadata (BPM, key, cues, loops) as JSON">⤓ Export</button><button id="lib-imp" title="Import library metadata — matches tracks by file name+size">⤒ Import</button><input type="file" id="lib-impfile" accept=".json,application/json" hidden><button id="lib-set" title="Setlist — download every track played (persisted across reloads), in order, as a .txt">Setlist</button></div>
   <div id="lib-rows"><p class="muted">Tracks you load are saved here for instant reload.</p></div>
 </section>
 <footer>Acro DJ Mixer — local files only, nothing is uploaded. See docs/adr/ADR-0001 for scope decisions.</footer>
@@ -1389,7 +1389,7 @@ class Deck {
     if (this.offset >= this.buffer.duration - 0.01) this.offset = 0;
     if (!this._setLogged && this.fileName) {
       this._setLogged = true;
-      setLog.push({ name: this.fileName, deck: this.side, at: new Date() });
+      setLogPush({ name: this.fileName, deck: this.side, at: new Date() });
     }
     if (!this._playCounted && this.fileName) {
       this._playCounted = true;
@@ -2608,7 +2608,21 @@ let libQuery = '';
 // headphone cue bus without touching a deck — the "is this the right
 // track" check before committing a load.
 let previewSrc = null, previewId = null;
-const setLog = [];   // every track actually played this session, in order
+// Setlist survives a reload like the rest of the mixer surface
+// (ADR-0158): entries persist to localStorage, capped so a month
+// of sessions can't grow it without bound.
+const SETLOG_KEY = 'acro-setlog';
+const setLog = (() => {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SETLOG_KEY) || '[]');
+    return Array.isArray(raw) ? raw.map(e => ({ ...e, at: new Date(e.at) })) : [];
+  } catch (_) { return []; }
+})();
+function setLogPush(e) {
+  setLog.push(e);
+  if (setLog.length > 2000) setLog.splice(0, setLog.length - 2000);
+  try { localStorage.setItem(SETLOG_KEY, JSON.stringify(setLog)); } catch (_) {}
+}
 async function previewTrack(id) {
   const wasPlaying = previewId === id;
   if (previewSrc) { try { previewSrc.stop(); } catch (_) {} previewSrc.disconnect(); previewSrc = previewId = null; }
