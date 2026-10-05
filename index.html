@@ -2741,6 +2741,24 @@ smpSlots.forEach((_, i) => {
     }
     if (e.shiftKey) {
       if (slot && slot.src) { try { slot.src.stop(); } catch (_) {} }
+      if (!slot) {
+        // Shift+empty pad: resample the armed loop straight off a deck —
+        // the phrase that's playing becomes a one-shot (SP-style
+        // resampling: no file dialog, no file leaves the page).
+        const d = [deckA, deckB].find(x => x.loopOn && x.playing) ||
+                  [deckA, deckB].find(x => x.loopOn);
+        if (!d || !d.buffer) { (deckA.buffer ? deckA : deckB).status('Arm a loop first — shift+pad samples it.'); return; }
+        const a = Math.max(0, Math.round(d.loopStart * ctx.sampleRate));
+        const z = Math.min(d.buffer.length, Math.round(d.loopEnd * ctx.sampleRate));
+        if (z - a <= 256) { d.status('Loop too short to sample.'); return; }
+        const nb = ctx.createBuffer(d.buffer.numberOfChannels, z - a, ctx.sampleRate);
+        for (let ch = 0; ch < nb.numberOfChannels; ch++)
+          nb.copyToChannel(d.buffer.getChannelData(ch).subarray(a, z), ch);
+        smpSlots[i] = { buf: nb, name: 'loop@' + d.name, src: null };
+        b.textContent = 'loop'; b.classList.add('set');
+        b.title = 'Resampled loop — ' + d.name + ' ' + (d.loopEnd - d.loopStart).toFixed(2) + 's';
+        return;
+      }
       smpSlots[i] = null;
       b.textContent = '+'; b.classList.remove('set', 'on');
       b.title = 'Sampler — click loads a one-shot, click again plays it, alt-click stops playback, shift-click clears';
