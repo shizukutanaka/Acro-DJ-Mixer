@@ -241,7 +241,7 @@
 </main>
 <section class="library">
   <h2>Library</h2>
-  <input type="text" id="lib-search" placeholder="Filter tracks…" autocomplete="off">
+  <input type="text" id="lib-search" placeholder="Filter tracks… Enter loads top match" autocomplete="off">
   <div class="row"><button id="lib-exp" title="Export library metadata (BPM, key, cues, loops) as JSON">⤓ Export</button><button id="lib-imp" title="Import library metadata — matches tracks by file name+size">⤒ Import</button><input type="file" id="lib-impfile" accept=".json,application/json" hidden><button id="lib-set" title="Setlist — download every track played this session, in order, as a .txt">Setlist</button></div>
   <div id="lib-rows"><p class="muted">Tracks you load are saved here for instant reload.</p></div>
 </section>
@@ -3182,6 +3182,17 @@ if (navigator.mediaDevices) navigator.mediaDevices.addEventListener('devicechang
 document.getElementById('lib-search').addEventListener('input', e => {
   libQuery = e.target.value;
   renderLibrary();
+});
+// Enter in the filter loads the top match into the free deck — the
+// crate-dig flow: type, hit enter, it's on a deck. Same pick as a
+// row double-click: the stopped deck, A when both are free, nothing
+// when both are playing.
+document.getElementById('lib-search').addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const row = document.querySelector('#lib-rows .lib-row');
+  if (!row) return;
+  const free = !deckA.playing ? deckA : (!deckB.playing ? deckB : null);
+  if (free) Library.loadInto(free, Number(row.dataset.id));
 });
 // Library metadata export/import: the analysis + prep (BPM, grid,
 // key, hot cues, loop) is the valuable part — audio blobs stay put,
