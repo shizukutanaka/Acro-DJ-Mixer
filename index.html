@@ -206,7 +206,7 @@
     <div class="meter cuem" title="Cue bus level (tick = peak hold)"><i id="cuemeter-fill"></i><b id="cuemeter-peak"></b></div>
     <div class="phase" id="phase" title="Beat-phase offset between decks"></div>
     <div class="row"><label>Smpl</label><span id="smp-pads"></span><input type="range" id="smp-gain" min="0" max="1" step="0.01" value="0.8" title="Sampler level — all pads"><label title="Loop pads — fired shots repeat until stopped (alt-click / choke)" style="font-size:10px;display:flex;align-items:center;gap:2px"><input type="checkbox" id="smp-loop">Loop</label><input type="range" id="smp-pitch" min="0.5" max="2" step="0.01" value="1" title="Sampler pitch — playback rate at fire time, 0.5–2×; double-click resets"><input id="smp-file" type="file" accept="audio/*" hidden></div>
-    <div class="row"><button id="automix" title="Auto mix — near the end of the playing track the other deck starts synced and the crossfader rides over (8 beats; shift = long 32-beat fade). Keeps going: the empty deck auto-loads the next library track">Auto</button><button id="recbtn" title="Record the master output — click again to stop and download a .webm">Rec</button><button id="mic" title="Microphone — live input summed into the master pre-limiter (use headphones — open speakers will feed back)">Mic</button><input type="range" id="mic-gain" min="0" max="1.5" step="0.01" value="0.9" title="Mic level — trim the mic in the master; double-click resets to 0.9. Range goes past unity for quiet mics"><input type="range" id="mic-low" min="-1" max="1" step="0.01" value="0" title="Mic LOW — 200 Hz low shelf ±12 dB, double-click resets"><input type="range" id="mic-high" min="-1" max="1" step="0.01" value="0" title="Mic HI — 4 kHz high shelf ±12 dB, double-click resets"></div>
+    <div class="row"><button id="automix" title="Auto mix — near the end of the playing track the other deck starts synced and the crossfader rides over (8 beats; shift = long 32-beat fade; alt = fire the transition now). Keeps going: the empty deck auto-loads the next library track">Auto</button><button id="recbtn" title="Record the master output — click again to stop and download a .webm">Rec</button><button id="mic" title="Microphone — live input summed into the master pre-limiter (use headphones — open speakers will feed back)">Mic</button><input type="range" id="mic-gain" min="0" max="1.5" step="0.01" value="0.9" title="Mic level — trim the mic in the master; double-click resets to 0.9. Range goes past unity for quiet mics"><input type="range" id="mic-low" min="-1" max="1" step="0.01" value="0" title="Mic LOW — 200 Hz low shelf ±12 dB, double-click resets"><input type="range" id="mic-high" min="-1" max="1" step="0.01" value="0" title="Mic HI — 4 kHz high shelf ±12 dB, double-click resets"></div>
     <div class="kbd-hint">Equal-power crossfade.<br>Auto BPM is an estimate — trust your ears.</div>
   </section>
 
@@ -2778,6 +2778,15 @@ autoBtn.addEventListener('click', e => {
     autoBtn.textContent = 'Auto';
     return;
   }
+  if (e.altKey && ctx) {                                  // transition NOW
+    const d = [deckA, deckB].find(x => fireCandidate(x, x.partner));
+    if (d) {
+      autoMix.len = e.shiftKey ? 32 : 8;
+      autoMix.on = true; autoBtn.classList.add('on');
+      fireFade(d, d.partner, d.grid ? 60 / d.grid.bpm : 1);
+      return;
+    }
+  }
   autoMix.len = e.shiftKey ? 32 : 8;                      // shift arms a long 32-beat fade
   autoMix.on = !autoMix.on;
   autoBtn.classList.toggle('on', autoMix.on);
@@ -2836,7 +2845,7 @@ function autoMixTick() {
   autoBtn.textContent = 'Auto';
   for (const d of [deckA, deckB]) {
     const to = d.partner;
-    if (!d.playing || !d.buffer || d.loopOn || to.playing || !to.buffer) { d._fadeAt = null; continue; }
+    if (!fireCandidate(d, to)) { d._fadeAt = null; continue; }
     const beat = d.grid ? 60 / d.grid.bpm : 1;
     // Phrase alignment: the trigger point is 2*len beats before the
     // end, but the fade actually fires on the nearest 4-beat bar —
@@ -2858,12 +2867,20 @@ function autoMixTick() {
     d._fadeAt = fadeAt;
     if (d.pos() < fadeAt) continue;
     d._fadeAt = null;
-    to.seekTo(to.grid ? to.grid.beatOff : 0);
-    if (d.grid && to.grid) to.syncTo(d);
-    to.play();
-    autoMix.fade = { from: d, to, t0: ctx.currentTime, dur: autoMix.len * beat, beat,
-                     fromX: d === deckA ? 0 : 1, toX: d === deckA ? 1 : 0 };
+    fireFade(d, to, beat);
   }
+}
+
+function fireCandidate(d, to) {
+  return d.playing && d.buffer && !d.loopOn && !to.playing && to.buffer;
+}
+
+function fireFade(d, to, beat) {
+  to.seekTo(to.grid ? to.grid.beatOff : 0);
+  if (d.grid && to.grid) to.syncTo(d);
+  to.play();
+  autoMix.fade = { from: d, to, t0: ctx.currentTime, dur: autoMix.len * beat, beat,
+                   fromX: d === deckA ? 0 : 1, toX: d === deckA ? 1 : 0 };
 }
 
 // Next-in-line for continuous auto-mix: the library row after the one
