@@ -180,7 +180,7 @@
     <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1" title="Tempo — double-click resets to ±0%, scroll = fine trim ±0.1%"><output>+0.0%</output><span class="bend"><button data-act="benddn" title="Pitch bend — hold to slow the deck 5%">−</button><button data-act="bendup" title="Pitch bend — hold to speed the deck 5%">+</button></span><select data-act="range" title="Tempo range — ±8% fine, ±16% standard, ±50% wide"><option value="0.08">±8</option><option value="0.16" selected>±16</option><option value="0.50">±50</option></select></div>
     <div class="row eq"><label>EQ</label><span class="band"><button class="kill" data-kill="high" title="Kill high — instant −26 dB cut, click again to restore (hold = momentary)">H</button><input type="range" data-eq="high" min="-1" max="1" step="0.01" value="0" title="High shelf 4 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="mid" title="Kill mid — instant −26 dB cut, click again to restore (hold = momentary)">M</button><input type="range" data-eq="mid" min="-1" max="1" step="0.01" value="0" title="Mid 1 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="low" title="Kill low — instant −26 dB cut, click again to restore (hold = momentary)">L</button><input type="range" data-eq="low" min="-1" max="1" step="0.01" value="0" title="Low shelf 250 Hz, ±26 dB — double-click resets"></span></div>
     <div class="row"><label>Filter</label><input type="range" data-act="filter" min="-1" max="1" step="0.01" value="0" title="Color filter — left sweeps low-pass, right sweeps high-pass, center is open. Double-click resets"><output>open</output></div>
-    <div class="row"><label>FX</label><select data-act="fx" title="Beat FX — which effect the level knob drives"><option value="echo">Echo</option><option value="flange">Flng</option><option value="trans">Trans</option><option value="noise">Noise</option></select><select data-act="fxbeat" title="Echo time in beats — DJM BEAT parameter"><option value="0.25">¼</option><option value="0.5">½</option><option value="0.75" selected>¾</option><option value="1">1</option></select><input type="range" data-act="echo" min="0" max="1" step="0.01" value="0" title="Beat delay — 3/4-beat echo synced to the deck grid; 0 is dry. Double-click resets"><output>dry</output></div>
+    <div class="row"><label>FX</label><select data-act="fx" title="Beat FX — which effect the level knob drives"><option value="echo">Echo</option><option value="flange">Flng</option><option value="trans">Trans</option><option value="noise">Noise</option><option value="crush">Crush</option></select><select data-act="fxbeat" title="Echo time in beats — DJM BEAT parameter"><option value="0.25">¼</option><option value="0.5">½</option><option value="0.75" selected>¾</option><option value="1">1</option></select><input type="range" data-act="echo" min="0" max="1" step="0.01" value="0" title="Beat delay — 3/4-beat echo synced to the deck grid; 0 is dry. Double-click resets"><output>dry</output></div>
     <div class="row"><label>Stem</label><select data-act="stem" title="Mid/side split — Vocal keeps the centre channel (acapella), Inst keeps the sides (vocal-removed)"><option value="off">Full</option><option value="voc">Vocal</option><option value="inst">Inst</option></select></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1" title="Channel gain — double-click resets to unity"><output>100%</output></div>
     <div class="row"><span class="bpm">BPM <b>—</b></span><span class="barcount" title="Bar.beat position on the beat grid — where the phrase is">—</span><span class="beatlamp" title="Beat indicator — pulses each beat, accent on the downbeat"></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients (shift = one beat earlier)">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients (shift = one beat later)">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="stctl" title="Transpose — shift the deck's key in semitones (needs key lock / http); double-click ±N to reset"><button data-act="pitchdn">−</button><b class="st">±0</b><button data-act="pitchup">+</button></span><button data-act="keysync" title="Key sync — transpose to a key that mixes harmonically with the other deck">Key</button><span class="status"></span></div>
@@ -225,7 +225,7 @@
     <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1" title="Tempo — double-click resets to ±0%, scroll = fine trim ±0.1%"><output>+0.0%</output><span class="bend"><button data-act="benddn" title="Pitch bend — hold to slow the deck 5%">−</button><button data-act="bendup" title="Pitch bend — hold to speed the deck 5%">+</button></span><select data-act="range" title="Tempo range — ±8% fine, ±16% standard, ±50% wide"><option value="0.08">±8</option><option value="0.16" selected>±16</option><option value="0.50">±50</option></select></div>
     <div class="row eq"><label>EQ</label><span class="band"><button class="kill" data-kill="high" title="Kill high — instant −26 dB cut, click again to restore (hold = momentary)">H</button><input type="range" data-eq="high" min="-1" max="1" step="0.01" value="0" title="High shelf 4 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="mid" title="Kill mid — instant −26 dB cut, click again to restore (hold = momentary)">M</button><input type="range" data-eq="mid" min="-1" max="1" step="0.01" value="0" title="Mid 1 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="low" title="Kill low — instant −26 dB cut, click again to restore (hold = momentary)">L</button><input type="range" data-eq="low" min="-1" max="1" step="0.01" value="0" title="Low shelf 250 Hz, ±26 dB — double-click resets"></span></div>
     <div class="row"><label>Filter</label><input type="range" data-act="filter" min="-1" max="1" step="0.01" value="0" title="Color filter — left sweeps low-pass, right sweeps high-pass, center is open. Double-click resets"><output>open</output></div>
-    <div class="row"><label>FX</label><select data-act="fx" title="Beat FX — which effect the level knob drives"><option value="echo">Echo</option><option value="flange">Flng</option><option value="trans">Trans</option><option value="noise">Noise</option></select><select data-act="fxbeat" title="Echo time in beats — DJM BEAT parameter"><option value="0.25">¼</option><option value="0.5">½</option><option value="0.75" selected>¾</option><option value="1">1</option></select><input type="range" data-act="echo" min="0" max="1" step="0.01" value="0" title="Beat delay — 3/4-beat echo synced to the deck grid; 0 is dry. Double-click resets"><output>dry</output></div>
+    <div class="row"><label>FX</label><select data-act="fx" title="Beat FX — which effect the level knob drives"><option value="echo">Echo</option><option value="flange">Flng</option><option value="trans">Trans</option><option value="noise">Noise</option><option value="crush">Crush</option></select><select data-act="fxbeat" title="Echo time in beats — DJM BEAT parameter"><option value="0.25">¼</option><option value="0.5">½</option><option value="0.75" selected>¾</option><option value="1">1</option></select><input type="range" data-act="echo" min="0" max="1" step="0.01" value="0" title="Beat delay — 3/4-beat echo synced to the deck grid; 0 is dry. Double-click resets"><output>dry</output></div>
     <div class="row"><label>Stem</label><select data-act="stem" title="Mid/side split — Vocal keeps the centre channel (acapella), Inst keeps the sides (vocal-removed)"><option value="off">Full</option><option value="voc">Vocal</option><option value="inst">Inst</option></select></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1" title="Channel gain — double-click resets to unity"><output>100%</output></div>
     <div class="row"><span class="bpm">BPM <b>—</b></span><span class="barcount" title="Bar.beat position on the beat grid — where the phrase is">—</span><span class="beatlamp" title="Beat indicator — pulses each beat, accent on the downbeat"></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients (shift = one beat earlier)">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients (shift = one beat later)">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="stctl" title="Transpose — shift the deck's key in semitones (needs key lock / http); double-click ±N to reset"><button data-act="pitchdn">−</button><b class="st">±0</b><button data-act="pitchup">+</button></span><button data-act="keysync" title="Key sync — transpose to a key that mixes harmonically with the other deck">Key</button><span class="status"></span></div>
@@ -1053,7 +1053,14 @@ class Deck {
     this.gate = ac.createGain();
     this.gate.gain.value = 1;
     this.filter.connect(this.gate);
-    this.gate.connect(this.xfGain);
+    // Lo-fi crush (SP-404-style): a staircase WaveShaper on the dry
+    // path quantizes amplitude into fewer levels as the knob opens —
+    // the bit-crush character without a resampler. Linear curve = off.
+    this.crusher = ac.createWaveShaper();
+    this.crusher.curve = Deck.linCurve();
+    this.crusher.oversample = '2x';
+    this.gate.connect(this.crusher);
+    this.crusher.connect(this.xfGain);
     // Channel strip meter tap: post-EQ/filter, pre-crossfader.
     this.chAnalyser = ac.createAnalyser();
     this.chAnalyser.fftSize = 512;
@@ -1286,6 +1293,20 @@ class Deck {
 
   // Echo wet level 0–1: dry is fully off, wet echoes sit under the
   // dry signal (feedback is fixed at 0.35 — the dub sweet spot).
+  static linCurve() {
+    const c = new Float32Array(1025);
+    for (let i = 0; i < 1025; i++) c[i] = -1 + (2 * i) / 1024;
+    return c;
+  }
+
+  static crushCurve(v) {
+    // Amplitude staircase: fewer steps = more crush. 62→2 levels.
+    const levels = Math.max(2, Math.round(2 + (1 - v) * 60));
+    const c = new Float32Array(1025);
+    for (let i = 0; i < 1025; i++) c[i] = Math.round((-1 + (2 * i) / 1024) * levels) / levels;
+    return c;
+  }
+
   setEcho(v) {
     // CDJ BEAT FX style: the knob drives the selected effect only —
     // the other wet path is parked at zero.
@@ -1301,6 +1322,7 @@ class Deck {
       this.noiseWet.gain.setTargetAtTime(fx === 'noise' ? v * 0.6 : 0, ctx.currentTime, 0.02);
       if (fx === 'noise') this.noiseFilt.frequency.setTargetAtTime(200 * Math.pow(2, v * 5.3), ctx.currentTime, 0.02);
     }
+    if (this.crusher) this.crusher.curve = fx === 'crush' && v > 0.02 ? Deck.crushCurve(v) : Deck.linCurve();
     this.echoEl.nextElementSibling.textContent = v <= 0.01 ? 'dry' : Math.round(v * 100) + '%';
   }
 
