@@ -366,6 +366,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   keys: deck A `Z X C V` (cues 1–4) `A S D F` (cues 5–8) `E` `R`,
   deck B `B N M ,` `H J K L` `I` `U` (see ADR-0031, ADR-0101,
   ADR-0157).
+- **MIDI channel faders** — CC 22/23 drive the deck upfaders,
+  next to the gain trims on CC 20/21 (see ADR-0215).
 - **Web MIDI** — connected controllers drive the surface: notes
   60–75 = deck A/B pads, 36–39 = sampler pads (velocity-sensitive,
   ADR-0168; held ≥250 ms gates the shot like a held mouse pad,
