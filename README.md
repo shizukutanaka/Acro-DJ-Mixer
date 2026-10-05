@@ -99,7 +99,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   restored on release (see ADR-0037); `Shift`+Roll rolls a ½ beat
   (see ADR-0103).
 - **Instant doubles** — `×2` clones the deck into the partner at the
-  same position and tempo, playing if it was playing (see ADR-0039).
+  same position and tempo, playing if it was playing (see ADR-0039);
+  `Shift+×2` swaps both decks' full state — position, tempo, play
+  state, cues, loops, keys (see ADR-0192).
 - **Vinyl brake** — `Brake` toggle makes pause spin down and play
   spin up like a turntable; off = instant stop (see ADR-0040).
 - **Beat echo** — `Echo` slider adds a 3/4-beat feedback delay that
