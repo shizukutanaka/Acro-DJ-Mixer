@@ -1708,26 +1708,7 @@ class Deck {
   // Clamp to [0.25, 1] — a quiet track stays quiet (user can push the
   // fader) instead of being pumped into the limiter.
   applyAutoGain(mono) {
-    const kw = kWeight(mono);
-    // EBU R128 gating: measure 400 ms blocks at 75% overlap, drop blocks
-    // below the -70 LUFS absolute gate, then below mean-10 LU relative
-    // gate — intros/outros/breaks no longer deflate the measurement.
-    const block = Math.round(0.4 * ANALYSIS_SR), hop = Math.round(block / 4);
-    const lk = [];
-    for (let b = 0; b + block <= kw.length; b += hop) {
-      let z = 0;
-      for (let i = b; i < b + block; i++) z += kw[i] * kw[i];
-      z /= block;
-      const L = -0.691 + 10 * Math.log10(Math.max(z, 1e-12));
-      if (L >= -70) lk.push([z, L]);
-    }
-    let sum = 0, n = 0;
-    if (lk.length) {
-      const meanL = 10 * Math.log10(lk.reduce((a, p) => a + p[0], 0) / lk.length) - 0.691;
-      for (const [z, L] of lk) if (L >= meanL - 10) { sum += z; n++; }
-    }
-    const rms = n ? Math.sqrt(sum / n) : (kw.length ? Math.sqrt(kw.reduce((a, v) => a + v * v, 0) / kw.length) : 0);
-    const g = rms < 1e-4 ? 1 : Math.min(1, Math.max(0.25, 0.18 / rms));
+    const g = gatedGain(mono);
     this.gainEl.value = g;
     this.setGain(g);
   }
@@ -2337,6 +2318,31 @@ function kWeight(x) {
 
 // Shared mono downmix for all analysis — one OfflineAudioContext render feeds
 // BPM and key estimation alike.
+// EBU R128 gated track gain: measure 400 ms K-weighted blocks at
+// 75% overlap, drop blocks below the -70 LUFS absolute gate, then
+// below mean-10 LU relative gate — intros/outros/breaks no longer
+// deflate the measurement. Attenuation only. Shared by deck
+// auto-gain and the library preview bus.
+function gatedGain(mono) {
+  const kw = kWeight(mono);
+  const block = Math.round(0.4 * ANALYSIS_SR), hop = Math.round(block / 4);
+  const lk = [];
+  for (let b = 0; b + block <= kw.length; b += hop) {
+    let z = 0;
+    for (let i = b; i < b + block; i++) z += kw[i] * kw[i];
+    z /= block;
+    const L = -0.691 + 10 * Math.log10(Math.max(z, 1e-12));
+    if (L >= -70) lk.push([z, L]);
+  }
+  let sum = 0, n = 0;
+  if (lk.length) {
+    const meanL = 10 * Math.log10(lk.reduce((a, p) => a + p[0], 0) / lk.length) - 0.691;
+    for (const [z, L] of lk) if (L >= meanL - 10) { sum += z; n++; }
+  }
+  const rms = n ? Math.sqrt(sum / n) : (kw.length ? Math.sqrt(kw.reduce((a, v) => a + v * v, 0) / kw.length) : 0);
+  return rms < 1e-4 ? 1 : Math.min(1, Math.max(0.25, 0.18 / rms));
+}
+
 async function monoResample(buf) {
   const off = new OfflineAudioContext(1, Math.ceil(buf.duration * ANALYSIS_SR), ANALYSIS_SR);
   const src = off.createBufferSource();
@@ -2607,11 +2613,11 @@ let libQuery = '';
 // Library preview (rekordbox-style): audition a row's audio on the
 // headphone cue bus without touching a deck — the "is this the right
 // track" check before committing a load.
-let previewSrc = null, previewId = null;
+let previewSrc = null, previewId = null, previewGain = null;
 const setLog = [];   // every track actually played this session, in order
 async function previewTrack(id) {
   const wasPlaying = previewId === id;
-  if (previewSrc) { try { previewSrc.stop(); } catch (_) {} previewSrc.disconnect(); previewSrc = previewId = null; }
+  if (previewSrc) { try { previewSrc.stop(); } catch (_) {} previewSrc.disconnect(); previewSrc = previewId = null; if (previewGain) { previewGain.disconnect(); previewGain = null; } }
   if (wasPlaying) return;   // second click on the same row = stop
   const rec = await Library.get(id);
   if (!rec || !rec.blob) return;
@@ -2619,8 +2625,14 @@ async function previewTrack(id) {
   const buf = await ac.decodeAudioData(await rec.blob.arrayBuffer());
   previewSrc = ac.createBufferSource();
   previewSrc.buffer = buf;
-  previewSrc.connect(cueIn);
-  previewSrc.onended = () => { if (previewSrc) { previewSrc.disconnect(); previewSrc = null; previewId = null; } };
+  // Previews get the same gated gain a deck load applies — an
+  // un-normalised file can blast the cue bus relative to the
+  // levelled deck you were just listening to.
+  previewGain = ac.createGain();
+  previewGain.gain.value = gatedGain(await monoResample(buf));
+  previewGain.connect(cueIn);
+  previewSrc.connect(previewGain);
+  previewSrc.onended = () => { if (previewSrc) { previewSrc.disconnect(); previewSrc = null; previewId = null; if (previewGain) { previewGain.disconnect(); previewGain = null; } } };
   // Audition from the cue point like a deck's auto-cue — the lead-in
   // silence isn't what you're previewing.
   previewSrc.start(0, rec.cueIn || 0);
