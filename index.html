@@ -3120,6 +3120,9 @@ smpSlots.forEach((_, i) => {
         b.title = 'Resampled loop — ' + d.name + ' ' + (d.loopEnd - d.loopStart).toFixed(2) + 's';
         return;
       }
+      // A pad auditioning on the cue bus keeps ringing after its
+      // sample is cleared — silence the ghost along with the slot.
+      if (smpPrev) { try { smpPrev.stop(); } catch (_) {} smpPrev = null; }
       smpSlots[i] = null;
       b.textContent = '+'; b.classList.remove('set', 'on');
       b.title = 'Sampler — click loads a one-shot, click again plays it, alt-click stops playback, shift-click clears';
