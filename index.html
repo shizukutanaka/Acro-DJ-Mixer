@@ -1949,8 +1949,13 @@ class Deck {
 
   async estimateBpm(monoP) {
     this.bpmEl.textContent = '…';
+    // Analysis outlives the track that spawned it if a new load lands
+    // first — bail rather than write A's grid over B's buffer (or into
+    // B's library record via tagLib).
+    const buf = this.buffer;
     try {
       const grid = (await this._analysis(monoP)).bpm;
+      if (buf !== this.buffer) return;
       this.grid = grid;
       this.bpmEl.textContent = grid ? grid.bpm.toFixed(1) : '—';
       if (grid) this.tagLib({ bpm: grid.bpm, beatOff: grid.beatOff });
@@ -1959,18 +1964,21 @@ class Deck {
       this.drawWave();
     } catch (err) {
       console.error(err);
-      this.bpmEl.textContent = '—';
+      if (buf === this.buffer) this.bpmEl.textContent = '—';
     }
   }
 
   async estimateKey(monoP) {
     this.keyEl.textContent = '…';
+    const buf = this.buffer;
     try {
-      this.key = (await this._analysis(monoP)).key;
+      const key = (await this._analysis(monoP)).key;
+      if (buf !== this.buffer) return;
+      this.key = key;
       if (this.key) this.tagLib({ key: this.key });
     } catch (err) {
       console.error(err);
-      this.key = null;
+      if (buf === this.buffer) this.key = null;
     }
     this.refreshKey();
     if (this.partner) this.partner.refreshKey();
