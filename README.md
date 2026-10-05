@@ -316,7 +316,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   −14 LU is the streaming target; see ADR-0139) — and master gain.
 - **Sampler** — `Smpl` row: 4 one-shot pads into the master chain.
   Click loads a file, click again fires (retrigger restarts;
-  press-and-hold plays only while held — gate mode, ADR-0149),
+  press-and-hold plays only while held — gate mode, ADR-0149; `Loop` makes fired shots repeat,
+  ADR-0150),
   alt-click stops the ringing voice, shift-click clears — and
   shift-click on an empty pad resamples the deck's armed loop into a
   one-shot, and right-click previews a pad on the headphone cue bus
