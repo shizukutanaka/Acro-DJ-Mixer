@@ -413,6 +413,12 @@ Ordered by value per the ADR's automation layer:
 6. ~~Recommendation / auto-mix assistance.~~ Done — harmonic-fit
    highlighting (ADR-0011) + one-click auto transitions (ADR-0013).
 
+## Local stats
+
+Lifetime counters (loads / plays / loops / auto transitions /
+recordings) live in `localStorage` — hover the footer to read them.
+Local-only; nothing is sent anywhere (see ADR-0237).
+
 ## Security
 
 Local files only; no network calls, no telemetry, no secrets. Report
