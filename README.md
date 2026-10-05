@@ -290,7 +290,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   blend (see ADR-0013, ADR-0073). The button counts down beats to
   the fade (`Auto 14b`) and shows fade progress (`Auto 31%`); with a
   beat grid the fire point snaps to the nearest bar so transitions
-  start on a downbeat (see ADR-0170)
+  start on a downbeat (see ADR-0170), and it counts back from the
+  last audible sample so silent tails can't delay it (see ADR-0171)
   (see ADR-0111). During the fade the
   outgoing deck is also low-pass swept 20 kHz → ~400 Hz — a
   "filter out" transition, not a flat crossfade (see ADR-0020), and
