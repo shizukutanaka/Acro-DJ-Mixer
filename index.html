@@ -1940,10 +1940,17 @@ class Deck {
     if (id != null) Library.tag(id, this._libPatch);
   }
 
+  // One worker run feeds both readouts — BPM and key estimate from the
+  // same mono buffer, so a single postMessage carries both results back.
+  _analysis(monoP) {
+    if (!this.__anP) this.__anP = monoP.then(d => analyzeTrack(d));
+    return this.__anP;
+  }
+
   async estimateBpm(monoP) {
     this.bpmEl.textContent = '…';
     try {
-      const grid = estimateBpm(await monoP);
+      const grid = (await this._analysis(monoP)).bpm;
       this.grid = grid;
       this.bpmEl.textContent = grid ? grid.bpm.toFixed(1) : '—';
       if (grid) this.tagLib({ bpm: grid.bpm, beatOff: grid.beatOff });
@@ -1959,7 +1966,7 @@ class Deck {
   async estimateKey(monoP) {
     this.keyEl.textContent = '…';
     try {
-      this.key = estimateKey(await monoP);
+      this.key = (await this._analysis(monoP)).key;
       if (this.key) this.tagLib({ key: this.key });
     } catch (err) {
       console.error(err);
@@ -2547,6 +2554,34 @@ function estimateKey(d) {
 function harmonic(a, b) {
   const d = Math.min(Math.abs(a.num - b.num), 12 - Math.abs(a.num - b.num));
   return a.num === b.num || (a.letter === b.letter && d === 1);
+}
+
+// Track analysis off-main-thread: the BPM comb scan and the chroma FFTs
+// block the UI for a second or more on long tracks. The estimators are
+// pure functions of the mono buffer, so a Worker rebuilt from their own
+// source runs them untouched — same zero-dependency trick as WSOLA_URL.
+const ANALYSIS_SRC = [
+  'const ANALYSIS_SR = ' + ANALYSIS_SR + ';',
+  'const KS_MAJOR = ' + JSON.stringify(KS_MAJOR) + ';',
+  'const KS_MINOR = ' + JSON.stringify(KS_MINOR) + ';',
+  'const NOTE_NAMES = ' + JSON.stringify(NOTE_NAMES) + ';',
+  fft.toString(), estimateBpm.toString(), estimateKey.toString(),
+  'onmessage = e => { const d = e.data; postMessage({ bpm: estimateBpm(d), key: estimateKey(d) }); };'
+].join('\n');
+const ANALYSIS_URL = URL.createObjectURL(new Blob([ANALYSIS_SRC], { type: 'text/javascript' }));
+
+function analyzeTrack(d) {
+  if (typeof Worker === 'function') {
+    try {
+      return new Promise((res, rej) => {
+        const w = new Worker(ANALYSIS_URL);
+        w.onmessage = e => { w.terminate(); res(e.data); };
+        w.onerror = e => { w.terminate(); rej(new Error('analysis worker failed')); };
+        w.postMessage(d);
+      });
+    } catch (_) { /* no worker support — run inline below */ }
+  }
+  return Promise.resolve({ bpm: estimateBpm(d), key: estimateKey(d) });
 }
 
 // ----- Library (IndexedDB) -----
