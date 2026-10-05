@@ -316,7 +316,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Set recording** — `Rec` button captures the master output to a
   `.webm` (opus) download via `MediaRecorder` on a MediaStream tap;
   the take also lands in the library as a track you can replay, cue,
-  or resample (see ADR-0148)
+  or resample (see ADR-0148); alt+Rec splits a running take — the
+  current take saves and lands in the library while a fresh one
+  keeps rolling (see ADR-0242)
   (see ADR-0014).
 - **Stem split** — per-deck `Full / Vocal / Inst` mid/side matrix:
   `Vocal` keeps the centre channel (acapella extraction), `Inst` keeps
