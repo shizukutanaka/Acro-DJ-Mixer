@@ -3331,6 +3331,11 @@ helpEl.addEventListener('click', () => { helpEl.hidden = true; });
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' && e.target.type === 'text') return;
   if (e.target.tagName === 'SELECT') return;
+  // A focused range keeps focus after the click — arrow keys then
+  // adjust BOTH that control (natively) and the crossfader/master
+  // (here). While a slider owns focus, arrows belong to the slider.
+  if (e.target.tagName === 'INPUT' && e.target.type === 'range' &&
+      /^Arrow(Left|Right|Up|Down)$/.test(e.key)) return;
   if (e.key === 'Escape') { helpEl.hidden = true; return; }
   if (e.key === '?' || e.key === '/') { toggleHelp(); e.preventDefault(); return; }
   switch (e.key) {
