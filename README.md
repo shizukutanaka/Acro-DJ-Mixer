@@ -352,7 +352,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   (see ADR-0118/ADR-0132/ADR-0145/ADR-0147). Keys `1`–`4` fire the pads (see ADR-0119);
   the slider beside them trims the shared sample level
   (see ADR-0120), and scrolling over a loaded pad trims that pad's
-  own level (see ADR-0167). Pads are single-voice: firing one chokes the
+  own level (see ADR-0167); shift+scroll trims the pad's start offset so
+  lead-in silence can be dropped (see ADR-0226). Pads are single-voice: firing one chokes the
   others (see ADR-0121).
 - **Wheel nudge** — scrolling over any fader or knob steps it one
   detent (EQ, filter, FX, gain, master, crossfader); the tempo
