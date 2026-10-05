@@ -147,6 +147,7 @@
   .bend button { font-size: 11px; padding: 1px 6px; }
   .bend button.on { border-color: var(--acc); color: var(--acc); }
   .eq .kill.on { border-color: #ff5a5a; color: #ff5a5a; }
+  .lib-row.played:not(.onA):not(.onB) { opacity: .55; }
   .lib-row.fit .name { color: #3ddc84; }
   .lib-row.fit .name::before { content: '● '; font-size: 9px; vertical-align: 1px; }
   .lib-row.onA .name::after { content: ' A'; color: #4aa3ff; font-size: 9px; font-weight: 700; }
@@ -2597,7 +2598,7 @@ async function renderLibrary() {
     const nC = (t.cues || []).filter(c => c != null).length;
     const prep = nC || t.loop || t.plays ? ` <span class="prep" title="Saved prep / plays">${nC ? '⚑' + nC : ''}${t.loop ? ' ∞' : ''}${t.plays ? ' ×' + t.plays : ''}</span>` : '';
     const onDeck = t.id === deckA.libId ? ' onA' : t.id === deckB.libId ? ' onB' : '';
-    return `<div class="lib-row${f.length ? ' fit' : ''}${onDeck}" data-id="${t.id}">
+    return `<div class="lib-row${f.length ? ' fit' : ''}${onDeck}${t.plays ? ' played' : ''}" data-id="${t.id}">
     <span class="name" title="${esc(t.name)}${f.length ? ' — fits deck ' + f.join('/') + ' (key + tempo)' : ''}">${esc(t.name)}${prep}</span>
     <span>${t.bpm ? Math.round(t.bpm) : '—'} BPM</span>
     <span>${t.key ? esc(t.key.num + t.key.letter + ' ' + t.key.name) : '—'}</span>
