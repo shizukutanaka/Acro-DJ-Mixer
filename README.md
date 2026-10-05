@@ -283,7 +283,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   outgoing deck is also low-pass swept 20 kHz → ~400 Hz — a
   "filter out" transition, not a flat crossfade (see ADR-0020), and
   the incoming deck's low band rises from the isolator floor for a
-  bass swap (see ADR-0077).
+  bass swap (see ADR-0077). In the fade's last 2 beats the outgoing
+  deck's delay send lifts for an echo-out tail past the fader
+  (see ADR-0159).
 - **Pitch bend** — hold `−`/`+` beside the tempo fader to ride the deck
   ±5 % for manual beat alignment; release restores the fader rate
   (see ADR-0017).
