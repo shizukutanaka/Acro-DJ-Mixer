@@ -220,7 +220,7 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   (see ADR-0174).
 - **Library export/import** — `⤓` downloads BPM, key, cues and loops
   as JSON; `⤒` merges them onto tracks matched by name+size
-  (see ADR-0072).
+  (see ADR-0072) and reports how many records matched (see ADR-0230).
 - **Setlist** — every track actually played is logged in order and
   kept across reloads; `Setlist` downloads the playlist as a dated
   .txt
