@@ -353,7 +353,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   the slider beside them trims the shared sample level
   (see ADR-0120), and scrolling over a loaded pad trims that pad's
   own level (see ADR-0167). Pads auto-gain on load through the same
-  K-weighted pipeline as the decks, so shots start level (see ADR-0197).
+  K-weighted pipeline as the decks, so shots start level (see ADR-0197);
+  resampled loops normalize the same way (see ADR-0202).
   Pads are single-voice: firing one chokes the others (see ADR-0121).
 - **Wheel nudge** — scrolling over any fader or knob steps it one
   detent (EQ, filter, FX, gain, master, crossfader); the tempo
