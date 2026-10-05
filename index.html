@@ -1170,6 +1170,16 @@ class Deck {
     this.noiseSrc.connect(this.noiseFilt);
     this.noiseFilt.connect(this.noiseWet);
     this.noiseWet.connect(this.xfGain);
+    // Beat-paced sweep: an LFO breathes the bandpass centre around
+    // the knob position, one cycle per div*4 beats like the flanger —
+    // the riser washes in rhythm instead of sitting static.
+    this.noiseLfo = ac.createOscillator();
+    this.noiseLfo.frequency.value = 0.5;
+    this.noiseLfoDepth = ac.createGain();
+    this.noiseLfoDepth.gain.value = 0;
+    this.noiseLfo.connect(this.noiseLfoDepth);
+    this.noiseLfoDepth.connect(this.noiseFilt.frequency);
+    this.noiseLfo.start();
     this.noiseSrc.start();
     // Reverb (DJM-derivative): convolver fed a generated IR —
     // 1.5 s stereo exponentially-decaying noise. A send like the
@@ -1424,7 +1434,11 @@ class Deck {
     }
     if (this.noiseWet) {
       this.noiseWet.gain.setTargetAtTime(fx === 'noise' ? v * 0.6 : 0, ctx.currentTime, 0.02);
-      if (fx === 'noise') this.noiseFilt.frequency.setTargetAtTime(200 * Math.pow(2, v * 5.3), ctx.currentTime, 0.02);
+      const f0 = 200 * Math.pow(2, v * 5.3);
+      this.noiseFilt.frequency.setTargetAtTime(fx === 'noise' ? f0 : 800, ctx.currentTime, 0.02);
+      // Sweep depth tracks the centre — ±60 % around it, so the
+      // wash widens as the riser climbs.
+      if (this.noiseLfoDepth) this.noiseLfoDepth.gain.setTargetAtTime(fx === 'noise' && v > 0.02 ? f0 * 0.6 : 0, ctx.currentTime, 0.02);
     }
     if (this.crusher) this.crusher.curve = fx === 'crush' && v > 0.02 ? Deck.crushCurve(v) : Deck.linCurve();
     if (this.verbWet) this.verbWet.gain.setTargetAtTime(fx === 'rev' ? v * 0.8 : 0, ctx.currentTime, 0.02);
@@ -1445,6 +1459,7 @@ class Deck {
     // div*4 beats (1 bar at BEAT=1), so the comb breathes in time —
     // at 120 BPM that's 2 Hz (¼) down to 0.5 Hz (1).
     if (this.flLfo) this.flLfo.frequency.setTargetAtTime(1 / (div * 4 * beat), ctx.currentTime, 0.05);
+    if (this.noiseLfo) this.noiseLfo.frequency.setTargetAtTime(1 / (div * 4 * beat), ctx.currentTime, 0.05);
   }
 
   // Transpose ±1 semitone (range ±6): pitch shifts while tempo holds —
