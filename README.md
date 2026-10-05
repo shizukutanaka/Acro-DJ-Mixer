@@ -165,6 +165,10 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   like the hardware TEMPO RESET (see ADR-0062). Scrolling over the
   slider trims ±0.1% per notch for fine pitch rides (see ADR-0109);
   a center detent snaps ±0.3% of unity to exact 1.000 (see ADR-0129).
+  Alt+Sync arms that deck as **sync leader** — the partner
+  continuously re-matches its tempo and beat phase (drift-seek past
+  1/16 beat), so riding the leader's fader keeps the blend glued
+  (SYNC MASTER; see ADR-0130).
 - **Cue preview** — hold `Cue` while stopped to audition from the cue
   point; release pauses and snaps back (see ADR-0063).
 - **Split cue** — `Split` on the Phones row pans headphone cue to the
