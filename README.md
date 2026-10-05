@@ -355,7 +355,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   the slider beside them trims the shared sample level
   (see ADR-0120), and scrolling over a loaded pad trims that pad's
   own level (see ADR-0167). Pads are single-voice: firing one chokes the
-  others (see ADR-0121).
+  others (see ADR-0121). Right-click on an empty pad restores the last
+  shift-cleared sample (see ADR-0240).
 - **Wheel nudge** — scrolling over any fader or knob steps it one
   detent (EQ, filter, FX, gain, master, crossfader); the tempo
   slider keeps its finer ±0.1% trim (see ADR-0109, ADR-0112).
