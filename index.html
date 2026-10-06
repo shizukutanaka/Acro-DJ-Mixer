@@ -2976,7 +2976,12 @@ const micClose = () => {
 const micOpen = async () => {
   try {
     micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  } catch { return; }   // permission denied — stay off
+  } catch {
+    // Permission denied is a silent no-op otherwise — the button just
+    // doesn't light and the user can't tell why. Say it on the deck.
+    deckA.status('mic denied');
+    return;
+  }
   audio();
   micSrc = ctx.createMediaStreamSource(micStream);
   micGain = ctx.createGain(); micGain.gain.value = parseFloat(document.getElementById('mic-gain').value);
