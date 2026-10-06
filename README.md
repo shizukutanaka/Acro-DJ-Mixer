@@ -445,6 +445,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   lead-in silence can be dropped (see ADR-0226). Pads auto-gain on load
   through the same K-weighted pipeline as the decks, so shots start level
   (see ADR-0197); resampled loops normalize the same way (see ADR-0202).
+  Loaded pads persist across reloads as marked library records,
+  hidden from the track list (see ADR-0228).
   Pads form two choke groups — 1+2 and 3+4: firing one chokes only its
   groupmate, so layers across groups keep ringing (see ADR-0121, ADR-0239);
   clearing a pad stops its cue audition (see ADR-0250). Right-click on an
