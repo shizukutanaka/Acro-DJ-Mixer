@@ -4356,6 +4356,7 @@ function sessSave() {
         fx: q('[data-act=fx]').value, fxbeat: q('[data-act=fxbeat]').value, fxtap: q('[data-act=fxtap]').value,
         fxon: q('[data-act=fxon]').classList.contains('on'),
         assign: q('[data-act=assign]').value, range: q('[data-act=range]').value,
+        stem: q('[data-act=stem]').value,
         slip: q('[data-act=slip]').classList.contains('on'),
       };
     }
@@ -4404,6 +4405,7 @@ try {
       setV('[data-act=echo]', s2.echo);
       setV('[data-act=assign]', s2.assign);
       setV('[data-act=range]', s2.range);
+      setV('[data-act=stem]', s2.stem);   // setStem re-reads the select when the graph builds
       const fxBtn = q('[data-act=fxon]');
       if (s2.fxon != null && fxBtn.classList.contains('on') !== !!s2.fxon) fxBtn.click();
       const slipB = q('[data-act=slip]');
