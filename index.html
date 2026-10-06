@@ -2130,32 +2130,33 @@ class Deck {
     // answered — peaks, loop band, playhead, and the zoomed
     // viewport box when the main wave is zoomed in.
     const mc = this.wmctx;
-    mc.clearRect(0, 0, 640, 18);
+    const mw = this.waveMini.width, mh = this.waveMini.height;
+    mc.clearRect(0, 0, mw, mh);
     if (this.peaks) {
       const n = this.peaks.length;
       mc.fillStyle = 'rgba(140,160,200,0.45)';
-      for (let x2 = 0; x2 < 640; x2++) {
-        const i = Math.min(n - 1, Math.floor(x2 / 640 * n));
+      for (let x2 = 0; x2 < mw; x2++) {
+        const i = Math.min(n - 1, Math.floor(x2 / mw * n));
         const amp = Math.max(this.peaks[i] * 9, 0.5);
-        mc.fillRect(x2, 9 - amp, 1, amp * 2);
+        mc.fillRect(x2, mh / 2 - amp, 1, amp * 2);
       }
       const dur2 = this.buffer.duration;
-      const xm = t => t / dur2 * 640;
+      const xm = t => t / dur2 * mw;
       if (this.loopOn) {
         mc.fillStyle = 'rgba(61,220,132,.25)';
-        mc.fillRect(xm(this.loopStart), 0, xm(this.loopEnd) - xm(this.loopStart), 18);
+        mc.fillRect(xm(this.loopStart), 0, xm(this.loopEnd) - xm(this.loopStart), mh);
       }
       if (this._fadeAt != null) {
         mc.fillStyle = 'rgba(255,171,64,0.7)';
-        mc.fillRect(Math.floor(xm(this._fadeAt)) - 1, 0, 2, 18);
+        mc.fillRect(Math.floor(xm(this._fadeAt)) - 1, 0, 2, mh);
       }
       if (this.zoom > 1) {
         mc.strokeStyle = 'rgba(255,255,255,0.6)';
         mc.lineWidth = 1;
-        mc.strokeRect(xm(v0), 0, (v1 - v0) / dur2 * 640, 18);
+        mc.strokeRect(xm(v0), 0, (v1 - v0) / dur2 * mw, mh);
       }
       mc.fillStyle = '#fff';
-      mc.fillRect(xm(cur) - 1, 0, 2, 18);
+      mc.fillRect(xm(cur) - 1, 0, 2, mh);
     }
   }
 
@@ -3141,6 +3142,26 @@ const deckA = new Deck(document.getElementById('deck-a'), 'a');
 const deckB = new Deck(document.getElementById('deck-b'), 'b');
 deckA.partner = deckB;
 deckB.partner = deckA;
+
+// The wave canvases declare a fixed 640px bitmap but lay out at 100%
+// width — on any deck wider than that the browser stretches the
+// bitmap and the waveform blurs. Fit the bitmap to the layout width
+// once and on every resize, rebuilding peaks at the new resolution.
+const fitWaves = () => {
+  for (const d of [deckA, deckB]) {
+    for (const cv of [d.wave, d.waveMini]) {
+      const w = Math.round(cv.clientWidth);
+      if (w && cv.width !== w) cv.width = w;
+    }
+    if (d.buffer) {
+      d.peaks = computePeaks(d.buffer, d.wave.width);
+      d._drawnPos = undefined;
+      d.drawWave();
+    }
+  }
+};
+window.addEventListener('resize', fitWaves);
+fitWaves();
 const xfader = document.getElementById('xfader');
 
 const xfcurve = document.getElementById('xfcurve');
