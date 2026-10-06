@@ -3255,17 +3255,24 @@ async function autoNext(vacated, playing) {
       && t.bpm / playing.grid.bpm >= 1 - playing.tempoRange
       && t.bpm / playing.grid.bpm <= 1 + playing.tempoRange
       && harmonic(eff, t.key);
-    let pick = null, firstFree = null;
+    // Already-played tracks (row greyed per ADR-0174) are last
+    // resort — a set shouldn't repeat a track while fresh rows remain.
+    let pick = null, firstFree = null, firstPlayed = null, firstPlayedFit = null;
     for (let i = 1; i <= rows.length; i++) {
       const t = rows[(cur + i) % rows.length];
       if (!t || taken.has(t.id)) continue;
+      if (t.plays) {
+        if (!firstPlayed) firstPlayed = t;
+        if (fits(t) && !firstPlayedFit) firstPlayedFit = t;
+        continue;
+      }
       if (!firstFree) firstFree = t;
       if (fits(t)) { pick = t; break; }
     }
     // Say why: the autopilot earns trust by explaining its pick —
     // 'harmonic fit' vs a plain 'next in line' fallback.
     const reason = pick ? 'harmonic fit' : 'next in line';
-    pick = pick || firstFree;
+    pick = pick || firstFree || firstPlayedFit || firstPlayed;
     if (!pick) return false;
     await Library.loadInto(vacated, pick.id);
     vacated.status('Auto-load: ' + (pick.name || 'track') + ' — ' + reason);
