@@ -208,7 +208,7 @@
     <h2>Mixer</h2>
     <div class="meter" title="Master level (post-limiter; tick = peak hold)"><i id="meter-fill"></i><b id="meter-peak"></b></div>
     <div class="gr" id="gr" title="Limiter gain reduction"></div>
-    <div class="gr" id="lu" title="Master loudness — K-weighted momentary level (~400 ms window), like an LUFS meter. −14 LU is the common streaming target"></div>
+    <div class="gr" id="lu" title="Master loudness — K-weighted level, like an LUFS meter. Momentary ~400 ms by default; click toggles integrated since load, double-click resets it. −14 LU is the common streaming target"></div>
     <div class="row"><label>A</label><input type="range" id="xfader" min="0" max="1" step="0.005" value="0.5" title="Crossfader — double-click resets to centre; pushing fully into a stopped deck starts it"><label>B</label><select id="xfcurve" title="Crossfader curve — Smooth fades gradually, Cut reaches full in the first/last 10% for scratching"><option value="smooth">Smooth</option><option value="cut">Cut</option></select><button id="xfrev" title="HAMSTER — swap which side of the crossfader feeds A and B, for scratching">Rev</button><button id="qtz" class="on" title="Quantize — hot cues and loops snap to the beat grid; click to place them freehand">Qtz</button></div>
     <div class="row"><label>Master</label><input type="range" id="master" min="0" max="1" step="0.01" value="0.9" title="Master level — double-click resets to 90%"><output id="master-out">90%</output></div>
     <div class="row"><label>Cue&nbsp;out</label><select id="cueout" title="Output device for the headphone cue bus"><option value="">System output</option></select></div>
@@ -3838,6 +3838,12 @@ const luBuf = new Float32Array(256);
 let kwF1 = null, kwF2 = null, kwS1 = null, kwS2 = null;
 const luRing = [];
 const luEl = document.getElementById('lu');
+let luIntSum = 0, luIntN = 0, luIntegrated = false;
+// Click = momentary / integrated view (meters show both on hardware);
+// double-click resets the integrated accumulator — the "reset"
+// button on a real LUFS meter.
+luEl.addEventListener('click', () => { luIntegrated = !luIntegrated; });
+luEl.addEventListener('dblclick', () => { luIntSum = 0; luIntN = 0; });
 function kwp(v, c, st) {
   const [b0, b1, b2, a1, a2] = c;
   const y = b0 * v + b1 * st.x1 + b2 * st.x2 - a1 * st.y1 - a2 * st.y2;
@@ -3991,9 +3997,11 @@ function tick() {
       }
       luRing.push(e / luBuf.length);
       if (luRing.length > 24) luRing.shift();
-      const ms = luRing.reduce((a, b) => a + b, 0) / luRing.length;
+      luIntSum += e / luBuf.length; luIntN++;
+      const ms = luIntegrated ? luIntSum / luIntN
+                              : luRing.reduce((a, b) => a + b, 0) / luRing.length;
       const lu = ms > 1e-7 ? 10 * Math.log10(ms) - 0.691 : null;
-      luEl.textContent = lu != null ? lu.toFixed(1) + ' LU' : '';
+      luEl.textContent = lu != null ? lu.toFixed(1) + (luIntegrated ? ' I' : ' LU') : '';
       // −14 LUFS ±1 is the streaming target band — green when riding it.
       luEl.classList.toggle('target', lu != null && lu > -15 && lu < -13);
     }

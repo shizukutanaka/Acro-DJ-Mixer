@@ -372,7 +372,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   peaks (see ADR-0018).
 - **Master level meter** — post-limiter output with a decaying
   peak-hold tick like the channel meters (see ADR-0106), plus a
-  K-weighted momentary LU readout beside the GR text (~400 ms window;
+  K-weighted LU readout beside the GR text (~400 ms momentary;
+  click for the integrated view, double-click resets it — ADR-0187;
   −14 LU is the streaming target; see ADR-0139), turning green inside
   the −14 ± 1 band (see ADR-0165) — and master gain.
 - **Sampler** — `Smpl` row: 4 one-shot pads into the master chain.
