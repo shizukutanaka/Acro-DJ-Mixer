@@ -267,7 +267,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   (see ADR-0093).
 - **Cue marker** — the deck cue point (auto-cue or track start) shows
   as a cyan tick on the waveform, and the Cue button's tooltip reads
-  the exact landing time (see ADR-0074, ADR-0253).
+  the exact landing time (see ADR-0074, ADR-0253). Hot-cue ticks also
+  appear on the mini overview, and a pending free-size loop's
+  in-point shows as an amber half-tick (see ADR-0238).
 - **Beat sync** — `Shift+Sync` slips beat phase only, leaving the
   tempo fader alone (see ADR-0075); right-click matches tempo
   only, leaving this deck's position untouched (see ADR-0206).
