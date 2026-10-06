@@ -3912,6 +3912,14 @@ document.addEventListener('wheel', e => {
 const helpEl = document.getElementById('help');
 const toggleHelp = () => { helpEl.hidden = !helpEl.hidden; };
 helpEl.addEventListener('click', () => { helpEl.hidden = true; });
+// A clicked checkbox keeps DOM focus and Space natively re-toggles it
+// — the same footgun buttons have (ADR-0321), one element: smp-loop.
+// Blur on pointer-originated clicks only; keyboard activation reports
+// detail 0 so Tab+Space still works.
+document.addEventListener('click', e => {
+  if (e.target.matches('input[type=checkbox]') && e.detail > 0) e.target.blur();
+});
+
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' && e.target.type === 'text') return;
   if (e.target.tagName === 'SELECT') return;
