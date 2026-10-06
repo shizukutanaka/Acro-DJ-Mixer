@@ -3539,6 +3539,9 @@ async function wakeSync() {
 document.addEventListener('visibilitychange', () => {
   // The OS releases the lock when the tab hides — reclaim on return.
   if (document.visibilityState === 'visible') { wakeLock = null; wakeSync(); }
+  // Some OSes suspend the AudioContext in the background too — resume
+  // or the decks stay silent until the next gesture calls audio().
+  if (document.visibilityState === 'visible' && ctx && ctx.state === 'suspended') ctx.resume();
 });
 
 function tick() {
