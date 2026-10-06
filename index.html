@@ -1063,6 +1063,22 @@ class Deck {
       if (this.buffer) this.tagLib({ stem: this.stemSel.value });  // same prep doctrine as cues/loop
     });
     this.el.querySelector('[data-act=tap]').addEventListener('click', () => this.tapTempo());
+    // Grid undo: right-click the tempo controls restores the grid the
+    // last write destroyed — same right-click-restores grammar as
+    // empty pads, the Cue button, and dropzones (ADR-0291).
+    this._prevGrid = undefined;
+    this.el.querySelector('.bpmctl').addEventListener('contextmenu', e => {
+      e.preventDefault();
+      if (this._prevGrid === undefined) return;
+      this.grid = this._prevGrid ? { ...this._prevGrid } : null;
+      this._prevGrid = undefined;
+      this.tagLib(this.grid ? { bpm: this.grid.bpm, beatOff: this.grid.beatOff } : { bpm: null, beatOff: null });
+      this._syncDelay();
+      this.bpmEl.textContent = this.grid ? this.grid.bpm.toFixed(1) : '—';
+      this._drawnPos = undefined;
+      this.drawWave();
+      this.status(this.grid ? 'grid restored ' + this.grid.bpm.toFixed(1) + ' BPM' : 'grid cleared');
+    });
     // Manual BPM entry: click the readout for an inline field —
     // the fastest fix when detection is close-but-wrong (tap handles
     // unknown tempo, 1-beat shift handles off-by-a-beat phase).
@@ -1079,6 +1095,7 @@ class Deck {
         if (commit) {
           const v = parseFloat(inp.value);
           if (v > 30 && v < 400) {
+            this._prevGrid = this.grid ? { bpm: this.grid.bpm, beatOff: this.grid.beatOff } : null;
             this.grid = this.grid || { bpm: v, beatOff: 0 };
             this.grid.bpm = v;
             this.tagLib({ bpm: v });
@@ -1260,6 +1277,7 @@ class Deck {
     const bpm = 60000 / beat;
     if (bpm < 40 || bpm > 400) { this._taps = []; this.status('tap out of range'); return; }
     if (this._taps.length > 8) this._taps.shift();
+    this._prevGrid = this.grid ? { bpm: this.grid.bpm, beatOff: this.grid.beatOff } : null;
     if (!this.grid) this.grid = { bpm, beatOff: 0 };
     this.grid.bpm = bpm;
     this.grid.beatOff = this._taps[this._taps.length - 1].pos;
@@ -1275,6 +1293,7 @@ class Deck {
   // — the detector gets phase close, this is the last-mile trim.
   nudgeGrid(d) {
     if (!this.grid) return;
+    this._prevGrid = { bpm: this.grid.bpm, beatOff: this.grid.beatOff };
     this.grid.beatOff += d;
     this.tagLib({ beatOff: this.grid.beatOff });
     this._drawnPos = undefined;
@@ -1348,6 +1367,7 @@ class Deck {
       this._cueTitle();
       this.status(this.cueIn > 0.05 ? 'auto-cue +' + this.cueIn.toFixed(1) + 's' : '');
       this.grid = null;
+      this._prevGrid = undefined;
       this.key = null;
       // Partner's harmonic tint referenced our key — recompute it
       // now that there's nothing to match against.
@@ -1778,6 +1798,7 @@ class Deck {
     this._lastClear = null;
     this.loopOn = false;
     this._prevLoop = null;
+    this._prevGrid = undefined;   // grid-undo belongs to the ejected track
     this._loopMem = null;
     this._loopMem2 = null;
     this._prevLoopMem = undefined;
