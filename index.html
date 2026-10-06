@@ -3156,7 +3156,7 @@ async function bgScan() {
   bgScanRunning = true;
   let painted = false;
   try {
-    const rows = (await Library.all()).filter(t => !t.deleted_at && t.blob && (typeof t.bpm !== 'number' || !t.key));
+    const rows = (await Library.all()).filter(t => !t.deleted_at && t.blob && !t._scanned && (typeof t.bpm !== 'number' || !t.key));
     const ac = audio();
     for (const t of rows) {
       if (deckA.playing || deckB.playing) break;   // a set is on — yield
@@ -3170,10 +3170,14 @@ async function bgScan() {
         let dirty = false;
         if (res.bpm && res.bpm.bpm && typeof rec.bpm !== 'number') { rec.bpm = res.bpm.bpm; rec.beatOff = res.bpm.beatOff; dirty = true; }
         if (res.key && !rec.key) { rec.key = res.key; dirty = true; }
+        // 'Nothing found' is an answer too — without this mark an
+        // un-analyzable track re-decodes every sweep forever.
+        if (!rec._scanned) { rec._scanned = true; dirty = true; }
         if (dirty) { rec.version++; await Library.put(rec); painted = true; }
       } catch (_) { /* un-decodable blob — skip it, keep walking the crate */ }
     }
-  } finally {
+  } catch (_) { Library.fail(); }   // a dead library must surface once, not reject into a timer
+  finally {
     bgScanRunning = false;
   }
   if (painted) renderLibrary();    // one re-render after the walk, not per track
