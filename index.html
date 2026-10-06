@@ -157,6 +157,7 @@
   .lib-row.played:not(.onA):not(.onB) { opacity: .55; }
   .lib-row.upnext { box-shadow: inset 2px 0 0 #ffb54a; }
   .lib-row.dragging { opacity: .4; }
+  .lib-row.sel { box-shadow: inset 0 0 0 1px var(--acc); }
   .lib-row.fit .name { color: #3ddc84; }
   .lib-row.fit .name::before { content: '● '; font-size: 9px; vertical-align: 1px; }
   .lib-row.onA .name::after { content: ' A'; color: #4aa3ff; font-size: 9px; font-weight: 700; }
@@ -258,7 +259,7 @@
 </main>
 <section class="library">
   <h2>Library</h2>
-  <input type="text" id="lib-search" placeholder="Filter tracks… Enter loads top match" autocomplete="off">
+  <input type="text" id="lib-search" placeholder="Filter tracks… ↑↓ pick, Enter loads" autocomplete="off">
   <div class="row"><button id="lib-exp" title="Export library metadata (BPM, key, cues, loops) as JSON">⤓ Export</button><button id="lib-imp" title="Import library metadata — matches tracks by file name+size">⤒ Import</button><input type="file" id="lib-impfile" accept=".json,application/json" hidden><button id="lib-set" title="Setlist — download every track played (persisted across reloads), in order, as a .txt">Setlist</button></div>
   <div id="lib-rows"><p class="muted">Tracks you load are saved here for instant reload.</p></div>
 </section>
@@ -2992,6 +2993,7 @@ const Library = {
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 let libQuery = '';
+let libSel = 0;   // keyboard pick in the filter — ↑↓ moves, Enter loads it
 let libSeq = 0;   // render token — overlapping renders, latest wins (ADR-0261's idiom)
 
 // Library preview (rekordbox-style): audition a row's audio on the
@@ -3122,11 +3124,11 @@ async function renderLibrary() {
       && t.bpm / d.grid.bpm >= 1 - d.tempoRange && t.bpm / d.grid.bpm <= 1 + d.tempoRange
       && harmonic(d.effKey ? d.effKey() : d.key, t.key))
     .map(([name]) => name);
-  rowsEl.innerHTML = rows.map(t => { const f = fit(t);
+  rowsEl.innerHTML = rows.map((t, i) => { const f = fit(t);
     const nC = (t.cues || []).filter(c => c != null).length;
     const prep = nC || t.loop || t.plays ? ` <span class="prep" title="Saved prep / plays">${nC ? '⚑' + nC : ''}${t.loop ? ' ∞' : ''}${t.plays ? ' ×' + t.plays : ''}</span>` : '';
     const onDeck = t.id === deckA.libId ? ' onA' : t.id === deckB.libId ? ' onB' : '';
-    return `<div class="lib-row${f.length ? ' fit' : ''}${onDeck}${t.plays ? ' played' : ''}${t.id === upnextId ? ' upnext' : ''}" data-id="${t.id}" draggable="true">
+    return `<div class="lib-row${i === libSel ? ' sel' : ''}${f.length ? ' fit' : ''}${onDeck}${t.plays ? ' played' : ''}${t.id === upnextId ? ' upnext' : ''}" data-id="${t.id}" draggable="true">
     <span class="name" title="${esc(t.name)}${f.length ? ' — fits deck ' + f.join('/') + ' (key + tempo)' : ''}">${esc(t.name)}${prep}</span>
     <span>${t.bpm ? Math.round(t.bpm) : '—'} BPM</span>
     <span>${t.key ? esc(t.key.num + t.key.letter + ' ' + t.key.name) : '—'}</span>
@@ -3785,6 +3787,7 @@ if (navigator.mediaDevices) navigator.mediaDevices.addEventListener('devicechang
 
 document.getElementById('lib-search').addEventListener('input', e => {
   libQuery = e.target.value;
+  libSel = 0;   // a new query means a new top match
   renderLibrary();
 });
 // Enter in the filter loads the top match into the free deck — the
@@ -3792,9 +3795,17 @@ document.getElementById('lib-search').addEventListener('input', e => {
 // row double-click: the stopped deck, A when both are free, nothing
 // when both are playing.
 document.getElementById('lib-search').addEventListener('keydown', e => {
+  const rows = [...document.querySelectorAll('#lib-rows .lib-row')];
+  if (!rows.length) return;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    libSel = (libSel + (e.key === 'ArrowDown' ? 1 : -1) + rows.length) % rows.length;
+    rows.forEach((r, i) => r.classList.toggle('sel', i === libSel));
+    rows[libSel].scrollIntoView({ block: 'nearest' });
+    return;
+  }
   if (e.key !== 'Enter') return;
-  const row = document.querySelector('#lib-rows .lib-row');
-  if (!row) return;
+  const row = rows[Math.min(libSel, rows.length - 1)] || rows[0];
   const free = !deckA.playing ? deckA : (!deckB.playing ? deckB : null);
   if (free) Library.loadInto(free, Number(row.dataset.id));
 });
