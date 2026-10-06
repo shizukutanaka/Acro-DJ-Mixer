@@ -3694,6 +3694,12 @@ smpPitchEl.addEventListener('dblclick', () => { smpPitchEl.value = 1; });
 
 async function loadSmpFile(i, f) {
   const buf = await audio().decodeAudioData(await f.arrayBuffer());
+  // A voice or cue-bus audition playing the old sample can't outlive
+  // the slot it was fired from — silence both before the buffer swaps
+  // out (same ghost class as pad clearing, ADR-0250).
+  const old = smpSlots[i];
+  if (old && old.src) { try { old.src.stop(); } catch (_) {} old.src = null; }
+  if (old && smpPrev && smpPrev.buffer === old.buf) { try { smpPrev.stop(); } catch (_) {} smpPrev = null; }
   // Auto-gain like the decks (ADR-0019): one-shots come in at their
   // file loudness — a whisper snare next to a slammed clap. Normalize
   // to the same K-weighted target so pads start level; the per-pad
