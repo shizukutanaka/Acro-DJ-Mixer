@@ -264,7 +264,7 @@
     <p><b>alt</b> — the expert layer: sync leader, stop a sampler voice, second loop-memory slot, trim the loop out-point</p>
     <p><b>right-click</b> — cue-bus preview on hot-cue and sampler pads</p>
     <h3>Keys</h3>
-    <p><b>q / p</b> play decks · <b>1–4</b> sampler pads · <b>A S D F / H J K L</b> hot cues 5–8 · <b>← →</b> crossfader · <b>↑ ↓</b> master · <b>?</b> this help</p>
+    <p><b>q / p</b> play decks · <b>w / o</b> headphone cue · <b>1–4</b> sampler pads · <b>A S D F / H J K L</b> hot cues 5–8 · <b>← →</b> crossfader · <b>↑ ↓</b> master · <b>?</b> this help</p>
   </div>
 </div>
 <script>
@@ -3336,6 +3336,10 @@ document.addEventListener('keydown', e => {
   switch (e.key) {
     case 'q': case 'Q': deckA.toggle(); break;
     case 'p': case 'P': deckB.toggle(); break;
+    // Headphone cue sits beside its play key (q→w, p→o) — the second
+    // most-hit transport after play gets a key too.
+    case 'w': case 'W': deckA.toggleCue(); break;
+    case 'o': case 'O': deckB.toggleCue(); break;
     case 'ArrowLeft': xfader.value = Math.max(0, parseFloat(xfader.value) - 0.05); applyCrossfade(); e.preventDefault(); break;
     case 'ArrowRight': xfader.value = Math.min(1, parseFloat(xfader.value) + 0.05); applyCrossfade(); e.preventDefault(); break;
     case 'ArrowDown': master.value = Math.max(0, parseFloat(master.value) - 0.05); master.dispatchEvent(new Event('input')); e.preventDefault(); break;
