@@ -1084,7 +1084,12 @@ class Deck {
       this.bendMul = 1;
       this.setRate(this.rate);
     };
+    this.wave.addEventListener('contextmenu', e => e.preventDefault());
     this.wave.addEventListener('pointerdown', e => {
+      // Right/middle buttons must not scrub, jog or drag cues — and
+      // the context menu is suppressed so a stray right-click can't
+      // cover the deck mid-set.
+      if (e.button !== 0) return;
       // Shift+drag while playing = jog bend: drag velocity bends the
       // pitch like a finger on the platter (CDJ vinyl mode). Plain
       // drag still scrubs the playhead.
@@ -1145,8 +1150,9 @@ class Deck {
     // Mini overview click = seek anywhere on the full track — what
     // overview strips are for. Works whatever the main zoom is:
     // click maps directly to track fraction.
+    this.waveMini.addEventListener('contextmenu', e => e.preventDefault());
     this.waveMini.addEventListener('pointerdown', e => {
-      if (!this.buffer) return;
+      if (e.button !== 0 || !this.buffer) return;
       const r = this.waveMini.getBoundingClientRect();
       this.seekTo(Math.min(Math.max((e.clientX - r.left) / r.width, 0), 1) * this.buffer.duration);
       this._drawnPos = undefined;
