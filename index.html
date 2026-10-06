@@ -3021,7 +3021,9 @@ async function previewTrack(id) {
   const rec = await Library.get(id);
   if (!rec || !rec.blob || tok !== previewToken) return;
   const ac = audio(); cueBus();
-  const buf = await ac.decodeAudioData(await rec.blob.arrayBuffer());
+  let buf;
+  try { buf = await ac.decodeAudioData(await rec.blob.arrayBuffer()); }
+  catch (_) { deckA.status('preview: undecodable audio'); return; }
   // A newer preview started while this decode was in flight — let it
   // win instead of layering a second source on the cue bus.
   if (tok !== previewToken) return;
