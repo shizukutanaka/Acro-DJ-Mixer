@@ -264,7 +264,7 @@
     <p><b>alt</b> — the expert layer: sync leader, stop a sampler voice, second loop-memory slot, trim the loop out-point</p>
     <p><b>right-click</b> — cue-bus preview on hot-cue and sampler pads</p>
     <h3>Keys</h3>
-    <p><b>q / p</b> play decks · <b>1–4</b> sampler pads · <b>A S D F / H J K L</b> hot cues 5–8 · <b>← →</b> crossfader · <b>↑ ↓</b> master · <b>?</b> this help</p>
+    <p><b>q / p</b> play decks · <b>1–4</b> sampler pads · <b>A S D F / H J K L</b> hot cues 5–8 · <b>← →</b> crossfader · <b>↑ ↓</b> master · <b>t / y</b> key sync · <b>?</b> this help</p>
   </div>
 </div>
 <script>
@@ -3360,6 +3360,9 @@ document.addEventListener('keydown', e => {
     case 'f': case 'F': deckA.padCue(7); break;
     case 'e': case 'E': deckA.syncTo(deckB); break;
     case 'r': case 'R': deckA.toggleLoop(); break;
+    // Key sync beside tempo-sync (t under e) — harmonic matching gets
+    // a key too; on an un-analyzed deck the button's status line says why.
+    case 't': case 'T': deckA.keySync(); break;
     // Deck B: B N M , = pads 1-4, H J K L = pads 5-8 (row above),
     // I = sync, U = loop
     case 'b': case 'B': deckB.padCue(0); break;
@@ -3372,6 +3375,7 @@ document.addEventListener('keydown', e => {
     case 'l': case 'L': deckB.padCue(7); break;
     case 'i': case 'I': deckB.syncTo(deckA); break;
     case 'u': case 'U': deckB.toggleLoop(); break;
+    case 'y': case 'Y': deckB.keySync(); break;
   }
 });
 
