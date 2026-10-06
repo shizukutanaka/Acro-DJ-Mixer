@@ -2010,6 +2010,7 @@ class Deck {
   setGain(g) {
     if (this.deckGain) this.deckGain.gain.setTargetAtTime(g, ctx.currentTime, 0.01);
     this.el.querySelector('[data-act=gain] ~ output').textContent = Math.round(g * 100) + '%';
+    sessSoon();   // MIDI/wheel writers bypass input events — snapshot anyway
   }
 
   setFader(v) {
@@ -2047,6 +2048,7 @@ class Deck {
       const hz = f >= 1000 ? (f / 1000).toFixed(1) + 'kHz' : Math.round(f) + 'Hz';
       this.filterOut.textContent = flat ? 'open' : (v < 0 ? 'LP ' : 'HP ') + hz;
     }
+    sessSoon();   // MIDI writers bypass input events — snapshot anyway
   }
 
   // EQ band slider -1..+1 -> dB. -26 dB at full cut approximates the
