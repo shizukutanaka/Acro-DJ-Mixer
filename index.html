@@ -1162,7 +1162,7 @@ class Deck {
         const [v0, v1] = this._viewSpan();
         const t = this.quantize(v0 + frac * (v1 - v0));
         this.cueIn = Math.min(Math.max(t, 0), this.buffer.duration);
-        this.offset = this.cueIn;
+        if (!this.playing) this.offset = this.cueIn;   // playing: offset anchors pos(), moving it would jump the playhead
         this._drawnPos = undefined;
         this.drawWave();
         return;
