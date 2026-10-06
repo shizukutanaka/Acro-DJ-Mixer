@@ -2658,6 +2658,7 @@ const Library = {
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 let libQuery = '';
+let libSeq = 0;   // render token — overlapping renders, latest wins (ADR-0261's idiom)
 
 // Library preview (rekordbox-style): audition a row's audio on the
 // headphone cue bus without touching a deck — the "is this the right
@@ -2683,10 +2684,12 @@ async function previewTrack(id) {
 }
 
 async function renderLibrary() {
+  const seq = ++libSeq;
   const rowsEl = document.getElementById('lib-rows');
   let rows;
   try { rows = (await Library.all()).filter(t => !t.deleted_at).sort((a, b) => b.updated_at - a.updated_at); }
   catch (_) { return; }
+  if (seq !== libSeq) return;   // a newer render superseded this one
   const q = libQuery.trim().toLowerCase();
   if (q) rows = rows.filter(t => (t.name || '').toLowerCase().includes(q));
   if (!rows.length) {
