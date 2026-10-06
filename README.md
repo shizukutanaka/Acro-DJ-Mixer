@@ -157,8 +157,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Bar jump** — `Shift` + `−1b`/`+1b` jumps a whole bar (4 beats)
   instead of one beat, for phrase-sized moves (see ADR-0053).
 - **Mono check** — `Mono` under `Cue mix` folds the master to one
-  channel (pre-limiter) to audition mono compatibility
-  (see ADR-0054).
+  channel (pre-limiter) to audition mono compatibility; hold it
+  for a momentary check (see ADR-0054, ADR-0185).
 - **Quantize toggle** — `Qtz` beside `Rev` switches beat-grid snapping
   for hot cues and loop in-points on/off (on by default)
   (see ADR-0055).
