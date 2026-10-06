@@ -827,7 +827,7 @@ class Deck {
     };
     this.cueBtn.addEventListener('pointerup', cueMomEnd);
     this.cueBtn.addEventListener('pointercancel', cueMomEnd);
-    let _slice = null;
+    this._slice = null;
     this.pads.forEach((pad, i) => {
       pad.addEventListener('click', e => {
         if (e.altKey) return;                          // alt = slice audition, not a cue jump
@@ -870,19 +870,24 @@ class Deck {
         // Alt+hold = slice audition: gate-play one beat of the grid
         // measured from cueIn (pad i = i-th beat). Release snaps back,
         // exactly like the Cue-preview idiom — transport is restored.
-        if (e.button === 0 && e.altKey && this.grid && this.buffer) {
+        // this._slice is a deck field so a load/eject can abandon a
+        // held gesture (ADR-0328 doctrine); a second pad's alt-press
+        // while one is held is ignored rather than clobbering the
+        // saved restore point and leaving the first pad lit.
+        if (e.button === 0 && e.altKey && this.grid && this.buffer && !this._slice) {
           const beatLen = 60 / this.grid.bpm;
           const base = this.cueIn != null ? this.cueIn : this.grid.beatOff;
           const start = Math.min(base + i * beatLen, this.buffer.duration);
-          _slice = { pad, pos: this.pos(), playing: this.playing };
+          this._slice = { pad, pos: this.pos(), playing: this.playing };
           this.seekTo(start);
           this.play();
           pad.classList.add('on');
         }
       });
       const sliceEnd = () => {
-        if (!_slice) return;
-        const sl = _slice; _slice = null;
+        const sl = this._slice;
+        if (!sl) return;
+        this._slice = null;
         sl.pad.classList.remove('on');
         this.seekTo(sl.pos);
         if (!sl.playing) this.pause();
@@ -1484,6 +1489,7 @@ class Deck {
       this._roll = null;
       this._loopT = null;
       this._loopEnterPos = 0;
+      if (this._slice) { this._slice.pad.classList.remove('on'); this._slice = null; }
       this.rollBtn.classList.remove('on');
       this.loopLenEl.hidden = true;
       this.keyEl.textContent = '—';
@@ -1916,6 +1922,7 @@ class Deck {
     this._loopEnterPos = 0;
     this._slip = null;
     this._roll = null;
+    if (this._slice) { this._slice.pad.classList.remove('on'); this._slice = null; }
     this.rollBtn.classList.remove('on');
     this.loopLenEl.hidden = true;
     this.loopBtn.classList.remove('on', 'armed');
