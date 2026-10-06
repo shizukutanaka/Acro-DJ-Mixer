@@ -626,14 +626,16 @@ class Deck {
     const dz = this.el.querySelector('.dropzone');
     const file = this.el.querySelector('input[type=file]');
     dz.addEventListener('click', () => file.click());
-    // Right-click an empty deck undoes the last eject: the library
-    // record still carries grid, key, cues and loop, so loadInto
-    // restores the deck exactly as it was.
+    // Right-click an empty deck undoes the last eject. Library
+    // tracks reload through loadInto (the record carries grid, key,
+    // cues and loop); file-loaded tracks replay the stashed File
+    // through load() with the prep snapshot taken at eject time.
     dz.addEventListener('contextmenu', e => {
       e.preventDefault();
       if (this.buffer || this._ejected == null) return;
-      const id = this._ejected; this._ejected = null;
-      Library.loadInto(this, id);
+      const ej = this._ejected; this._ejected = null;
+      if (typeof ej === 'number') Library.loadInto(this, ej);
+      else this.load(ej.file, ej.meta);
     });
     file.addEventListener('change', e => {
       const f = e.target.files[0];
@@ -1720,9 +1722,24 @@ class Deck {
     // the track would land on a deck the user just cleared.
     this._loadSeq = (this._loadSeq || 0) + 1;
     if (!this.buffer) { this.status(''); return; }
-    // Stash for right-click-on-dropzone undo — file-loaded tracks
-    // (no libId) can't be restored, so don't promise them.
-    this._ejected = this.libId != null ? this.libId : null;
+    // Stash for right-click-on-dropzone undo. Library tracks keep
+    // just the record id; file-loaded tracks keep the File itself
+    // plus the prep that lived on the deck (cue point, hot cues,
+    // saved loop + memory slots, grid, key) — load() restores them
+    // from meta exactly like a library record would.
+    this._ejected = this.libId != null ? this.libId
+      : this._fileObj && {
+          file: this._fileObj,
+          meta: {
+            cueIn: this.cueIn,
+            cues: this.cues.slice(),
+            loop: this._savedLoop,
+            mem1: this._loopMem, mem2: this._loopMem2,
+            bpm: this.grid && this.grid.bpm,
+            beatOff: this.grid && this.grid.beatOff,
+            key: this.key,
+          },
+        } || null;
     this.leading = false;
     this.syncBtn.classList.remove('on');
     // Bail out of an in-flight auto-mix fade touching this deck first.
