@@ -122,7 +122,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   restored on release (see ADR-0037); `Shift`+Roll rolls a ½ beat,
   `Alt`+Roll a ¼ beat (see ADR-0103, ADR-0181).
 - **Instant doubles** — `×2` clones the deck into the partner at the
-  same position and tempo, playing if it was playing (see ADR-0039).
+  same position and tempo, playing if it was playing (see ADR-0039);
+  `Shift+×2` swaps both decks' full state — position, tempo, play
+  state, cues, loops, keys (see ADR-0192).
 - **Vinyl brake** — `Brake` toggle makes pause spin down and play
   spin up like a turntable; off = instant stop (see ADR-0040).
 - **Beat echo** — `Echo` slider adds a 3/4-beat feedback delay that
@@ -239,6 +241,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   (see ADR-0154). Holding the Mic button while off works as
   press-to-talk — tap latches, hold is momentary like kills, mute,
   FX, pads, and Phones (see ADR-0155, ADR-0175).
+- **Channel fader start** — pulling a deck's upfader off zero
+  starts a stopped deck, the same FADER START idiom as the
+  crossfader (see ADR-0216).
 - **Fader start** — pushing the crossfader fully into a stopped deck's
   side starts it (see ADR-0068).
 - **Tempo range** — `±8 / ±16 / ±50` select per deck trades slider
@@ -252,8 +257,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Library export/import** — `⤓` downloads BPM, key, cues and loops
   as JSON; `⤒` merges them onto tracks matched by name+size
   (see ADR-0072) and reports how many records matched (see ADR-0230).
-- **Setlist** — every track actually played is logged in order;
-  `Setlist` downloads the session's playlist as a dated .txt
+- **Setlist** — every track actually played is logged in order and
+  kept across reloads; `Setlist` downloads the playlist as a dated
+  .txt
   (see ADR-0093).
 - **Cue marker** — the deck cue point (auto-cue or track start) shows
   as a cyan tick on the waveform, and the Cue button's tooltip reads
@@ -271,8 +277,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Library preview** — `▶` on a library row auditions the track on the
   headphone cue bus without loading a deck, starting at the cue point
   like the decks; rapid row clicks can never layer two auditions
-  (see ADR-0080, ADR-0108, ADR-0260). Loading that track stops
-  its audition — no double on the cue bus and the floor (see ADR-0246).
+  (see ADR-0080, ADR-0108, ADR-0260). Loading or deleting the row
+  stops its audition — no double on the cue bus and the floor
+  (see ADR-0246, ADR-0248).
 - **Beat FX select** — the FX knob drives `Echo`, `Flng` (LFO-swept
   comb), `Trans` (beat-synced gate chop), `Noise` (swept
   bandpass riser that breathes in time with the BEAT division,
@@ -296,6 +303,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   forgotten take can't hide (see ADR-0082). The browser tab title
   shows `▶ A: name` while a deck plays, so a background tab still
   tells you what's on the floor (see ADR-0114).
+- **Cue undo** — right-click an empty pad restores the last
+  cleared hot cue to its original pad (see ADR-0212).
 - **Cue clear** — `Shift`+pad click deletes a hot cue —
   trackpad-friendly (see ADR-0083); right-click previews instead
   (see ADR-0161).
@@ -315,7 +324,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   the pick prefers a Camelot+tempo fit to the playing deck before
   falling back to list order (see ADR-0146) — and says which it
   did on the deck's status line (see ADR-0207). It skips already-played
-  tracks unless they're all that's left (see ADR-0203).
+  tracks unless they're all that's left (see ADR-0203); the picked row
+  carries an amber left edge while armed (see ADR-0179).
 - **Phones volume** — a level knob for the whole cue bus, independent
   of the cue/PGM blend (see ADR-0087).
 - **Wake lock** — the screen can't sleep while a deck is playing,
@@ -470,7 +480,8 @@ Ordered by value per the ADR's automation layer:
 3d. ~~Headphone cue.~~ Done (ADR-0007) — pre-fader cue bus via
    MediaStream + `setSinkId`.
 4. ~~Track library with persistence.~~ Done (ADR-0008) — IndexedDB,
-   `id`/`created_at`/`updated_at`/`deleted_at`/`version` per record.
+   `id`/`created_at`/`updated_at`/`deleted_at`/`version` per record;
+   deletion frees the audio blob (ADR-0232).
 4b. ~~Hot cues.~~ Done (ADR-0010) — four per deck, persisted in the
    library; eight since ADR-0140. Beat-jump added in ADR-0012.
 5. ~~Stem separation.~~ Done (ADR-0026) — dependency-free mid/side
