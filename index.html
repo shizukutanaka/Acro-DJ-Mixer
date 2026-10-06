@@ -1223,6 +1223,9 @@ class Deck {
       this.status(this.cueIn > 0.05 ? 'auto-cue +' + this.cueIn.toFixed(1) + 's' : '');
       this.grid = null;
       this.key = null;
+      // Partner's harmonic tint referenced our key — recompute it
+      // now that there's nothing to match against.
+      if (this.partner) this.partner.refreshKey();
       this.loopOn = false;
       this.loopBtn.classList.remove('on');
       this.loopBtn.classList.remove('armed');
@@ -1615,6 +1618,7 @@ class Deck {
     this.fileName = this._fileObj = null;
     this.grid = null;
     this.key = null;
+    if (this.partner) this.partner.refreshKey();   // partner's tint referenced our key
     this.cueIn = 0;
     this._cueTitle();
     this.offset = 0;
@@ -1634,7 +1638,7 @@ class Deck {
     this.bpmEl.textContent = '—';
     this.el.querySelector('.barcount').textContent = '—';
     this.el.querySelector('.key').textContent = '—';
-    this.el.querySelector('.key').classList.remove('good');
+    this.el.querySelector('.key').className = 'key';   // refreshKey's classes are ok/clash, not 'good'
     this.timeEl.textContent = '0:00 / 0:00';
     this.playBtn.textContent = 'Play';
     this.libId = null;
