@@ -2879,7 +2879,10 @@ function analyzeTrack(d) {
       return new Promise((res, rej) => {
         const w = new Worker(ANALYSIS_URL);
         w.onmessage = e => { w.terminate(); res(e.data); };
-        w.onerror = e => { w.terminate(); rej(new Error('analysis worker failed')); };
+        // A mid-run worker failure must not strand the readouts at '—'
+        // — the same estimators run fine on the main thread (the
+        // no-Worker path below), so degrade rather than die.
+        w.onerror = e => { w.terminate(); res({ bpm: estimateBpm(d), key: estimateKey(d) }); };
         w.postMessage(d);
       });
     } catch (_) { /* no worker support — run inline below */ }
