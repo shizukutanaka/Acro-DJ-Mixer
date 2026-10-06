@@ -2895,13 +2895,27 @@ function analyzeTrack(d) {
 const Library = {
   _db: null,
   _open() {
-    if (!this._db) this._db = new Promise((res, rej) => {
-      const rq = indexedDB.open('acro-dj', 1);
-      rq.onupgradeneeded = () => rq.result.createObjectStore('tracks', { keyPath: 'id', autoIncrement: true });
-      rq.onsuccess = () => res(rq.result);
-      rq.onerror = () => rej(rq.error);
-    });
+    if (!this._db) {
+      const p = new Promise((res, rej) => {
+        const rq = indexedDB.open('acro-dj', 1);
+        rq.onupgradeneeded = () => rq.result.createObjectStore('tracks', { keyPath: 'id', autoIncrement: true });
+        rq.onsuccess = () => res(rq.result);
+        // A cached rejection would poison every later call — one
+        // transient open failure (blocked DB, version race) must not
+        // brick the library for the session. Drop the cache so the
+        // next attempt retries.
+        rq.onerror = () => { if (this._db === p) this._db = null; rej(rq.error); };
+      });
+      this._db = p;
+    }
     return this._db;
+  },
+  // One status per session on a failed library read — same surface-once
+  // doctrine the write chain uses.
+  fail() {
+    if (this._libWarned) return;
+    this._libWarned = true;
+    deckA.status('library unavailable — prep won\'t persist this session');
   },
   async _store(mode) { return (await this._open()).transaction('tracks', mode).objectStore('tracks'); },
   async put(rec) {
@@ -2979,7 +2993,8 @@ const Library = {
     }
   },
   async loadInto(deck, id) {
-    const rec = await this.get(id);
+    let rec;
+    try { rec = await this.get(id); } catch (_) { this.fail(); return; }
     if (!rec || rec.deleted_at) return;
     // Loading a track that is auditioning on the cue bus would double
     // it — once in the phones, once heading for the floor. The
@@ -3018,7 +3033,8 @@ async function previewTrack(id) {
   const tok = ++previewToken;
   if (previewSrc) { try { previewSrc.stop(); } catch (_) {} previewSrc.disconnect(); previewSrc = previewId = null; }
   if (wasPlaying) return;   // second click on the same row = stop
-  const rec = await Library.get(id);
+  let rec;
+  try { rec = await Library.get(id); } catch (_) { Library.fail(); return; }
   if (!rec || !rec.blob || tok !== previewToken) return;
   const ac = audio(); cueBus();
   const buf = await ac.decodeAudioData(await rec.blob.arrayBuffer());
@@ -3080,7 +3096,7 @@ async function renderLibrary() {
   const rowsEl = document.getElementById('lib-rows');
   let rows;
   try { rows = (await Library.all()).filter(t => !t.deleted_at).sort((a, b) => b.updated_at - a.updated_at); }
-  catch (_) { return; }
+  catch (_) { Library.fail(); return; }
   if (seq !== libSeq) return;   // a newer render superseded this one
   // Up-next under auto-mix: the row continuous auto-mix will load
   // next — the same pick logic as autoNext (harmonic fit preferred,
@@ -3894,7 +3910,7 @@ document.getElementById('lib-rows').addEventListener('dblclick', e => {
   if (free) Library.loadInto(free, Number(row.dataset.id));
 });
 renderLibrary();
-Library.gc(); // strip blobs from records soft-deleted before blob-on-remove freeing
+Library.gc().catch(() => Library.fail()); // strip blobs from records soft-deleted before blob-on-remove freeing
 
 // Wheel nudge on every fader/knob: one notch = one input step —
 // mouse resolution where a drag is too coarse. The tempo slider
