@@ -92,7 +92,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   See ADR-0007. A thin level meter under the selector shows what the
   phones are hearing, with a peak-hold tick like the other meters
   (see ADR-0022, ADR-0107). A `Δ ±x% beat` readout below it
-  shows the live beat-phase offset between decks — green when locked
+  shows the live beat-phase offset between decks — green when locked;
+  click the readout to sync the non-playing deck to the playing one
+  (ADR-0196)
   (see ADR-0023).
 - **Row double-click** — double-clicking a library row loads it
   into whichever deck is free (see ADR-0223).

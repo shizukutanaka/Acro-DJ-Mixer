@@ -217,7 +217,7 @@
     <div class="row"><label>Phones</label><input type="range" id="cuevol" min="0" max="1" step="0.01" value="1" title="Headphone volume — level of the whole cue bus (cue + PGM blend)"><output>100%</output></div>
     <div class="row"><label>Phones</label><button id="mono" title="Mono — fold the master down to one channel to check mono compatibility (club PAs are often mono); hold = momentary">Mono</button><button id="splitcue" title="Split cue — headphone cue (PFL) in the left ear, master PGM in the right">Split</button><button id="cut" title="Cut — hold to mute the master, release restores (transformer scratch technique)">Cut</button></div>
     <div class="meter cuem" title="Cue bus level (tick = peak hold)"><i id="cuemeter-fill"></i><b id="cuemeter-peak"></b></div>
-    <div class="phase" id="phase" title="Beat-phase offset between decks"></div>
+    <div class="phase" id="phase" title="Beat-phase offset between decks — click to sync the non-playing deck to the playing one"></div>
     <div class="row"><label>Smpl</label><span id="smp-pads"></span><input type="range" id="smp-gain" min="0" max="1" step="0.01" value="0.8" title="Sampler level — all pads"><label title="Loop pads — fired shots repeat until stopped (alt-click / choke)" style="font-size:10px;display:flex;align-items:center;gap:2px"><input type="checkbox" id="smp-loop">Loop</label><input type="range" id="smp-pitch" min="0.5" max="2" step="0.01" value="1" title="Sampler pitch — playback rate at fire time, 0.5–2×; double-click resets"><input id="smp-file" type="file" accept="audio/*" hidden></div>
     <div class="row"><button id="automix" title="Auto mix — near the end of the playing track the other deck starts synced and the crossfader rides over (8 beats; shift = long 32-beat fade). Keeps going: the empty deck auto-loads the next library track">Auto</button><button id="recbtn" title="Record the master output — click again to stop and download a .webm; shift = pause/resume the take">Rec</button><button id="mic" title="Microphone — live input summed into the master pre-limiter (use headphones — open speakers will feed back)">Mic</button><input type="range" id="mic-gain" min="0" max="1.5" step="0.01" value="0.9" title="Mic level — trim the mic in the master; double-click resets to 0.9. Range goes past unity for quiet mics"><input type="range" id="mic-low" min="-1" max="1" step="0.01" value="0" title="Mic LOW — 200 Hz low shelf ±12 dB, double-click resets"><input type="range" id="mic-high" min="-1" max="1" step="0.01" value="0" title="Mic HI — 4 kHz high shelf ±12 dB, double-click resets"></div>
     <div class="kbd-hint">Equal-power crossfade.<br>Auto BPM is an estimate — trust your ears.</div>
@@ -3895,6 +3895,14 @@ const cueFill = document.getElementById('cuemeter-fill');
 const cuePeakEl = document.getElementById('cuemeter-peak');
 let cuePeak = 0;
 const phaseEl = document.getElementById('phase');
+// The meter shows the drift — clicking it fixes it: sync the
+// non-playing deck to the playing one (both or neither playing
+// falls back to B→A, the usual lead convention).
+phaseEl.addEventListener('click', () => {
+  const slave = deckA.playing && !deckB.playing ? deckB
+    : deckB.playing && !deckA.playing ? deckA : deckB;
+  if (deckA.grid && deckB.grid) slave.syncTo(slave.partner);
+});
 const meterBuf = new Uint8Array(256);
 const luBuf = new Float32Array(256);
 let kwF1 = null, kwF2 = null, kwS1 = null, kwS2 = null;
