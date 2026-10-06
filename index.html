@@ -200,6 +200,7 @@
     <div class="row"><label>FX</label><select data-act="fx" title="Beat FX — which effect the level knob drives (echo/flanger/trans/noise/crush/verb/ping)"><option value="echo">Echo</option><option value="flange">Flng</option><option value="trans">Trans</option><option value="noise">Noise</option><option value="crush">Crush</option><option value="rev">Verb</option><option value="ping">Ping</option></select><select data-act="fxbeat" title="Echo time in beats — DJM BEAT parameter"><option value="0.25">¼</option><option value="0.5">½</option><option value="0.75" selected>¾</option><option value="1">1</option></select><button data-act="fxon" class="on" title="FX on/off — punch the selected effect in and out, knob position is kept (DJM BEAT FX ON/OFF)">FX</button><select data-act="fxtap" title="FX send tap — pre = sends keep ringing when you drop the fader (echo-out); post = sends follow the crossfader, tails die with the side (fader FX)"><option value="pre">pre</option><option value="post">post</option></select><input type="range" data-act="echo" min="0" max="1" step="0.01" value="0" title="Beat delay — 3/4-beat echo synced to the deck grid; 0 is dry. Double-click resets"><output>dry</output></div>
     <div class="row"><label>Stem</label><select data-act="stem" title="Mid/side split — Vocal keeps the centre channel (acapella), Inst keeps the sides (vocal-removed)"><option value="off">Full</option><option value="voc">Vocal</option><option value="inst">Inst</option></select></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1" title="Channel gain — double-click resets to unity"><output>100%</output><button data-act="mute" title="Deck mute — hold to silence the channel; playback keeps running underneath so release lands back on beat (channel on/off)">Mut</button></div>
+    <div class="row"><label>Fader</label><input type="range" data-act="fader" min="0" max="1" step="0.01" value="1" title="Channel fader — the upfader: post-EQ, pre-crossfader channel level. Double-click resets to unity"><output>100%</output></div>
     <div class="row"><span class="bpm">BPM <b>—</b></span><span class="barcount" title="Bar.beat position on the beat grid — where the phrase is">—</span><span class="beatlamp" title="Beat indicator — pulses each beat, accent on the downbeat"></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients (shift = one beat earlier)">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients (shift = one beat later)">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="stctl" title="Transpose — shift the deck's key in semitones (needs key lock / http); double-click ±N to reset"><button data-act="pitchdn">−</button><b class="st">±0</b><button data-act="pitchup">+</button></span><button data-act="keysync" title="Key sync — transpose to a key that mixes harmonically with the other deck">Key</button><span class="status"></span></div>
   </section>
 
@@ -247,6 +248,7 @@
     <div class="row"><label>FX</label><select data-act="fx" title="Beat FX — which effect the level knob drives (echo/flanger/trans/noise/crush/verb/ping)"><option value="echo">Echo</option><option value="flange">Flng</option><option value="trans">Trans</option><option value="noise">Noise</option><option value="crush">Crush</option><option value="rev">Verb</option><option value="ping">Ping</option></select><select data-act="fxbeat" title="Echo time in beats — DJM BEAT parameter"><option value="0.25">¼</option><option value="0.5">½</option><option value="0.75" selected>¾</option><option value="1">1</option></select><button data-act="fxon" class="on" title="FX on/off — punch the selected effect in and out, knob position is kept (DJM BEAT FX ON/OFF)">FX</button><select data-act="fxtap" title="FX send tap — pre = sends keep ringing when you drop the fader (echo-out); post = sends follow the crossfader, tails die with the side (fader FX)"><option value="pre">pre</option><option value="post">post</option></select><input type="range" data-act="echo" min="0" max="1" step="0.01" value="0" title="Beat delay — 3/4-beat echo synced to the deck grid; 0 is dry. Double-click resets"><output>dry</output></div>
     <div class="row"><label>Stem</label><select data-act="stem" title="Mid/side split — Vocal keeps the centre channel (acapella), Inst keeps the sides (vocal-removed)"><option value="off">Full</option><option value="voc">Vocal</option><option value="inst">Inst</option></select></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1" title="Channel gain — double-click resets to unity"><output>100%</output><button data-act="mute" title="Deck mute — hold to silence the channel; playback keeps running underneath so release lands back on beat (channel on/off)">Mut</button></div>
+    <div class="row"><label>Fader</label><input type="range" data-act="fader" min="0" max="1" step="0.01" value="1" title="Channel fader — the upfader: post-EQ, pre-crossfader channel level. Double-click resets to unity"><output>100%</output></div>
     <div class="row"><span class="bpm">BPM <b>—</b></span><span class="barcount" title="Bar.beat position on the beat grid — where the phrase is">—</span><span class="beatlamp" title="Beat indicator — pulses each beat, accent on the downbeat"></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients (shift = one beat earlier)">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients (shift = one beat later)">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="stctl" title="Transpose — shift the deck's key in semitones (needs key lock / http); double-click ±N to reset"><button data-act="pitchdn">−</button><b class="st">±0</b><button data-act="pitchup">+</button></span><button data-act="keysync" title="Key sync — transpose to a key that mixes harmonically with the other deck">Key</button><span class="status"></span></div>
   </section>
 </main>
@@ -603,6 +605,7 @@ class Deck {
     this.tempoRange = 0.16;
     this.tempoOut = root.querySelector('[data-act=tempo] ~ output');
     this.gainEl = root.querySelector('[data-act=gain]');
+    this.faderEl = root.querySelector('[data-act=fader]');
     this.eq = null;   // {low, mid, high} BiquadFilters, created lazily with the graph
     this.eqEls = { low: root.querySelector('[data-eq=low]'), mid: root.querySelector('[data-eq=mid]'), high: root.querySelector('[data-eq=high]') };
     this.kills = { low: false, mid: false, high: false };  // isolator-style band kills
@@ -927,6 +930,8 @@ class Deck {
     }
     this.gainEl.addEventListener('input', () => this.setGain(parseFloat(this.gainEl.value)));
     this.gainEl.addEventListener('dblclick', () => { this.gainEl.value = 1; this.setGain(1); });
+    this.faderEl.addEventListener('input', () => this.setFader(parseFloat(this.faderEl.value)));
+    this.faderEl.addEventListener('dblclick', () => { this.faderEl.value = 1; this.setFader(1); });
     // Momentary deck mute: playback keeps running underneath, so the
     // release lands back on beat — pause would freeze the position.
     const mutBtn = this.el.querySelector('[data-act=mute]');
@@ -1340,7 +1345,13 @@ class Deck {
     this.crusher.curve = Deck.linCurve();
     this.crusher.oversample = '2x';
     this.gate.connect(this.crusher);
-    this.crusher.connect(this.xfGain);
+    // Channel upfader: a separate gain stage between the FX end of the
+    // strip and the crossfader — the channel meter keeps reading
+    // pre-fader, which is what a meter is for.
+    this.fader = ac.createGain();
+    this.fader.gain.value = parseFloat(this.faderEl.value);
+    this.crusher.connect(this.fader);
+    this.fader.connect(this.xfGain);
     // Channel strip meter tap: post-EQ/filter, pre-crossfader.
     this.chAnalyser = ac.createAnalyser();
     this.chAnalyser.fftSize = 512;
@@ -1869,6 +1880,11 @@ class Deck {
   setGain(g) {
     if (this.deckGain) this.deckGain.gain.setTargetAtTime(g, ctx.currentTime, 0.01);
     this.el.querySelector('[data-act=gain] ~ output').textContent = Math.round(g * 100) + '%';
+  }
+
+  setFader(v) {
+    if (this.fader) this.fader.gain.setTargetAtTime(v, ctx.currentTime, 0.01);
+    this.el.querySelector('[data-act=fader] ~ output').textContent = Math.round(v * 100) + '%';
   }
 
   // Mid/side matrix weights: off = passthrough, voc = (L+R)/2 to both
@@ -4003,6 +4019,7 @@ function sessSave() {
       const q = sessDeckQ(d.el);
       decks[k] = {
         gain: q('[data-act=gain]').value,
+        fader: q('[data-act=fader]').value,
         eqLow: q('[data-eq=low]').value, eqMid: q('[data-eq=mid]').value, eqHigh: q('[data-eq=high]').value,
         filter: q('[data-act=filter]').value,
         echo: q('[data-act=echo]').value,
@@ -4045,6 +4062,7 @@ try {
         el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input'));
       };
       setV('[data-act=gain]', s2.gain);
+      if (s2.fader != null) setV('[data-act=fader]', s2.fader);
       setV('[data-eq=low]', s2.eqLow); setV('[data-eq=mid]', s2.eqMid); setV('[data-eq=high]', s2.eqHigh);
       setV('[data-act=filter]', s2.filter);
       setV('[data-act=fx]', s2.fx);        // fxSel first — setEcho re-reads it
