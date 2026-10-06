@@ -1454,6 +1454,14 @@ class Deck {
       this.loopBtn.classList.remove('armed');
       this._loopIn = null;
       this._prevLoop = null;
+      // A held slip cue or loop roll belongs to the old track: a late
+      // release would seek to a stale position or re-arm the old
+      // loop bounds (and tagLib them) on the new one.
+      this._slip = null;
+      this._roll = null;
+      this._loopT = null;
+      this._loopEnterPos = 0;
+      this.rollBtn.classList.remove('on');
       this.loopLenEl.hidden = true;
       this.keyEl.textContent = '—';
       this.keyEl.className = 'key';
@@ -1883,6 +1891,9 @@ class Deck {
     this._loopIn = null;
     this._loopT = null;
     this._loopEnterPos = 0;
+    this._slip = null;
+    this._roll = null;
+    this.rollBtn.classList.remove('on');
     this.loopLenEl.hidden = true;
     this.loopBtn.classList.remove('on', 'armed');
     this.loopBtn.textContent = 'Loop';
