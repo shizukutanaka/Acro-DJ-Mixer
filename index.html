@@ -840,7 +840,7 @@ class Deck {
         const src = audio().createBufferSource();
         src.buffer = this.buffer;
         src.connect(cueBus());
-        src.onended = () => { if (padPrev === src) padPrev = null; };
+        src.onended = () => { if (padPrev === src) { src.disconnect(); padPrev = null; } };
         src.start(0, this.cues[i]);
         padPrev = src; padPrevOwner = this;
       });
@@ -3691,11 +3691,11 @@ smpSlots.forEach((_, i) => {
       return;
     }
     if (!slot.buf) return;
-    if (smpPrev) { try { smpPrev.stop(); } catch (_) {} smpPrev = null; }
+    if (smpPrev) { try { smpPrev.stop(); } catch (_) {} smpPrev.disconnect(); smpPrev = null; }
     const src = audio().createBufferSource();
     src.buffer = slot.buf;
     src.connect(cueBus());
-    src.onended = () => { if (smpPrev === src) smpPrev = null; };
+    src.onended = () => { if (smpPrev === src) { src.disconnect(); smpPrev = null; } };
     src.start();
     smpPrev = src;
   });
