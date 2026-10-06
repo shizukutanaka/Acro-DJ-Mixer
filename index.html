@@ -2698,6 +2698,10 @@ const Library = {
   async loadInto(deck, id) {
     const rec = await this.get(id);
     if (!rec || rec.deleted_at) return;
+    // Loading a track that is auditioning on the cue bus would double
+    // it — once in the phones, once heading for the floor. The
+    // audition's job is done the moment the DJ commits to the load.
+    if (previewId === id && previewSrc) { try { previewSrc.stop(); } catch (_) {} }
     deck.load(rec.blob, { libId: rec.id, bpm: rec.bpm, beatOff: rec.beatOff, key: rec.key, cues: rec.cues, cueIn: rec.cueIn, loop: rec.loop });
   },
 };
