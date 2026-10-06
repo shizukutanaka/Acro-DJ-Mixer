@@ -3348,7 +3348,7 @@ document.getElementById('lib-exp').addEventListener('click', async () => {
   a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' }));
   a.download = 'acro-dj-library.json';
   a.click();
-  URL.revokeObjectURL(a.href);
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
 });
 document.getElementById('lib-set').addEventListener('click', () => {
   const lines = setLog.map((e, i) => String(i + 1).padStart(2, '0') + '. ' +
@@ -3357,7 +3357,7 @@ document.getElementById('lib-set').addEventListener('click', () => {
   a.href = URL.createObjectURL(new Blob([lines.join('\n') + '\n'], { type: 'text/plain' }));
   a.download = 'setlist-' + new Date().toISOString().slice(0, 10) + '.txt';
   a.click();
-  URL.revokeObjectURL(a.href);
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
 });
 const libImpFile = document.getElementById('lib-impfile');
 document.getElementById('lib-imp').addEventListener('click', () => libImpFile.click());
