@@ -152,6 +152,12 @@
   .lib-row.fit .name::before { content: '● '; font-size: 9px; vertical-align: 1px; }
   .lib-row.onA .name::after { content: ' A'; color: #4aa3ff; font-size: 9px; font-weight: 700; }
   .lib-row.onB .name::after { content: ' B'; color: #ffb54a; font-size: 9px; font-weight: 700; }
+  #help { position: fixed; inset: 0; background: rgba(0,0,0,.72); display: flex; align-items: center; justify-content: center; z-index: 50; }
+  #help[hidden] { display: none; }
+  #help .card { background: #1a1d23; border: 1px solid #333; border-radius: 10px; padding: 18px 22px; max-width: 560px; font-size: 12.5px; line-height: 1.55; }
+  #help .card h3 { margin: 0 0 8px; font-size: 13px; }
+  #help .card b { color: #4aa3ff; }
+  #help .card p { margin: 4px 0; color: #bbb; }
   @media (max-width: 760px) {
     main { grid-template-columns: 1fr; }
   }
@@ -247,6 +253,20 @@
 </section>
 <footer>Acro DJ Mixer — local files only, nothing is uploaded. See docs/adr/ADR-0001 for scope decisions.</footer>
 
+<div id="help" hidden>
+  <div class="card">
+    <h3>Gestures — press ? or Esc to close</h3>
+    <p><b>click / tap</b> — latching toggles everywhere</p>
+    <p><b>hold ≥250 ms</b> — momentary: EQ kills, Mut, FX, sampler pads, Mic, Phones, Slip, Mono</p>
+    <p><b>double-click</b> — reset a knob/fader/readout to centre</p>
+    <p><b>wheel</b> — fine-trim any knob or fader; on a loaded pad it trims that pad's level</p>
+    <p><b>shift</b> — the alternate: clear hot cue, free-size loop in/out marks, phase-only sync, bar jump, half-beat roll, jog scrub, loop-edge trim, save loop memory, solo phones, resample an armed loop to an empty pad, clear a pad</p>
+    <p><b>alt</b> — the expert layer: sync leader, stop a sampler voice, second loop-memory slot, trim the loop out-point</p>
+    <p><b>right-click</b> — cue-bus preview on hot-cue and sampler pads</p>
+    <h3>Keys</h3>
+    <p><b>q / p</b> play decks · <b>1–4</b> sampler pads · <b>A S D F / H J K L</b> hot cues 5–8 · <b>← →</b> crossfader · <b>↑ ↓</b> master · <b>?</b> this help</p>
+  </div>
+</div>
 <script>
 'use strict';
 
@@ -713,13 +733,13 @@ class Deck {
         // sampler pads: audition this hot cue on the cue bus.
         // Clearing lives on shift-click (ADR-0083).
         if (this.cues[i] == null || !this.buffer) return;
-        if (padPrev) { try { padPrev.stop(); } catch (_) {} padPrev.disconnect(); padPrev = null; }
+        killPadPrev(this);
         const src = audio().createBufferSource();
         src.buffer = this.buffer;
         src.connect(cueBus());
         src.onended = () => { if (padPrev === src) padPrev = null; };
         src.start(0, this.cues[i]);
-        padPrev = src;
+        padPrev = src; padPrevOwner = this;
       });
       pad.addEventListener('pointerdown', e => { if (e.button === 0 && !e.shiftKey) this.slipCueStart(i); });
       for (const ev of ['pointerup', 'pointerleave', 'pointercancel'])
@@ -1064,13 +1084,22 @@ class Deck {
   }
 
   async load(fileObj, meta) {
+    killPadPrev(this);   // the old track's cue audition can't outlive it
     this.status('decoding…');
+    // Two rapid loads must never interleave: the last caller wins.
+    // Guard every await — a stale continuation that kept writing
+    // would leave file A's buffer under file B's name.
+    const seq = this._loadSeq = (this._loadSeq || 0) + 1;
+    const live = () => seq === this._loadSeq;
     try {
       const ac = audio();
       const data = await fileObj.arrayBuffer();
+      if (!live()) return;
       const buf = await ac.decodeAudioData(data);
+      if (!live()) return;
       stat('loads');
       await this.ensureNodes();
+      if (!live()) return;
       this.stopPlayback();
       if (this.engine === 'worklet') {
         const chans = [];
@@ -1082,17 +1111,23 @@ class Deck {
       // start at the first sample above −50 dBFS (scans max 30 s).
       this.cueIn = 0;
       {
-        const ch0 = buf.getChannelData(0);
-        const end = Math.min(ch0.length, buf.sampleRate * 30);
-        for (let i = 0; i < end; i++) {
-          if (Math.abs(ch0[i]) > 0.003) { this.cueIn = i / buf.sampleRate; break; }
+        const chs = [];
+        for (let c = 0; c < buf.numberOfChannels; c++) chs.push(buf.getChannelData(c));
+        const end = Math.min(chs[0].length, buf.sampleRate * 30);
+        outer: for (let i = 0; i < end; i++) {
+          for (const ch of chs) {
+            if (Math.abs(ch[i]) > 0.003) { this.cueIn = i / buf.sampleRate; break outer; }
+          }
         }
         // Effective end: the last sample above the same −50 dBFS
-        // floor. Tracks with a silent tail would otherwise make
-        // auto-mix fire late — it counts back from this point.
+        // floor on ANY channel — a right-channel tail that outlasts
+        // the left must not be faded out early. Tracks with a silent
+        // tail would otherwise make auto-mix fire late.
         this._endAt = buf.duration;
-        for (let i = ch0.length - 1; i >= 0; i--) {
-          if (Math.abs(ch0[i]) > 0.003) { this._endAt = i / buf.sampleRate; break; }
+        outer: for (let i = chs[0].length - 1; i >= 0; i--) {
+          for (const ch of chs) {
+            if (Math.abs(ch[i]) > 0.003) { this._endAt = i / buf.sampleRate; break outer; }
+          }
         }
       }
       // A cue point set by hand (shift+Cue) beats the auto-detected
@@ -1133,6 +1168,7 @@ class Deck {
       // would just lean on the limiter.
       const mono = monoResample(buf);   // promise — estimators await it internally
       this.applyAutoGain(await mono);
+      if (!live()) return;
       if (meta && meta.bpm) {
         // Cached analysis from the library — instant, no recompute.
         this.grid = { bpm: meta.bpm, beatOff: meta.beatOff || 0 };
@@ -1388,7 +1424,15 @@ class Deck {
     if (!this.buffer || this.playing || !this.engine) return;
     stat('plays');
     if (this._spinTimer) { clearInterval(this._spinTimer); this._spinTimer = null; this.spinMul = 1; }
-    if (this.offset >= this.buffer.duration - 0.01) this.offset = 0;
+    if (this.offset >= this.buffer.duration - 0.01) {
+      // Restart lands on the cue point — the same spot the deck loaded
+      // to — so lead-in silence stays skipped on a replay. The worklet
+      // keeps its own position, so it needs an explicit seek: 'play'
+      // alone resumes it at the buffer's end and it ends again at once.
+      this.offset = this.cueIn || 0;
+      if (this.engine === 'worklet')
+        this.node.port.postMessage({ type: 'seek', pos: Math.round(this.offset * this.buffer.sampleRate) });
+    }
     if (!this._setLogged && this.fileName) {
       this._setLogged = true;
       setLog.push({ name: this.fileName, deck: this.side, at: new Date() });
@@ -1445,6 +1489,7 @@ class Deck {
   }
 
   eject() {
+    killPadPrev(this);
     if (!this.buffer) return;
     this.leading = false;
     this.syncBtn.classList.remove('on');
@@ -1492,6 +1537,10 @@ class Deck {
 
   stopPlayback() {
     this.playing = false;
+    // An in-flight brake ramp must not outlive its owner — eject/cue
+    // call this, and the timer would keep posting 'rate' and fire its
+    // done() callback on a dead deck.
+    if (this._spinTimer) { clearInterval(this._spinTimer); this._spinTimer = null; this.spinMul = 1; }
     if (this.engine === 'worklet') {
       this.node.port.postMessage({ type: 'pause' });
     } else if (this.source) {
@@ -1922,10 +1971,22 @@ class Deck {
     if (id != null) Library.tag(id, this._libPatch);
   }
 
+  // One worker run feeds both readouts — BPM and key estimate from the
+  // same mono buffer, so a single postMessage carries both results back.
+  _analysis(monoP) {
+    if (!this.__anP) this.__anP = monoP.then(d => analyzeTrack(d));
+    return this.__anP;
+  }
+
   async estimateBpm(monoP) {
     this.bpmEl.textContent = '…';
+    // Analysis outlives the track that spawned it if a new load lands
+    // first — bail rather than write A's grid over B's buffer (or into
+    // B's library record via tagLib).
+    const buf = this.buffer;
     try {
-      const grid = estimateBpm(await monoP);
+      const grid = (await this._analysis(monoP)).bpm;
+      if (buf !== this.buffer) return;
       this.grid = grid;
       this.bpmEl.textContent = grid ? grid.bpm.toFixed(1) : '—';
       if (grid) this.tagLib({ bpm: grid.bpm, beatOff: grid.beatOff });
@@ -1934,18 +1995,21 @@ class Deck {
       this.drawWave();
     } catch (err) {
       console.error(err);
-      this.bpmEl.textContent = '—';
+      if (buf === this.buffer) this.bpmEl.textContent = '—';
     }
   }
 
   async estimateKey(monoP) {
     this.keyEl.textContent = '…';
+    const buf = this.buffer;
     try {
-      this.key = estimateKey(await monoP);
+      const key = (await this._analysis(monoP)).key;
+      if (buf !== this.buffer) return;
+      this.key = key;
       if (this.key) this.tagLib({ key: this.key });
     } catch (err) {
       console.error(err);
-      this.key = null;
+      if (buf === this.buffer) this.key = null;
     }
     this.refreshKey();
     if (this.partner) this.partner.refreshKey();
@@ -2533,6 +2597,34 @@ function harmonic(a, b) {
   return a.num === b.num || (a.letter === b.letter && d === 1);
 }
 
+// Track analysis off-main-thread: the BPM comb scan and the chroma FFTs
+// block the UI for a second or more on long tracks. The estimators are
+// pure functions of the mono buffer, so a Worker rebuilt from their own
+// source runs them untouched — same zero-dependency trick as WSOLA_URL.
+const ANALYSIS_SRC = [
+  'const ANALYSIS_SR = ' + ANALYSIS_SR + ';',
+  'const KS_MAJOR = ' + JSON.stringify(KS_MAJOR) + ';',
+  'const KS_MINOR = ' + JSON.stringify(KS_MINOR) + ';',
+  'const NOTE_NAMES = ' + JSON.stringify(NOTE_NAMES) + ';',
+  fft.toString(), estimateBpm.toString(), estimateKey.toString(),
+  'onmessage = e => { const d = e.data; postMessage({ bpm: estimateBpm(d), key: estimateKey(d) }); };'
+].join('\n');
+const ANALYSIS_URL = URL.createObjectURL(new Blob([ANALYSIS_SRC], { type: 'text/javascript' }));
+
+function analyzeTrack(d) {
+  if (typeof Worker === 'function') {
+    try {
+      return new Promise((res, rej) => {
+        const w = new Worker(ANALYSIS_URL);
+        w.onmessage = e => { w.terminate(); res(e.data); };
+        w.onerror = e => { w.terminate(); rej(new Error('analysis worker failed')); };
+        w.postMessage(d);
+      });
+    } catch (_) { /* no worker support — run inline below */ }
+  }
+  return Promise.resolve({ bpm: estimateBpm(d), key: estimateKey(d) });
+}
+
 // ----- Library (IndexedDB) -----
 // Every file dropped on a deck is auto-saved — audio blob plus the BPM/key
 // analysis once it lands — so a later session reloads instantly from the
@@ -2579,27 +2671,47 @@ const Library = {
     renderLibrary();
     return rec.id;
   },
+  // tag/remove are read-modify-write: two writers on the same record
+  // (a track can sit on both decks — one's plays tag, the other's
+  // cues) must not interleave or the later put resurrects stale
+  // fields. Chain every mutation through one promise so writes
+  // serialize instead of racing.
+  _wr: Promise.resolve(),
+  _mutate(fn) {
+    // A failed write must not poison the chain — swallow after logging
+    // so later mutations still run.
+    this._wr = this._wr.then(fn).catch(err => { console.error('library write failed:', err); });
+    return this._wr;
+  },
   async tag(id, patch) {
     if (!id) return;
-    const rec = await this.get(id);
-    if (!rec) return;
-    Object.assign(rec, patch);
-    rec.updated_at = Date.now();
-    rec.version++;
-    await this.put(rec);
-    renderLibrary();
+    return this._mutate(async () => {
+      const rec = await this.get(id);
+      if (!rec) return;
+      Object.assign(rec, patch);
+      rec.updated_at = Date.now();
+      rec.version++;
+      await this.put(rec);
+      renderLibrary();
+    });
   },
   async remove(id) {
-    const rec = await this.get(id);
-    if (!rec) return;
-    rec.deleted_at = Date.now();
-    rec.version++;
-    await this.put(rec);
-    renderLibrary();
+    return this._mutate(async () => {
+      const rec = await this.get(id);
+      if (!rec) return;
+      rec.deleted_at = Date.now();
+      rec.version++;
+      await this.put(rec);
+      renderLibrary();
+    });
   },
   async loadInto(deck, id) {
     const rec = await this.get(id);
     if (!rec || rec.deleted_at) return;
+    // Loading a track that is auditioning on the cue bus would double
+    // it — once in the phones, once heading for the floor. The
+    // audition's job is done the moment the DJ commits to the load.
+    if (previewId === id && previewSrc) { try { previewSrc.stop(); } catch (_) {} }
     deck.load(rec.blob, { libId: rec.id, bpm: rec.bpm, beatOff: rec.beatOff, key: rec.key, cues: rec.cues, cueIn: rec.cueIn, loop: rec.loop });
   },
 };
@@ -2611,16 +2723,20 @@ let libQuery = '';
 // Library preview (rekordbox-style): audition a row's audio on the
 // headphone cue bus without touching a deck — the "is this the right
 // track" check before committing a load.
-let previewSrc = null, previewId = null;
+let previewSrc = null, previewId = null, previewToken = 0;
 const setLog = [];   // every track actually played this session, in order
 async function previewTrack(id) {
   const wasPlaying = previewId === id;
+  const tok = ++previewToken;
   if (previewSrc) { try { previewSrc.stop(); } catch (_) {} previewSrc.disconnect(); previewSrc = previewId = null; }
   if (wasPlaying) return;   // second click on the same row = stop
   const rec = await Library.get(id);
-  if (!rec || !rec.blob) return;
+  if (!rec || !rec.blob || tok !== previewToken) return;
   const ac = audio(); cueBus();
   const buf = await ac.decodeAudioData(await rec.blob.arrayBuffer());
+  // A newer preview started while this decode was in flight — let it
+  // win instead of layering a second source on the cue bus.
+  if (tok !== previewToken) return;
   previewSrc = ac.createBufferSource();
   previewSrc.buffer = buf;
   previewSrc.connect(cueIn);
@@ -2742,16 +2858,20 @@ recBtn.addEventListener('click', () => {
     recorder = new MediaRecorder(recDest.stream);
     recorder.ondataavailable = e => recChunks.push(e.data);
     recorder.onstop = () => {
-      const blob = new Blob(recChunks, { type: 'audio/webm' });
+      // Honour the recorder's real container — Safari MediaRecorder
+      // emits mp4, and a .webm filename lies about what's inside.
+      const mime = recorder.mimeType || 'audio/webm';
+      const ext = mime.includes('mp4') ? '.m4a' : '.webm';
+      const blob = new Blob(recChunks, { type: mime });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      const fname = 'acro-set-' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.webm';
+      const fname = 'acro-set-' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + ext;
       a.download = fname;
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 10000);
       // The set itself becomes a library row: replay it, arm a loop
       // on it, resample it — same material as any loaded track.
-      Library.addFromFile(new File([blob], fname, { type: 'audio/webm' }),
+      Library.addFromFile(new File([blob], fname, { type: mime }),
         (performance.now() - recStart) / 1000)
         .catch(err => console.warn('library save failed:', err));
       stat('recs');
@@ -2780,6 +2900,13 @@ autoBtn.addEventListener('click', e => {
     f.from.setFilter(parseFloat(f.from.filterEl.value));  // restore knob position
     if (f.echoed) f.from.setEcho(parseFloat(f.from.echoEl.value));   // delay send back to the knob
     if (f.to && f.to.eq) f.to.setBand('low', parseFloat(f.to.eqEls.low.value));    // restore bass swap
+    // Rollback: the fader rode toward the incoming side — put it
+    // back so the cancel sounds like the transition never started,
+    // and pause the incoming deck rather than leave it running
+    // inaudible under the restored fader.
+    xfader.value = f.fromX;
+    applyCrossfade();
+    if (f.to) f.to.pause();
     autoBtn.textContent = 'Auto';
     return;
   }
@@ -2983,7 +3110,12 @@ micBtn2.title = 'Microphone — click toggles live input into the master pre-lim
 const smpSlots = [null, null, null, null];
 let smpGain = null;
 let smpPrev = null;
-let padPrev = null;   // deck hot-cue preview voice (right-click audition)    // cue-bus audition voice
+let padPrev = null, padPrevOwner = null;   // deck hot-cue preview voice + the deck it belongs to
+// Auditions follow the owner doctrine: a load/eject kills only ITS
+// deck's audition, never the partner's.
+const killPadPrev = deck => {
+  if (padPrev && padPrevOwner === deck) { try { padPrev.stop(); } catch (_) {} padPrev.disconnect(); padPrev = padPrevOwner = null; }
+};
 const smpPadsEl = document.getElementById('smp-pads');
 const smpFile = document.getElementById('smp-file');
 let smpPending = -1;
@@ -3071,6 +3203,9 @@ smpSlots.forEach((_, i) => {
         b.title = 'Resampled loop — ' + d.name + ' ' + (d.loopEnd - d.loopStart).toFixed(2) + 's';
         return;
       }
+      // A pad auditioning on the cue bus keeps ringing after its
+      // sample is cleared — silence the ghost along with the slot.
+      if (smpPrev) { try { smpPrev.stop(); } catch (_) {} smpPrev = null; }
       smpSlots[i] = null;
       b.textContent = '+'; b.classList.remove('set', 'on');
       b.title = 'Sampler — click loads a one-shot, click again plays it, alt-click stops playback, shift-click clears';
@@ -3276,9 +3411,14 @@ document.addEventListener('wheel', e => {
   el.dispatchEvent(new Event('input'));
 }, { passive: false });
 
+const helpEl = document.getElementById('help');
+const toggleHelp = () => { helpEl.hidden = !helpEl.hidden; };
+helpEl.addEventListener('click', () => { helpEl.hidden = true; });
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' && e.target.type === 'text') return;
   if (e.target.tagName === 'SELECT') return;
+  if (e.key === 'Escape') { helpEl.hidden = true; return; }
+  if (e.key === '?' || e.key === '/') { toggleHelp(); e.preventDefault(); return; }
   switch (e.key) {
     case 'q': case 'Q': deckA.toggle(); break;
     case 'p': case 'P': deckB.toggle(); break;
@@ -3448,6 +3588,9 @@ async function wakeSync() {
 document.addEventListener('visibilitychange', () => {
   // The OS releases the lock when the tab hides — reclaim on return.
   if (document.visibilityState === 'visible') { wakeLock = null; wakeSync(); }
+  // Some OSes suspend the AudioContext in the background too — resume
+  // or the decks stay silent until the next gesture calls audio().
+  if (document.visibilityState === 'visible' && ctx && ctx.state === 'suspended') ctx.resume();
 });
 
 function tick() {
