@@ -3742,7 +3742,7 @@ window.addEventListener('beforeunload', e => {
 // Flush the pending session snapshot on the way out — the 400 ms
 // debounce would otherwise drop the last adjustments. pagehide, not
 // beforeunload: mobile Safari skips the latter entirely.
-window.addEventListener('pagehide', () => { clearTimeout(sessTimer); sessSave(); });
+window.addEventListener('pagehide', () => { clearTimeout(sessTimer); sessSave(); padsFlush(); });
 
 function autoMixTick() {
   if (autoMix.fade) {
@@ -3937,9 +3937,16 @@ const smpSlots = [null, null, null, null];
 // track surface), so prepared one-shots survive reloads like the
 // rest of the prep state.
 async function padSave(i) {
-  try {
+  // Inside _mutate like tag/remove: padSave does read-modify-write on
+  // the record, and two overlapping calls on the same index (a load
+  // write and a clear write interleaved) would race last-put-wins —
+  // resurrecting a cleared pad or losing the new sample. _mutate
+  // also surfaces a dead store once per session (ADR-0310).
+  return Library._mutate(async () => {
     const slot = smpSlots[i];
-    const rows = (await Library.all()).filter(t => t.pad === i && !t.deleted_at);
+    let rows;
+    try { rows = (await Library.all()).filter(t => t.pad === i && !t.deleted_at); }
+    catch (_) { Library.fail(); return; }
     const rec = rows[0] || { created_at: Date.now(), deleted_at: null, version: 0 };
     for (const extra of rows.slice(1)) { extra.deleted_at = Date.now(); extra.version++; await Library.put(extra); }
     if (!slot || !slot.buf) {
@@ -3955,10 +3962,14 @@ async function padSave(i) {
     rec.updated_at = Date.now(); rec.version++;
     rec.id = await Library.put(rec);
     slot.padRecId = rec.id;
-  } catch (_) {}
+  });
 }
 let padTimer = null;
 const padsSaveSoon = () => { clearTimeout(padTimer); padTimer = setTimeout(() => { for (let i = 0; i < 4; i++) padSave(i); }, 600); };
+// Same exit rule as sessSave (ADR-0318): the 600 ms debounce would
+// drop the last pad edit on the way out — flush it synchronously.
+// IndexedDB commits usually still drain during pagehide/hidden.
+const padsFlush = () => { if (!padTimer) return; clearTimeout(padTimer); padTimer = null; for (let i = 0; i < 4; i++) padSave(i); };
 async function padsRestore() {
   try {
     const rows = (await Library.all()).filter(t => t.pad != null && !t.deleted_at);
@@ -4779,7 +4790,7 @@ document.addEventListener('visibilitychange', () => {
   // Flush the session snapshot when the tab hides — mobile OSes can
   // kill a suspended tab without ever firing pagehide, so 'hidden'
   // is the last guaranteed notification.
-  if (document.visibilityState === 'hidden') { clearTimeout(sessTimer); sessSave(); }
+  if (document.visibilityState === 'hidden') { clearTimeout(sessTimer); sessSave(); padsFlush(); }
   // The OS releases the lock when the tab hides — reclaim on return.
   if (document.visibilityState === 'visible') { wakeLock = null; wakeSync(); }
   // Some OSes suspend the AudioContext in the background too — resume
