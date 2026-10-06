@@ -4202,6 +4202,10 @@ async function wakeSync() {
   }
 }
 document.addEventListener('visibilitychange', () => {
+  // Flush the session snapshot when the tab hides — mobile OSes can
+  // kill a suspended tab without ever firing pagehide, so 'hidden'
+  // is the last guaranteed notification.
+  if (document.visibilityState === 'hidden') { clearTimeout(sessTimer); sessSave(); }
   // The OS releases the lock when the tab hides — reclaim on return.
   if (document.visibilityState === 'visible') { wakeLock = null; wakeSync(); }
   // Some OSes suspend the AudioContext in the background too — resume
