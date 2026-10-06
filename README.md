@@ -216,7 +216,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   during any slip borrow (see ADR-0156). Hold `Slip` ≥250 ms for
   momentary mode — one-off slips without a second click (see ADR-0177).
 - **Next-bar jump** — `▸bar` on the hot-cue row lands the playhead on
-  the next bar downbeat, so drops hit "the one" (see ADR-0061).
+  the next bar downbeat, so drops hit "the one" (see ADR-0061);
+  shift jumps back one bar to re-drop (see ADR-0201).
 - **Tempo reset** — double-click the tempo slider for an exact ±0.0%,
   like the hardware TEMPO RESET (see ADR-0062). Scrolling over the
   slider trims ±0.1% per notch for fine pitch rides (see ADR-0109);
@@ -292,7 +293,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   (see ADR-0080, ADR-0108, ADR-0260). Loading or deleting the row
   stops its audition — no double on the cue bus and the floor
   (see ADR-0246, ADR-0248). Auditions play through the same gated
-  gain a deck load applies (see ADR-0224).
+  gain a deck load applies (see ADR-0224). The auditioning row's ▶ lights up
+  while it rings (see ADR-0249).
 - **Beat FX select** — the FX knob drives `Echo`, `Flng` (LFO-swept
   comb), `Trans` (beat-synced gate chop), `Noise` (swept
   bandpass riser that breathes in time with the BEAT division,
@@ -459,7 +461,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Web MIDI** — connected controllers drive the surface: notes
   60–75 = deck A/B pads, 36–39 = sampler pads (velocity-sensitive,
   ADR-0168; held ≥250 ms gates the shot like a held mouse pad,
-  ADR-0169), 44/45 = play A/B, 46/47 = sync, 48/49 = loop,
+  ADR-0169), 44/45 = play A/B, 40/41 = instant doubles A→B / B→A
+  (ADR-0183), 46/47 = sync, 48/49 = loop,
   50/51 = cue (ADR-0173), 52–57 = deck A/B H/M/L kills,
   58/59 = deck A/B FX on/off (ADR-0180);
   CC1 = crossfader, CC7 = master, CC20/21 = channel gains,
