@@ -4567,6 +4567,7 @@ document.addEventListener('keydown', e => {
 // ----- Web MIDI: any connected controller drives the surface -----
 // Note-ons: 60-67 deck A pads, 68-75 deck B pads, 36-39 sampler
 // pads, 44/45 play A/B. CCs: 1 = crossfader, 7 = master,
+// 22/23 = channel faders A/B,
 // 20/21 = channel gain A/B — the default CC names every
 // budget controller ships with, so most units work unmapped.
 // Held-note timestamps for the pad gate: the app's own momentary
@@ -4631,6 +4632,10 @@ function midiMsg(e) {
     else if (n === 7) { master.value = f; master.dispatchEvent(new Event('input')); }
     else if (n === 20) { deckA.gainEl.value = f; deckA.setGain(f); }
     else if (n === 21) { deckB.gainEl.value = f; deckB.setGain(f); }
+    // Channel upfaders on the next pair — hardware channel faders
+    // commonly sit right after the trim CCs.
+    else if (n === 22) { deckA.faderEl.value = f; deckA.setFader(f); }
+    else if (n === 23) { deckB.faderEl.value = f; deckB.setFader(f); }
     // Tempo: full CC travel maps onto the deck's own range (±8/16/50
     // select included), with the same centre detent as the slider.
     else if (n === 14 || n === 15) {

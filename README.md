@@ -464,6 +464,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   (see ADR-0231, ADR-0255). While a slider is
   focused, arrow keys belong to it — no double-drive of fader +
   crossfader (see ADR-0251).
+- **MIDI channel faders** — CC 22/23 drive the deck upfaders,
+  next to the gain trims on CC 20/21 (see ADR-0215).
 - **Web MIDI** — connected controllers drive the surface: notes
   60–75 = deck A/B pads, 36–39 = sampler pads (velocity-sensitive,
   ADR-0168; held ≥250 ms gates the shot like a held mouse pad,
