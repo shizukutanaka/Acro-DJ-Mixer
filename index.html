@@ -2839,6 +2839,14 @@ autoBtn.addEventListener('click', e => {
   if (!autoMix.on) autoBtn.textContent = 'Auto';
 });
 
+// The only state a reload can't bring back is an in-flight take —
+// chunks live in RAM until onstop fires. Warn on close while a
+// recording is open; playing decks need no guard (the mixer surface
+// restores itself, and the library/setlist already saved).
+window.addEventListener('beforeunload', e => {
+  if (recorder && recorder.state === 'recording') e.preventDefault();
+});
+
 function autoMixTick() {
   if (autoMix.fade) {
     const f = autoMix.fade;
