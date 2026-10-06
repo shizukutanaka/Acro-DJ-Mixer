@@ -264,7 +264,7 @@
     <p><b>alt</b> — the expert layer: sync leader, stop a sampler voice, second loop-memory slot, trim the loop out-point</p>
     <p><b>right-click</b> — cue-bus preview on hot-cue and sampler pads</p>
     <h3>Keys</h3>
-    <p><b>q / p</b> play decks · <b>1–4</b> sampler pads · <b>A S D F / H J K L</b> hot cues 5–8 · <b>← →</b> crossfader · <b>↑ ↓</b> master · <b>?</b> this help</p>
+    <p><b>q / p</b> play decks · <b>1–4</b> sampler pads · <b>Z X C V / B N M ,</b> hot cues 1–4 · <b>A S D F / H J K L</b> hot cues 5–8 · <b>shift+key</b> clears a cue · <b>← →</b> crossfader · <b>↑ ↓</b> master · <b>?</b> this help</p>
   </div>
 </div>
 <script>
@@ -3350,26 +3350,27 @@ document.addEventListener('keydown', e => {
     }
     // Deck A: Z X C V = pads 1-4, A S D F = pads 5-8 (row above),
     // E = sync, R = loop
-    case 'z': case 'Z': deckA.padCue(0); break;
-    case 'x': case 'X': deckA.padCue(1); break;
-    case 'c': case 'C': deckA.padCue(2); break;
-    case 'v': case 'V': deckA.padCue(3); break;
-    case 'a': case 'A': deckA.padCue(4); break;
-    case 's': case 'S': deckA.padCue(5); break;
-    case 'd': case 'D': deckA.padCue(6); break;
-    case 'f': case 'F': deckA.padCue(7); break;
+    case 'z': case 'Z': e.shiftKey ? deckA.clearPad(0) : deckA.padCue(0); break;
+    case 'x': case 'X': e.shiftKey ? deckA.clearPad(1) : deckA.padCue(1); break;
+    case 'c': case 'C': e.shiftKey ? deckA.clearPad(2) : deckA.padCue(2); break;
+    case 'v': case 'V': e.shiftKey ? deckA.clearPad(3) : deckA.padCue(3); break;
+    case 'a': case 'A': e.shiftKey ? deckA.clearPad(4) : deckA.padCue(4); break;
+    case 's': case 'S': e.shiftKey ? deckA.clearPad(5) : deckA.padCue(5); break;
+    case 'd': case 'D': e.shiftKey ? deckA.clearPad(6) : deckA.padCue(6); break;
+    case 'f': case 'F': e.shiftKey ? deckA.clearPad(7) : deckA.padCue(7); break;
     case 'e': case 'E': deckA.syncTo(deckB); break;
     case 'r': case 'R': deckA.toggleLoop(); break;
     // Deck B: B N M , = pads 1-4, H J K L = pads 5-8 (row above),
     // I = sync, U = loop
-    case 'b': case 'B': deckB.padCue(0); break;
-    case 'n': case 'N': deckB.padCue(1); break;
-    case 'm': case 'M': deckB.padCue(2); break;
+    case 'b': case 'B': e.shiftKey ? deckB.clearPad(0) : deckB.padCue(0); break;
+    case 'n': case 'N': e.shiftKey ? deckB.clearPad(1) : deckB.padCue(1); break;
+    case 'm': case 'M': e.shiftKey ? deckB.clearPad(2) : deckB.padCue(2); break;
     case ',': deckB.padCue(3); break;
-    case 'h': case 'H': deckB.padCue(4); break;
-    case 'j': case 'J': deckB.padCue(5); break;
-    case 'k': case 'K': deckB.padCue(6); break;
-    case 'l': case 'L': deckB.padCue(7); break;
+    case '<': deckB.clearPad(3); break;   // shift+, on a US layout
+    case 'h': case 'H': e.shiftKey ? deckB.clearPad(4) : deckB.padCue(4); break;
+    case 'j': case 'J': e.shiftKey ? deckB.clearPad(5) : deckB.padCue(5); break;
+    case 'k': case 'K': e.shiftKey ? deckB.clearPad(6) : deckB.padCue(6); break;
+    case 'l': case 'L': e.shiftKey ? deckB.clearPad(7) : deckB.padCue(7); break;
     case 'i': case 'I': deckB.syncTo(deckA); break;
     case 'u': case 'U': deckB.toggleLoop(); break;
   }
