@@ -119,8 +119,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   and re-armed on reload, like hot cues (see ADR-0038).
 - **Loop roll** — hold `Roll` to loop the current beat, release to
   resume where the track would have been (slip); an armed loop is
-  restored on release (see ADR-0037); `Shift`+Roll rolls a ½ beat
-  (see ADR-0103).
+  restored on release (see ADR-0037); `Shift`+Roll rolls a ½ beat,
+  `Alt`+Roll a ¼ beat (see ADR-0103, ADR-0181).
 - **Instant doubles** — `×2` clones the deck into the partner at the
   same position and tempo, playing if it was playing (see ADR-0039).
 - **Vinyl brake** — `Brake` toggle makes pause spin down and play
@@ -310,7 +310,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   auto-loads the next library track and stays armed (see ADR-0086);
   the pick prefers a Camelot+tempo fit to the playing deck before
   falling back to list order (see ADR-0146) — and says which it
-  did on the deck's status line (see ADR-0207).
+  did on the deck's status line (see ADR-0207). It skips already-played
+  tracks unless they're all that's left (see ADR-0203).
 - **Phones volume** — a level knob for the whole cue bus, independent
   of the cue/PGM blend (see ADR-0087).
 - **Wake lock** — the screen can't sleep while a deck is playing,
