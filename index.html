@@ -3710,6 +3710,9 @@ try {
       if (!s2) continue;
       const q = sessDeckQ(d.el);
       const setV = (sel, v2) => {
+        // Older sessions lack newer fields — assigning undefined would
+        // throw on the AudioParam write and kill the rest of restore.
+        if (v2 == null) return;
         const el = q(sel);
         el.value = v2;
         el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input'));
@@ -3724,9 +3727,9 @@ try {
       setV('[data-act=assign]', s2.assign);
       setV('[data-act=range]', s2.range);
       const fxBtn = q('[data-act=fxon]');
-      if (fxBtn.classList.contains('on') !== !!s2.fxon) fxBtn.click();
+      if (s2.fxon != null && fxBtn.classList.contains('on') !== !!s2.fxon) fxBtn.click();
       const slipB = q('[data-act=slip]');
-      if (slipB.classList.contains('on') !== !!s2.slip) slipB.click();
+      if (s2.slip != null && slipB.classList.contains('on') !== !!s2.slip) slipB.click();
     }
   }
 } catch {}
