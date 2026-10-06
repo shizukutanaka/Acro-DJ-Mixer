@@ -1060,7 +1060,15 @@ class Deck {
     }, { passive: false });
   }
 
-  status(msg) { this.statusEl.textContent = msg || ''; }
+  // Ephemeral by default: a message is about *this* moment — a stale
+  // "cue set" or "tap out of range" still on screen minutes later
+  // reads like live state. Clear it after 5 s; a newer message
+  // replaces the timer, so only the last word ever stands.
+  status(msg) {
+    this.statusEl.textContent = msg || '';
+    clearTimeout(this._stT);
+    if (msg) this._stT = setTimeout(() => { this.statusEl.textContent = ''; }, 5000);
+  }
 
   // Tap tempo: click on the beat — median of the last few inter-tap
   // intervals sets grid.bpm, and the last tap anchors beatOff (phase).
