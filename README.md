@@ -75,6 +75,7 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   when a grid exists — hardware QUANTIZE (see ADR-0021).
   `−1b`/`+1b` beside them beat-jump one
   beat of the grid (see ADR-0012).
+  Drag a colored tick on the waveform to reposition that cue; Qtz snaps it (ADR-0189).
 - **Headphone cue (PFL)** — `Phones` button taps each deck pre-fader onto
   a cue bus; `Shift+Phones` arms it solo, dropping the other deck's
   cue in one click (see ADR-0113); `Cue out` picks the output device (`setSinkId`, Chrome/Edge); the
