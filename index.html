@@ -2902,6 +2902,9 @@ const Library = {
     return this._mutate(async () => {
       const rec = await this.get(id);
       if (!rec) return;
+      // A track that's auditioning on the cue bus keeps ringing after
+      // its row is gone — silence the ghost before deleting.
+      if (previewId === id && previewSrc) { try { previewSrc.stop(); } catch (_) {} }
       rec.deleted_at = Date.now();
       rec.blob = null; // free the audio bytes; the metadata row stays for soft-delete history
       rec.version++;
