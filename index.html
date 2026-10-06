@@ -1367,7 +1367,10 @@ class Deck {
     // the knob for the selected FX — initializing to the raw value
     // would leak echo into the mix when fxSel isn't echo or FX is off.
     this.delayWet.gain.value = 0;
-    this.filter.connect(this.delay);
+    this.delaySend = ac.createGain();
+    this.delaySend.gain.value = 0;
+    this.filter.connect(this.delaySend);
+    this.delaySend.connect(this.delay);
     this.delay.connect(this.delayFb);
     this.delayFb.connect(this.delay);
     // Ping-pong echo (fxSel 'ping'): feedback crosses L/R each cycle —
@@ -1442,7 +1445,10 @@ class Deck {
     this.verb = ac.createConvolver();
     this.verb.buffer = ir;
     this.verbWet = ac.createGain(); this.verbWet.gain.value = 0;
-    this.filter.connect(this.verb);
+    this.verbSend = ac.createGain();
+    this.verbSend.gain.value = 0;
+    this.filter.connect(this.verbSend);
+    this.verbSend.connect(this.verb);
     this.verb.connect(this.verbWet);
     this.verbWet.connect(this.xfGain);
     this.gateOsc = ac.createOscillator();
@@ -1700,31 +1706,36 @@ class Deck {
   setEcho(v) {
     // CDJ BEAT FX style: the knob drives the selected effect only —
     // the other wet path is parked at zero. The FX ON/OFF button
-    // gates everything: disengaged = v treated as 0, knob kept.
-    if (!this.fxOn) v = 0;
+    // gates the effect's INPUT (delay/reverb sends), not its output:
+    // turning FX off lets a tail in the line ring out naturally at
+    // the knob's wet level instead of hard-cutting it (DJM behavior).
     const fx = this.fxSel ? this.fxSel.value : 'echo';
-    if (this.delayWet) this.delayWet.gain.setTargetAtTime((fx === 'echo' || fx === 'ping') ? v * 0.7 : 0, ctx.currentTime, 0.02);
+    const echoFx = fx === 'echo' || fx === 'ping';
+    const off = this.fxOn ? v : 0;      // zeroed copy for dry-path FX
+    if (this.delaySend) this.delaySend.gain.setTargetAtTime(this.fxOn && echoFx ? 1 : 0, ctx.currentTime, 0.02);
+    if (this.verbSend) this.verbSend.gain.setTargetAtTime(this.fxOn && fx === 'rev' ? 1 : 0, ctx.currentTime, 0.02);
+    if (this.delayWet) this.delayWet.gain.setTargetAtTime(echoFx ? v * 0.7 : 0, ctx.currentTime, 0.02);
     if (this.ppMerge && this._pp !== (fx === 'ping')) {
       // Swap the feedback loop: direct = normal echo, crossed = ping.
       this._pp = fx === 'ping';
       if (this._pp) { this.delay.disconnect(this.delayFb); this.ppMerge.connect(this.delayFb); }
       else { this.ppMerge.disconnect(this.delayFb); this.delay.connect(this.delayFb); }
     }
-    if (this.flWet) this.flWet.gain.setTargetAtTime(fx === 'flange' ? v * 0.7 : 0, ctx.currentTime, 0.02);
+    if (this.flWet) this.flWet.gain.setTargetAtTime(fx === 'flange' ? off * 0.7 : 0, ctx.currentTime, 0.02);
     if (this.gateDepth) {
-      const t = fx === 'trans' ? v : 0;
+      const t = fx === 'trans' ? off : 0;
       this.gateDepth.gain.setTargetAtTime(t * 0.5, ctx.currentTime, 0.02);
       this.gate.gain.setTargetAtTime(1 - t * 0.5, ctx.currentTime, 0.02);
     }
     if (this.noiseWet) {
-      this.noiseWet.gain.setTargetAtTime(fx === 'noise' ? v * 0.6 : 0, ctx.currentTime, 0.02);
+      this.noiseWet.gain.setTargetAtTime(fx === 'noise' ? off * 0.6 : 0, ctx.currentTime, 0.02);
       const f0 = 200 * Math.pow(2, v * 5.3);
       this.noiseFilt.frequency.setTargetAtTime(fx === 'noise' ? f0 : 800, ctx.currentTime, 0.02);
       // Sweep depth tracks the centre — ±60 % around it, so the
       // wash widens as the riser climbs.
-      if (this.noiseLfoDepth) this.noiseLfoDepth.gain.setTargetAtTime(fx === 'noise' && v > 0.02 ? f0 * 0.6 : 0, ctx.currentTime, 0.02);
+      if (this.noiseLfoDepth) this.noiseLfoDepth.gain.setTargetAtTime(fx === 'noise' && off > 0.02 ? f0 * 0.6 : 0, ctx.currentTime, 0.02);
     }
-    if (this.crusher) this.crusher.curve = fx === 'crush' && v > 0.02 ? Deck.crushCurve(v) : Deck.linCurve();
+    if (this.crusher) this.crusher.curve = fx === 'crush' && off > 0.02 ? Deck.crushCurve(off) : Deck.linCurve();
     if (this.verbWet) this.verbWet.gain.setTargetAtTime(fx === 'rev' ? v * 0.8 : 0, ctx.currentTime, 0.02);
     this.echoEl.nextElementSibling.textContent = v <= 0.01 ? 'dry' : Math.round(v * 100) + '%';
   }

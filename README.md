@@ -269,7 +269,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   only the selected effect sounds (see ADR-0081, ADR-0097, ADR-0126,
   ADR-0127, ADR-0128, ADR-0160). The
   `FX` button punches the effect in/out without touching the knob —
-  hold for a momentary stab (see ADR-0133, ADR-0144). The
+  hold for a momentary stab (see ADR-0133, ADR-0144). Off closes the
+  delay/reverb SEND so a tail in the line rings out at the knob's
+  wet level instead of being hard-cut (see ADR-0182). The
   `pre`/`post` select moves the send tap — tails that outlive the
   crossfader (pre) or fader FX that die with the side (post; see
   ADR-0134).
