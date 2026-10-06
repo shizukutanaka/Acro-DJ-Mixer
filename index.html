@@ -3204,7 +3204,12 @@ const Library = {
   _mutate(fn) {
     // A failed write must not poison the chain — swallow after logging
     // so later mutations still run.
-    this._wr = this._wr.then(fn).catch(err => { console.error('library write failed:', err); });
+    this._wr = this._wr.then(fn).catch(err => {
+      console.error('library write failed:', err);
+      // A dead store (quota, private mode) loses prep silently — say it
+      // once per session instead of letting cues/grids vanish on eject.
+      if (!this._wrWarned) { this._wrWarned = true; deckA.status('Library writes are failing — prep may not persist'); }
+    });
     return this._wr;
   },
   async tag(id, patch) {
