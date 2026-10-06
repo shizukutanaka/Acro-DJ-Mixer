@@ -37,12 +37,16 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Key lock** — preserve pitch while tempo changes (WSOLA time-stretching
   in an `AudioWorklet`, see ADR-0003). Requires http(s); on `file://` the
   button is disabled and tempo stays varispeed.
-- **Gain** — per-deck channel fader; `Mut` beside it is a momentary
+- **Gain** — per-deck channel trim; `Mut` beside it is a momentary
   channel on/off — hold to silence, playback keeps running underneath
   so release lands on beat (see ADR-0137).
 - **3-band EQ** — High/Mid/Low per deck (shelf 250 Hz / peak 1 kHz /
   shelf 4 kHz, ±26 dB isolator-style travel, double-click resets).
   See ADR-0005.
+- **Channel fader** — an upfader per deck between the channel
+  strip and the crossfader: ride channel level like a real mixer.
+  Double-click resets to unity; the channel meter stays pre-fader
+  (see ADR-0214).
 - **Crossfader** — equal-power law for constant loudness through the middle.
 - **Waveform overview** with playhead per deck.
 - **Auto BPM estimate + beat grid** — energy-flux autocorrelation, 60–180 BPM,
@@ -294,7 +298,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Continuous auto-mix** — after each auto fade the vacated deck
   auto-loads the next library track and stays armed (see ADR-0086);
   the pick prefers a Camelot+tempo fit to the playing deck before
-  falling back to list order (see ADR-0146).
+  falling back to list order (see ADR-0146) — and says which it
+  did on the deck's status line (see ADR-0207).
 - **Phones volume** — a level knob for the whole cue bus, independent
   of the cue/PGM blend (see ADR-0087).
 - **Wake lock** — the screen can't sleep while a deck is playing,
@@ -396,7 +401,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   deck B `B N M ,` `H J K L` `I` `U` (see ADR-0031, ADR-0101,
   ADR-0157). `?` (or `/`) toggles a gesture-legend overlay listing the
   modifier grammar — click/hold/double-click/wheel/shift/alt/
-  right-click — and the key map (see ADR-0231). While a slider is
+  right-click — the library gestures, and the key map
+  (see ADR-0231, ADR-0255). While a slider is
   focused, arrow keys belong to it — no double-drive of fader +
   crossfader (see ADR-0251).
 - **Web MIDI** — connected controllers drive the surface: notes
@@ -453,6 +459,12 @@ Ordered by value per the ADR's automation layer:
    centre-panned extraction isn't enough.
 6. ~~Recommendation / auto-mix assistance.~~ Done — harmonic-fit
    highlighting (ADR-0011) + one-click auto transitions (ADR-0013).
+
+## Local stats
+
+Lifetime counters (loads / plays / loops / auto transitions /
+recordings) live in `localStorage` — hover the footer to read them.
+Local-only; nothing is sent anywhere (see ADR-0237).
 
 ## Security
 
