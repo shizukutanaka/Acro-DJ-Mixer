@@ -2987,6 +2987,42 @@ function estimateKey(d) {
 
 // Camelot mixing rule: same code, relative major/minor (same number), or
 // adjacent on the wheel (same letter, +-1) all mix harmonically.
+// The auto-mix next-track pick, shared by the loader and the amber
+// 'upnext' row marker. Walk the visible order past the playing row:
+// prefer an unplayed harmonic fit (±tempo range, Camelot-compatible
+// vs the EFFECTIVE transposed key — the same criteria as the green
+// 'fit' highlight), then first unplayed, then a played fit, then any
+// played row — a set shouldn't repeat a track while fresh rows
+// remain (ADR-0174). Returns { pick, reason } — pick may be null.
+function autoMixPick(rows, playing, vacatedId) {
+  const cur = rows.findIndex(t => t.id === playing.libId);
+  const taken = new Set([playing.libId, vacatedId]);
+  const eff = playing.key
+    ? { num: ((playing.key.num - 1 + 7 * (playing.st || 0)) % 12 + 12) % 12 + 1,
+        letter: playing.key.letter }
+    : null;
+  const fits = t => eff && playing.grid && t.key && t.bpm
+    && t.bpm / playing.grid.bpm >= 1 - playing.tempoRange
+    && t.bpm / playing.grid.bpm <= 1 + playing.tempoRange
+    && harmonic(eff, t.key);
+  let pick = null, firstFree = null, firstPlayed = null, firstPlayedFit = null;
+  for (let i = 1; i <= rows.length; i++) {
+    const t = rows[(cur + i) % rows.length];
+    if (!t || taken.has(t.id)) continue;
+    if (t.plays) {
+      if (!firstPlayed) firstPlayed = t;
+      if (fits(t) && !firstPlayedFit) firstPlayedFit = t;
+      continue;
+    }
+    if (!firstFree) firstFree = t;
+    if (fits(t)) { pick = t; break; }
+  }
+  return {
+    pick: pick || firstFree || firstPlayedFit || firstPlayed,
+    reason: pick ? 'harmonic fit' : 'next in line',
+  };
+}
+
 function harmonic(a, b) {
   const d = Math.min(Math.abs(a.num - b.num), 12 - Math.abs(a.num - b.num));
   return a.num === b.num || (a.letter === b.letter && d === 1);
@@ -3249,24 +3285,11 @@ async function renderLibrary() {
   let upnextId = null;
   if (autoMix.on) {
     const p = [deckA, deckB].find(d => d.playing && d.buffer && !d.partner.playing);
+    // Same helper the loader runs — the marker must name the row
+    // auto-mix will actually take, including the played-last-resort rule.
     if (p && rows.length) {
-      const cur = rows.findIndex(t => t.id === p.libId);
-      const taken = new Set([p.libId, p.partner.libId]);
-      const eff = p.key
-        ? { num: ((p.key.num - 1 + 7 * (p.st || 0)) % 12 + 12) % 12 + 1, letter: p.key.letter }
-        : null;
-      const fitsNext = t => eff && p.grid && t.key && t.bpm
-        && t.bpm / p.grid.bpm >= 1 - p.tempoRange
-        && t.bpm / p.grid.bpm <= 1 + p.tempoRange
-        && harmonic(eff, t.key);
-      let firstFree = null;
-      for (let i = 1; i <= rows.length; i++) {
-        const t = rows[(cur + i) % rows.length];
-        if (!t || taken.has(t.id)) continue;
-        if (!firstFree) firstFree = t;
-        if (fitsNext(t)) { upnextId = t.id; break; }
-      }
-      if (upnextId == null && firstFree) upnextId = firstFree.id;
+      const { pick } = autoMixPick(rows, p, p.partner.libId);
+      if (pick) upnextId = pick.id;
     }
   }
   const q = libQuery.trim().toLowerCase();
@@ -3602,39 +3625,7 @@ async function autoNext(vacated, playing) {
   try {
     const rows = (await Library.all()).filter(t => !t.deleted_at).sort((a, b) => b.updated_at - a.updated_at);
     if (!rows.length) return false;
-    const cur = rows.findIndex(t => t.id === playing.libId);
-    const taken = new Set([playing.libId, vacated.libId]);
-    // Prefer a harmonic pick: walk the visible order and take the
-    // first row whose key+tempo mixes into the deck still playing —
-    // same criteria as the green 'fit' highlight (±tempo range and
-    // Camelot-compatible vs the EFFECTIVE transposed key). Falls back
-    // to plain next-in-line rather than leave the deck empty.
-    const eff = playing.key
-      ? { num: ((playing.key.num - 1 + 7 * (playing.st || 0)) % 12 + 12) % 12 + 1,
-          letter: playing.key.letter }
-      : null;
-    const fits = t => eff && playing.grid && t.key && t.bpm
-      && t.bpm / playing.grid.bpm >= 1 - playing.tempoRange
-      && t.bpm / playing.grid.bpm <= 1 + playing.tempoRange
-      && harmonic(eff, t.key);
-    // Already-played tracks (row greyed per ADR-0174) are last
-    // resort — a set shouldn't repeat a track while fresh rows remain.
-    let pick = null, firstFree = null, firstPlayed = null, firstPlayedFit = null;
-    for (let i = 1; i <= rows.length; i++) {
-      const t = rows[(cur + i) % rows.length];
-      if (!t || taken.has(t.id)) continue;
-      if (t.plays) {
-        if (!firstPlayed) firstPlayed = t;
-        if (fits(t) && !firstPlayedFit) firstPlayedFit = t;
-        continue;
-      }
-      if (!firstFree) firstFree = t;
-      if (fits(t)) { pick = t; break; }
-    }
-    // Say why: the autopilot earns trust by explaining its pick —
-    // 'harmonic fit' vs a plain 'next in line' fallback.
-    const reason = pick ? 'harmonic fit' : 'next in line';
-    pick = pick || firstFree || firstPlayedFit || firstPlayed;
+    const { pick, reason } = autoMixPick(rows, playing, vacated.libId);
     if (!pick) return false;
     await Library.loadInto(vacated, pick.id);
     vacated.status('Auto-load: ' + (pick.name || 'track') + ' — ' + reason);
