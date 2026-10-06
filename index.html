@@ -1273,7 +1273,9 @@ class Deck {
       this._fileObj = fileObj;
       this._setLogged = false;   // a fresh track re-earns its setlist entry
       this._playCounted = false;   // a fresh track re-earns its play
-      this.el.querySelector('.dropzone').textContent = fileObj.name;
+      const dzEl = this.el.querySelector('.dropzone');
+      dzEl._arm = 0;   // a pending 'sure?' arm must not restore the old name
+      dzEl.textContent = fileObj.name;
       this.playBtn.textContent = 'Play';
       this._cueTitle();
       this.status(this.cueIn > 0.05 ? 'auto-cue +' + this.cueIn.toFixed(1) + 's' : '');
@@ -1691,7 +1693,9 @@ class Deck {
     this.loopLenEl.hidden = true;
     this.loopBtn.classList.remove('on', 'armed');
     this.loopBtn.textContent = 'Loop';
-    this.el.querySelector('.dropzone').textContent = 'Drop track or click to load';
+    const dzEl2 = this.el.querySelector('.dropzone');
+    dzEl2._arm = 0;   // drop the armed state with the track
+    dzEl2.textContent = 'Drop track or click to load';
     this.bpmEl.textContent = '—';
     this.effEl.textContent = '';
     this.el.querySelector('.barcount').textContent = '—';
