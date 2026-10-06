@@ -69,7 +69,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   on the waveform), click jumps, right-click previews the cue on the
   headphone bus (same idiom as library rows and sampler pads),
   shift-click clears; persisted per track
-  in the library (see ADR-0010, ADR-0161). Recording snaps to the nearest beat
+  in the library (see ADR-0010, ADR-0161); each occupied pad's tooltip
+  reads its stored time, including cues restored on load (see ADR-0254).
+  Recording snaps to the nearest beat
   when a grid exists — hardware QUANTIZE (see ADR-0021).
   `−1b`/`+1b` beside them beat-jump one
   beat of the grid (see ADR-0012).
