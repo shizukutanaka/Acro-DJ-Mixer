@@ -1058,7 +1058,10 @@ class Deck {
     }
     this.filterEl.addEventListener('input', () => this.setFilter(parseFloat(this.filterEl.value)));
     this.filterEl.addEventListener('dblclick', () => { this.filterEl.value = 0; this.setFilter(0); });
-    this.stemSel.addEventListener('change', () => this.setStem(this.stemSel.value));
+    this.stemSel.addEventListener('change', () => {
+      this.setStem(this.stemSel.value);
+      if (this.buffer) this.tagLib({ stem: this.stemSel.value });  // same prep doctrine as cues/loop
+    });
     this.el.querySelector('[data-act=tap]').addEventListener('click', () => this.tapTempo());
     // Manual BPM entry: click the readout for an inline field —
     // the fastest fix when detection is close-but-wrong (tap handles
@@ -1369,6 +1372,8 @@ class Deck {
       this._savedLoop = meta && meta.loop ? meta.loop : null;
       this._loopMem = meta && meta.mem1 ? meta.mem1 : null;
       this._loopMem2 = meta && meta.mem2 ? meta.mem2 : null;
+      this.stemSel.value = meta && meta.stem ? meta.stem : 'off';
+      this.setStem(this.stemSel.value);   // the select alone doesn't move the matrix
       this._prevLoopMem = undefined;   // memory-undo belongs to the previous track
       this.peaks = computePeaks(buf, this.wave.width);
       this.drawWave();
@@ -3967,7 +3972,7 @@ document.getElementById('lib-search').addEventListener('keydown', e => {
 // Library metadata export/import: the analysis + prep (BPM, grid,
 // key, hot cues, loop) is the valuable part — audio blobs stay put,
 // so entries match by name+size on the other side.
-const LIB_META_KEYS = ['name', 'size', 'type', 'duration', 'bpm', 'beatOff', 'key', 'cues', 'cueIn', 'loop', 'mem1', 'mem2'];
+const LIB_META_KEYS = ['name', 'size', 'type', 'duration', 'bpm', 'beatOff', 'key', 'cues', 'cueIn', 'loop', 'stem', 'mem1', 'mem2'];
 document.getElementById('lib-exp').addEventListener('click', async () => {
   const rows = (await Library.all()).filter(t => !t.deleted_at);
   const data = rows.map(t => Object.fromEntries(LIB_META_KEYS.filter(k => t[k] !== undefined).map(k => [k, t[k]])));
@@ -4001,7 +4006,7 @@ libImpFile.addEventListener('change', async () => {
     const rec = rows.find(t => t.name === e.name && t.size === e.size);
     if (!rec) continue;   // audio not loaded here — nothing to tag
     const patch = {};
-    for (const k of ['duration', 'bpm', 'beatOff', 'key', 'cues', 'cueIn', 'loop', 'mem1', 'mem2']) if (e[k] !== undefined) patch[k] = e[k];
+    for (const k of ['duration', 'bpm', 'beatOff', 'key', 'cues', 'cueIn', 'loop', 'stem', 'mem1', 'mem2']) if (e[k] !== undefined) patch[k] = e[k];
     await Library.tag(rec.id, patch);
     n++;
   }
