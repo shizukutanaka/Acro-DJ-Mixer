@@ -701,7 +701,9 @@ class Deck {
     // plays from the cue point; releasing pauses and snaps back.
     this._cuePreview = false;
     cueBtnEl.addEventListener('pointerdown', e => {
-      if (e.shiftKey || this.playing || !this.buffer) return;   // shift is "set", not preview
+      // Primary button only — a right-click means "undo the cue set"
+      // (ADR-0291) and must not start a preview that moves the playhead.
+      if (e.button !== 0 || e.shiftKey || this.playing || !this.buffer) return;   // shift is "set", not preview
       this._cuePreview = true;
       this.cue();
       this.play();
@@ -747,6 +749,7 @@ class Deck {
       // dedicated slot so the automatic exit memory can't overwrite it.
       if (e.shiftKey) {
         if (!this.loopOn) return;
+        this._prevLoopMem = { slot: 1, mem: this._loopMem };
         this._loopMem = [this.loopStart, this.loopEnd];
         this.status('loop saved to memory');
         this.tagLib({ mem1: this._loopMem });   // same prep doctrine as cues/loop
@@ -756,6 +759,7 @@ class Deck {
       // means save into it, disarmed means recall it.
       if (e.altKey) {
         if (this.loopOn) {
+          this._prevLoopMem = { slot: 2, mem: this._loopMem2 };
           this._loopMem2 = [this.loopStart, this.loopEnd];
           this.status('loop saved to memory 2');
           this.tagLib({ mem2: this._loopMem2 });
@@ -765,6 +769,17 @@ class Deck {
         return;
       }
       this.reloop();
+    });
+    this.el.querySelector('[data-act=reloop]').addEventListener('contextmenu', e => {
+      // Right-click = one-level undo of the last memory overwrite —
+      // same right-click-restores grammar as pads, Cue, and .bpmctl.
+      e.preventDefault();
+      if (this._prevLoopMem === undefined) return;
+      const { slot, mem } = this._prevLoopMem;
+      this._prevLoopMem = undefined;
+      if (slot === 1) { this._loopMem = mem; this.tagLib({ mem1: mem }); }
+      else { this._loopMem2 = mem; this.tagLib({ mem2: mem }); }
+      this.status('loop memory ' + slot + (mem ? ' restored' : ' cleared'));
     });
     const rollBtn = this.el.querySelector('[data-act=roll]');
     rollBtn.addEventListener('pointerdown', e => { e.preventDefault(); this.startRoll(e.altKey ? 0.25 : e.shiftKey ? 0.5 : 1); });
@@ -1302,6 +1317,7 @@ class Deck {
       this._savedLoop = meta && meta.loop ? meta.loop : null;
       this._loopMem = meta && meta.mem1 ? meta.mem1 : null;
       this._loopMem2 = meta && meta.mem2 ? meta.mem2 : null;
+      this._prevLoopMem = undefined;   // memory-undo belongs to the previous track
       this.peaks = computePeaks(buf, this.wave.width);
       this.drawWave();
       this.libId = meta ? meta.libId : null;
@@ -1685,6 +1701,7 @@ class Deck {
     this._prevLoop = null;
     this._loopMem = null;
     this._loopMem2 = null;
+    this._prevLoopMem = undefined;
     this._loopIn = null;
     this._loopT = null;
     this._loopEnterPos = 0;
