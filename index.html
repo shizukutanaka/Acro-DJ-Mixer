@@ -1124,7 +1124,7 @@ class Deck {
       this.nudgeGrid(e.shiftKey && this.grid ? 60 / this.grid.bpm : 0.01));
     // Jog scrub: press anywhere seeks, and holding the button drags
     // the playhead continuously — CDJ-style searching by feel.
-    let scrubbing = false, jog = false, loopDrag = null, cueDrag = null;   // loopDrag: 'in'|'out' on a loop edge; cueDrag: pad index on a cue tick
+    let scrubbing = false, jog = false, cueInDrag = false, loopDrag = null, cueDrag = null;   // cueInDrag: pulling the cyan cue tick; loopDrag: 'in'|'out' on a loop edge; cueDrag: pad index on a hot-cue tick
     const jogEnd = () => {
       if (!jog) return;
       jog = false;
@@ -1164,6 +1164,20 @@ class Deck {
         else if (Math.abs(px - x(this.loopEnd)) <= 8) loopDrag = 'out';
         if (loopDrag) { this.wave.setPointerCapture(e.pointerId); return; }
       }
+      // Deck cue-point drag: grab the cyan tick to move cueIn — a
+      // misplaced cue point otherwise costs shift+Cue at the right
+      // playhead position. Qtz snaps the landing to the grid.
+      if (this.buffer && this.cueIn != null) {
+        const rect = this.wave.getBoundingClientRect();
+        const px = e.clientX - rect.left;
+        const [v0, v1] = this._viewSpan();
+        const x = t => (t - v0) / (v1 - v0) * rect.width;
+        if (Math.abs(px - x(this.cueIn)) <= 8) {
+          cueInDrag = true;
+          this.wave.setPointerCapture(e.pointerId);
+          return;
+        }
+      }
       // Hot-cue marker drag: grab a colored tick and pull it — a
       // mis-set cue otherwise costs shift-click + re-hit to fix.
       // Qtz snaps the landing point to the grid.
@@ -1194,6 +1208,17 @@ class Deck {
         this.drawWave();
         return;
       }
+      if (cueInDrag) {
+        const rect = this.wave.getBoundingClientRect();
+        const frac = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
+        const [v0, v1] = this._viewSpan();
+        const t = this.quantize(v0 + frac * (v1 - v0));
+        this.cueIn = Math.min(Math.max(t, 0), this.buffer.duration);
+        if (!this.playing) this.offset = this.cueIn;   // playing: offset anchors pos(), moving it would jump the playhead
+        this._drawnPos = undefined;
+        this.drawWave();
+        return;
+      }
       if (cueDrag !== null) {
         const rect = this.wave.getBoundingClientRect();
         const frac = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
@@ -1217,6 +1242,10 @@ class Deck {
         if (loopDrag) {   // persist the adjusted bounds like every other loop edit
           this.tagLib({ loop: [this.loopStart, this.loopEnd] });
           loopDrag = null;
+        }
+        if (cueInDrag) {   // persist like a shift+Cue set
+          this.tagLib({ cueIn: this.cueIn });
+          cueInDrag = false;
         }
         if (cueDrag !== null) {   // persist like a shift-click cue set
           this.tagLib({ cues: this.cues });
