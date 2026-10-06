@@ -306,7 +306,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   `FX` button punches the effect in/out without touching the knob —
   hold for a momentary stab (see ADR-0133, ADR-0144). Off closes the
   delay/reverb SEND so a tail in the line rings out at the knob's
-  wet level instead of being hard-cut (see ADR-0182). The
+  wet level instead of being hard-cut (see ADR-0182). `Shift+FX`
+  stores the whole strip (algorithm, division, level, tap, on/off)
+  and `Alt+FX` recalls it (see ADR-0235). The
   `pre`/`post` select moves the send tap — tails that outlive the
   crossfader (pre) or fader FX that die with the side (post; see
   ADR-0134).

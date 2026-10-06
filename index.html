@@ -975,8 +975,34 @@ class Deck {
     this.fxBtn = this.el.querySelector('[data-act=fxon]');
     const fxBtn = this.fxBtn;
     const setFxOn = on => this.setFxOn(on);
-    fxBtn.addEventListener('click', () => {
+    this._fxPreset = null;   // shift+FX stores the strip, alt+FX recalls it
+    fxBtn.addEventListener('click', e => {
       if (fxBtn._suppress) { fxBtn._suppress = false; return; }  // click after a momentary hold
+      if (e.shiftKey) {
+        this._fxPreset = {
+          sel: this.fxSel.value, beat: this.fxBeat.value,
+          lvl: this.echoEl.value, tap: this.el.querySelector('[data-act=fxtap]').value,
+          on: this.fxOn,
+        };
+        this.status('fx strip stored — alt+FX recalls');
+        return;
+      }
+      if (e.altKey) {
+        const p = this._fxPreset;
+        if (!p) { this.status('no fx strip stored'); return; }
+        this.fxSel.value = p.sel;
+        this.fxSel.dispatchEvent(new Event('change'));
+        this.fxBeat.value = p.beat;
+        this.fxBeat.dispatchEvent(new Event('change'));
+        const tapEl = this.el.querySelector('[data-act=fxtap]');
+        tapEl.value = p.tap;
+        tapEl.dispatchEvent(new Event('change'));
+        this.echoEl.value = p.lvl;
+        this.echoEl.dispatchEvent(new Event('input'));
+        setFxOn(p.on);
+        this.status('fx strip recalled');
+        return;
+      }
       setFxOn(!this.fxOn);
     });
     // Momentary FX punch (same idiom as momentary EQ kills): when the
@@ -992,7 +1018,7 @@ class Deck {
     };
     fxBtn.addEventListener('pointerup', fxMomEnd);
     fxBtn.addEventListener('pointercancel', fxMomEnd);
-    fxBtn.title = 'Beat FX on/off — click toggles, hold = momentary punch (knob position kept)';
+    fxBtn.title = 'Beat FX on/off — click toggles, hold = momentary punch (knob position kept), shift = store strip, alt = recall';
     this.el.querySelector('[data-act=fxtap]').addEventListener('change', e => {
       this.setFxTap(e.target.value === 'post');
     });
