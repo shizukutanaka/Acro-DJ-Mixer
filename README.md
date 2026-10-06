@@ -30,7 +30,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 ## Features
 
 - **Two decks** — load audio by click or drag & drop (MP3/WAV/OGG/FLAC/M4A,
-  whatever the browser's `decodeAudioData` supports).
+  whatever the browser's `decodeAudioData` supports). Rapid loads
+  can't interleave — the last caller wins (see ADR-0261).
 - **Transport** — play/pause, cue-to-start, click waveform to seek.
 - **Tempo** — ±16% playback-rate slider per deck.
 - **Key lock** — preserve pitch while tempo changes (WSOLA time-stretching
@@ -117,7 +118,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   the visible slice (see ADR-0043).
 - **Auto-cue** — loading a track skips lead-in silence: the playhead
   starts at the first sample over −50 dBFS and `Cue` returns there
-  (see ADR-0044).
+  (see ADR-0044). Pressing `Play` after a track ends restarts at that
+  same cue point (see ADR-0257).
 - **Track-end warning** — the time readout flashes red during the
   last 30 s of a track, CDJ-style (see ADR-0045).
 - **Key sync** — `Key` button transposes the deck to the smallest
@@ -237,7 +239,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   Enter commits, Esc cancels (see ADR-0079).
 - **Library preview** — `▶` on a library row auditions the track on the
   headphone cue bus without loading a deck, starting at the cue point
-  like the decks (see ADR-0080, ADR-0108). Loading that track stops
+  like the decks; rapid row clicks can never layer two auditions
+  (see ADR-0080, ADR-0108, ADR-0260). Loading that track stops
   its audition — no double on the cue bus and the floor (see ADR-0246).
 - **Beat FX select** — the FX knob drives `Echo`, `Flng` (LFO-swept
   comb), `Trans` (beat-synced gate chop), `Noise` (swept
