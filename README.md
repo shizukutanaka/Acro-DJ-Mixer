@@ -96,6 +96,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   click the readout to sync the non-playing deck to the playing one
   (ADR-0196)
   (see ADR-0023).
+- **Track identity** — records match by content hash (size +
+  head/tail SHA-256), so renames keep their prep and same-name
+  impostors can't steal it (see ADR-0211).
 - **Row double-click** — double-clicking a library row loads it
   into whichever deck is free (see ADR-0223).
 - **Library** — drop audio files anywhere on the library panel to

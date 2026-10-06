@@ -3179,11 +3179,19 @@ const Library = {
     return new Promise((res, rej) => { const rq = s.getAll(); rq.onsuccess = () => res(rq.result); rq.onerror = () => rej(rq.error); });
   },
   async addFromFile(fileObj, duration) {
-    // Dedupe by name+size: re-loading the same track refreshes its record.
+    // Dedupe by content hash first (a renamed file is the same track),
+    // name+size second (old records predate hashes) — two files that
+    // merely share a name can no longer steal each other's cues/loops.
     const rows = await this.all();
-    const ex = rows.find(t => t.name === fileObj.name && t.size === fileObj.size && !t.deleted_at);
+    const hash = await trackHash(fileObj);
+    // Both hashed -> hashes decide. Only fall back to name+size when
+    // one side has no hash (old records, insecure contexts).
+    const ex = rows.find(t => !t.deleted_at && (
+      hash && t.hash ? t.hash === hash
+                     : t.name === fileObj.name && t.size === fileObj.size));
     const now = Date.now();
     const rec = ex || { created_at: now, deleted_at: null, version: 0 };
+    if (hash) rec.hash = hash;
     rec.name = fileObj.name;
     rec.size = fileObj.size;
     rec.type = fileObj.type || '';
@@ -4090,6 +4098,17 @@ document.getElementById('lib-search').addEventListener('input', e => {
   libSel = 0;   // a new query means a new top match
   renderLibrary();
 });
+// Content identity: SHA-256 of head+tail chunks — cheap even for
+// hour-long files, catches same-name-different-audio collisions and
+// recognizes renames. Absent in insecure contexts: degrade, don't break.
+async function trackHash(fileObj) {
+  if (!crypto.subtle || !fileObj || !fileObj.size) return null;
+  const head = fileObj.slice(0, 65536);
+  const tail = fileObj.size > 65536 ? fileObj.slice(-65536) : fileObj.slice(0, 0);
+  const digest = await crypto.subtle.digest('SHA-256', await new Blob([fileObj.size + '', await head.arrayBuffer(), await tail.arrayBuffer()]).arrayBuffer());
+  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 // Enter in the filter loads the top match into the free deck — the
 // crate-dig flow: type, hit enter, it's on a deck. Same pick as a
 // row double-click: the stopped deck, A when both are free, nothing
@@ -4112,7 +4131,7 @@ document.getElementById('lib-search').addEventListener('keydown', e => {
 // Library metadata export/import: the analysis + prep (BPM, grid,
 // key, hot cues, loop) is the valuable part — audio blobs stay put,
 // so entries match by name+size on the other side.
-const LIB_META_KEYS = ['name', 'size', 'type', 'duration', 'bpm', 'beatOff', 'key', 'cues', 'cueIn', 'loop', 'stem', 'mem1', 'mem2'];
+const LIB_META_KEYS = ['name', 'size', 'hash', 'type', 'duration', 'bpm', 'beatOff', 'key', 'cues', 'cueIn', 'loop', 'stem', 'mem1', 'mem2'];
 document.getElementById('lib-exp').addEventListener('click', async () => {
   const rows = (await Library.all()).filter(t => !t.deleted_at);
   const data = rows.map(t => Object.fromEntries(LIB_META_KEYS.filter(k => t[k] !== undefined).map(k => [k, t[k]])));
@@ -4170,7 +4189,8 @@ libImpFile.addEventListener('change', async () => {
   const rows = (await Library.all()).filter(t => !t.deleted_at);
   let n = 0;
   for (const e of data) {
-    const rec = rows.find(t => t.name === e.name && t.size === e.size);
+    const rec = (e.hash && rows.find(t => t.hash === e.hash))
+             || rows.find(t => t.name === e.name && t.size === e.size);
     if (!rec) continue;   // audio not loaded here — nothing to tag
     const patch = {};
     for (const k of ['duration', 'bpm', 'beatOff', 'key', 'cues', 'cueIn', 'loop', 'stem', 'mem1', 'mem2']) if (e[k] !== undefined) patch[k] = e[k];
