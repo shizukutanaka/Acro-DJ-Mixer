@@ -672,6 +672,7 @@ class Deck {
         if (!this.buffer) return;
         // Same quantize contract as hot cues (ADR-0021) and free-loop
         // bounds (ADR-0176): Qtz on = snap to the grid, off = freehand.
+        this._prevCueIn = this.cueIn;
         this.cueIn = this.quantize(this.pos());
         this.offset = this.cueIn;
         this.tagLib({ cueIn: this.cueIn });   // survives reload like hot cues
@@ -682,6 +683,19 @@ class Deck {
         return;
       }
       this.cue();
+    });
+    cueBtnEl.addEventListener('contextmenu', e => {
+      // Right-click = one-level undo of the last cue-point overwrite —
+      // same right-click-restores grammar as empty pads and dropzones.
+      e.preventDefault();
+      if (this._prevCueIn == null) return;
+      this.cueIn = this._prevCueIn;
+      this._prevCueIn = null;
+      this.tagLib({ cueIn: this.cueIn });
+      this._drawnPos = undefined;
+      this.drawWave();
+      this._cueTitle();
+      this.status('cue restored ' + fmt(this.cueIn));
     });
     // Cue preview (CDJ CUE hold): while stopped, holding the button
     // plays from the cue point; releasing pauses and snaps back.
@@ -1227,6 +1241,7 @@ class Deck {
       // Auto-cue: skip lead-in silence — playback and the Cue button
       // start at the first sample above −50 dBFS (scans max 30 s).
       this.cueIn = 0;
+      this._prevCueIn = null;   // cue-undo belongs to the previous track
       {
         const chs = [];
         for (let c = 0; c < buf.numberOfChannels; c++) chs.push(buf.getChannelData(c));
@@ -1661,6 +1676,7 @@ class Deck {
     this.key = null;
     if (this.partner) this.partner.refreshKey();   // partner's tint referenced our key
     this.cueIn = 0;
+    this._prevCueIn = null;
     this._cueTitle();
     this.offset = 0;
     this.cues = [null, null, null, null, null, null, null, null];
@@ -2863,7 +2879,10 @@ function analyzeTrack(d) {
       return new Promise((res, rej) => {
         const w = new Worker(ANALYSIS_URL);
         w.onmessage = e => { w.terminate(); res(e.data); };
-        w.onerror = e => { w.terminate(); rej(new Error('analysis worker failed')); };
+        // A mid-run worker failure must not strand the readouts at '—'
+        // — the same estimators run fine on the main thread (the
+        // no-Worker path below), so degrade rather than die.
+        w.onerror = e => { w.terminate(); res({ bpm: estimateBpm(d), key: estimateKey(d) }); };
         w.postMessage(d);
       });
     } catch (_) { /* no worker support — run inline below */ }
@@ -2879,13 +2898,27 @@ function analyzeTrack(d) {
 const Library = {
   _db: null,
   _open() {
-    if (!this._db) this._db = new Promise((res, rej) => {
-      const rq = indexedDB.open('acro-dj', 1);
-      rq.onupgradeneeded = () => rq.result.createObjectStore('tracks', { keyPath: 'id', autoIncrement: true });
-      rq.onsuccess = () => res(rq.result);
-      rq.onerror = () => rej(rq.error);
-    });
+    if (!this._db) {
+      const p = new Promise((res, rej) => {
+        const rq = indexedDB.open('acro-dj', 1);
+        rq.onupgradeneeded = () => rq.result.createObjectStore('tracks', { keyPath: 'id', autoIncrement: true });
+        rq.onsuccess = () => res(rq.result);
+        // A cached rejection would poison every later call — one
+        // transient open failure (blocked DB, version race) must not
+        // brick the library for the session. Drop the cache so the
+        // next attempt retries.
+        rq.onerror = () => { if (this._db === p) this._db = null; rej(rq.error); };
+      });
+      this._db = p;
+    }
     return this._db;
+  },
+  // One status per session on a failed library read — same surface-once
+  // doctrine the write chain uses.
+  fail() {
+    if (this._libWarned) return;
+    this._libWarned = true;
+    deckA.status('library unavailable — prep won\'t persist this session');
   },
   async _store(mode) { return (await this._open()).transaction('tracks', mode).objectStore('tracks'); },
   async put(rec) {
@@ -2952,6 +2985,12 @@ const Library = {
       rec.blob = null; // free the audio bytes; the metadata row stays for soft-delete history
       rec.version++;
       await this.put(rec);
+      // A deck holding this track keeps playing (its buffer is decoded),
+      // but it must stop *claiming* the record: eject's right-click undo
+      // would promise a loadInto that deleted_at silently refuses, and
+      // tagLib would keep writing prep into a dead row. Same posture as
+      // a file-loaded deck — which carries no library link at all.
+      for (const d of [deckA, deckB]) if (d.libId === id) d.libId = null;
       renderLibrary();
     });
   },
@@ -2963,7 +3002,8 @@ const Library = {
     }
   },
   async loadInto(deck, id) {
-    const rec = await this.get(id);
+    let rec;
+    try { rec = await this.get(id); } catch (_) { this.fail(); return; }
     if (!rec || rec.deleted_at) return;
     // Loading a track that is auditioning on the cue bus would double
     // it — once in the phones, once heading for the floor. The
@@ -3008,7 +3048,8 @@ async function previewTrack(id) {
   const tok = ++previewToken;
   if (previewSrc) { try { previewSrc.stop(); } catch (_) {} previewSrc.disconnect(); previewSrc = previewId = null; }
   if (wasPlaying) { prevMark(); return; }   // second click on the same row = stop
-  const rec = await Library.get(id);
+  let rec;
+  try { rec = await Library.get(id); } catch (_) { Library.fail(); prevMark(); return; }
   if (!rec || !rec.blob || tok !== previewToken) { prevMark(); return; }
   const ac = audio(); cueBus();
   const buf = await ac.decodeAudioData(await rec.blob.arrayBuffer());
@@ -3071,7 +3112,7 @@ async function renderLibrary() {
   const rowsEl = document.getElementById('lib-rows');
   let rows;
   try { rows = (await Library.all()).filter(t => !t.deleted_at).sort((a, b) => b.updated_at - a.updated_at); }
-  catch (_) { return; }
+  catch (_) { Library.fail(); return; }
   if (seq !== libSeq) return;   // a newer render superseded this one
   // Up-next under auto-mix: the row continuous auto-mix will load
   // next — the same pick logic as autoNext (harmonic fit preferred,
@@ -3289,6 +3330,10 @@ autoBtn.addEventListener('click', e => {
 window.addEventListener('beforeunload', e => {
   if (recorder && recorder.state === 'recording') e.preventDefault();
 });
+// Flush the pending session snapshot on the way out — the 400 ms
+// debounce would otherwise drop the last adjustments. pagehide, not
+// beforeunload: mobile Safari skips the latter entirely.
+window.addEventListener('pagehide', () => { clearTimeout(sessTimer); sessSave(); });
 
 function autoMixTick() {
   if (autoMix.fade) {
@@ -3836,6 +3881,24 @@ libImpFile.addEventListener('change', async () => {
                  : 'import: no matching tracks');
 });
 
+// Controls are primary-button only: a context menu opened by a
+// right-button press can swallow the pointerup a momentary hold
+// (Roll, Cut, Mic, EQ kills, Bend…) is waiting for and latch the
+// effect forever mid-set. Capture-phase gate covers every present
+// and future control; right-click *meanings* live on contextmenu
+// handlers, which are unaffected.
+document.addEventListener('pointerdown', e => {
+  if (e.button !== 0) e.stopPropagation();
+}, true);
+// The app gives right-click its own grammar (undo, preview, sync
+// modes) via contextmenu handlers — anywhere else the browser menu
+// would only cover the deck mid-set. Text fields keep theirs
+// (paste in the BPM/filter fields).
+document.addEventListener('contextmenu', e => {
+  if (e.target.matches('input[type=text], textarea')) return;
+  e.preventDefault();
+});
+
 // Two-click confirm: arms the button for 2 s ("sure?"), a second
 // click inside the window runs fn. Load-guard and row-delete share it.
 const armConfirm = (b, fn) => {
@@ -3885,7 +3948,7 @@ document.getElementById('lib-rows').addEventListener('dblclick', e => {
   if (free) Library.loadInto(free, Number(row.dataset.id));
 });
 renderLibrary();
-Library.gc(); // strip blobs from records soft-deleted before blob-on-remove freeing
+Library.gc().catch(() => Library.fail()); // strip blobs from records soft-deleted before blob-on-remove freeing
 
 // Wheel nudge on every fader/knob: one notch = one input step —
 // mouse resolution where a drag is too coarse. The tempo slider
