@@ -85,6 +85,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   (see ADR-0022, ADR-0107). A `Δ ±x% beat` readout below it
   shows the live beat-phase offset between decks — green when locked
   (see ADR-0023).
+- **Row double-click** — double-clicking a library row loads it
+  into whichever deck is free (see ADR-0223).
 - **Library** — every loaded track is auto-saved to IndexedDB (audio +
   BPM/key analysis, soft-deletable); `→A`/`→B` reloads instantly with
   cached analysis, survives page reloads. Reloading a *playing* deck
