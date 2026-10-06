@@ -163,6 +163,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   size up front (CDJ loop-beat select) (see ADR-0099). Once armed,
   the button itself shows the live length — `Loop 4.0b`, or seconds
   off-grid (see ADR-0110).
+- **Loop adjust** — grab an armed loop's in/out edge on the waveform
+  and drag it; Qtz snaps the edge to the grid (see ADR-0188).
 - **Loop move** — `◂`/`▸` beside the loop length buttons slide the
   armed loop by its own length (CDJ LOOP MOVE), persisted like the
   bounds (see ADR-0050); `Shift`+◂/▸ trims the in-point a beat
@@ -369,12 +371,17 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   −26 dB, click again restores the slider value (see ADR-0015).
   Holding a letter ≥250 ms kills momentarily — release restores, for
   one-beat kill stabs (see ADR-0117).
+- **WAV takes** — `Alt`+Rec records the set losslessly: the webm
+  is decoded and re-saved as 16-bit PCM WAV on stop (see ADR-0213).
 - **Set recording** — `Rec` button captures the master output to a
   `.webm` (opus) download via `MediaRecorder` on a MediaStream tap;
   shift+Rec pauses/resumes the take (paused time doesn't count —
   see ADR-0241); the take also lands in the library as a track you
   can replay, cue, or resample (see ADR-0148)
   (see ADR-0014).
+- **Stem persistence** — the Vocal/Inst split persists per track
+  in the library like cues and loops, restored at load (see
+  ADR-0222).
 - **Stem split** — per-deck `Full / Vocal / Inst` mid/side matrix:
   `Vocal` keeps the centre channel (acapella extraction), `Inst` keeps
   the sides (vocal-removed). Fixed splitter→matrix→merger topology,
@@ -446,8 +453,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   pitch-bend wheel ch1/ch2 = deck A/B bend ±5% (ADR-0184) —
   works unmapped on most budget controllers (see ADR-0163, ADR-0172).
 - **Session persistence** — the mixer surface (faders, EQ, filters,
-  FX selection, toggles, sampler and mic trims) is saved on change
-  and restored on reload through the same handlers (see ADR-0158).
+  FX selection, toggles, sampler, mic trims, phones volume and loop
+  length selects) is saved on change and restored on reload through
+  the same handlers (see ADR-0158, ADR-0252).
 - **Status line** — deck status messages are ephemeral: they confirm
   the action that just happened, then clear themselves after 5 s so a
   stale message never reads like live state (see ADR-0245).
