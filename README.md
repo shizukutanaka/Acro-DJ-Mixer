@@ -65,6 +65,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   effective keys (see ADR-0198).
 - **Sync** — one click matches a deck's tempo and beat phase to the other deck
   (tempo limited to the ±16% slider range, like hardware).
+- **Loop-back** — `Alt`+Loop traps the last N beats you just
+  heard instead of arming forward (see ADR-0218).
 - **Loop** — one click captures a beat-grid-quantized 4-beat (one bar)
   loop on either engine; the region highlights on the waveform and
   seeking outside it exits the loop (see ADR-0006); `½`/`2×` halve or
