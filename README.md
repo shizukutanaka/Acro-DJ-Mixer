@@ -347,6 +347,7 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   persisted and restored on reload (see ADR-0092), and
   snaps to the grid when Quantize is on like every other marker
   (see ADR-0200).
+  Right-click the waveform to drop it where you clicked (see ADR-0205).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,

@@ -1198,6 +1198,21 @@ class Deck {
       this.wave.setPointerCapture(e.pointerId);
       this.seekFromEvent(e);
     });
+    // Right-click drops the cue point at that spot — see it, place
+    // it, no playhead detour. Same write as Shift+Cue (persisted).
+    this.wave.addEventListener('contextmenu', e => {
+      if (!this.buffer) return;
+      e.preventDefault();
+      const rect = this.wave.getBoundingClientRect();
+      const frac = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
+      const [v0, v1] = this._viewSpan();
+      this.cueIn = Math.min(Math.max(v0 + frac * (v1 - v0), 0), this.buffer.duration);
+      if (!this.playing) this.offset = this.cueIn;   // playing: offset anchors pos(), moving it would jump the playhead
+      this.tagLib({ cueIn: this.cueIn });
+      this._drawnPos = undefined;
+      this.drawWave();
+      this.status('cue set ' + fmt(this.cueIn));
+    });
     this.wave.addEventListener('pointermove', e => {
       if (loopDrag) {
         const rect = this.wave.getBoundingClientRect();
