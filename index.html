@@ -635,7 +635,9 @@ class Deck {
       // first-sound pick isn't always where the DJ wants the Cue landing.
       if (e.shiftKey) {
         if (!this.buffer) return;
-        this.cueIn = this.pos();
+        // Same quantize contract as hot cues (ADR-0021) and free-loop
+        // bounds (ADR-0176): Qtz on = snap to the grid, off = freehand.
+        this.cueIn = this.quantize(this.pos());
         this.offset = this.cueIn;
         this.tagLib({ cueIn: this.cueIn });   // survives reload like hot cues
         this._drawnPos = undefined;
