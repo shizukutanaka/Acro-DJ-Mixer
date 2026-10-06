@@ -635,7 +635,15 @@ class Deck {
       const id = this._ejected; this._ejected = null;
       Library.loadInto(this, id);
     });
-    file.addEventListener('change', e => { if (e.target.files[0]) this.load(e.target.files[0]); file.value = ''; });
+    file.addEventListener('change', e => {
+      const f = e.target.files[0];
+      file.value = '';
+      if (!f) return;
+      // Same guard as a drop (ADR-0153): picking a file into a
+      // playing deck silences the floor — two-gesture confirm.
+      if (this.playing) armConfirm(dz, () => this.load(f));
+      else this.load(f);
+    });
     dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
     dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
     dz.addEventListener('drop', e => {
