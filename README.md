@@ -368,7 +368,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   crossfader rides across over 8 beats; one click per transition,
   click again to cancel mid-fade — the fader and the incoming deck
   roll back to pre-fade state (ADR-0191); Shift+Auto arms a long 32-beat
-  blend (see ADR-0013, ADR-0073). The button counts down beats to
+  blend (see ADR-0013, ADR-0073); Alt+Auto fires the transition
+  immediately when a valid pair exists (see ADR-0204). The button
+  counts down beats to
   the fade (`Auto 14b`) and shows fade progress (`Auto 31%`); with a
   beat grid the fire point snaps to the nearest bar so transitions
   start on a downbeat (see ADR-0170), and it counts back from the
