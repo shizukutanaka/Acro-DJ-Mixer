@@ -1102,7 +1102,7 @@ class Deck {
       this.nudgeGrid(e.shiftKey && this.grid ? 60 / this.grid.bpm : 0.01));
     // Jog scrub: press anywhere seeks, and holding the button drags
     // the playhead continuously — CDJ-style searching by feel.
-    let scrubbing = false, jog = false, cueDrag = null;   // cueDrag: pad index while pulling a cue tick
+    let scrubbing = false, jog = false, loopDrag = null, cueDrag = null;   // loopDrag: 'in'|'out' on a loop edge; cueDrag: pad index on a cue tick
     const jogEnd = () => {
       if (!jog) return;
       jog = false;
@@ -1129,6 +1129,19 @@ class Deck {
         }, 40);
         return;
       }
+      // Loop edge drag: grabbing the armed loop's in/out marker pulls
+      // it along the waveform — the rekordbox loop-adjust gesture.
+      // Qtz snaps the edge to the grid; a plain drag elsewhere still
+      // scrubs the playhead.
+      if (this.loopOn && this.buffer) {
+        const rect = this.wave.getBoundingClientRect();
+        const px = e.clientX - rect.left;
+        const [v0, v1] = this._viewSpan();
+        const x = t => (t - v0) / (v1 - v0) * rect.width;
+        if (Math.abs(px - x(this.loopStart)) <= 8) loopDrag = 'in';
+        else if (Math.abs(px - x(this.loopEnd)) <= 8) loopDrag = 'out';
+        if (loopDrag) { this.wave.setPointerCapture(e.pointerId); return; }
+      }
       // Hot-cue marker drag: grab a colored tick and pull it — a
       // mis-set cue otherwise costs shift-click + re-hit to fix.
       // Qtz snaps the landing point to the grid.
@@ -1147,6 +1160,18 @@ class Deck {
       this.seekFromEvent(e);
     });
     this.wave.addEventListener('pointermove', e => {
+      if (loopDrag) {
+        const rect = this.wave.getBoundingClientRect();
+        const frac = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
+        const [v0, v1] = this._viewSpan();
+        const t = this.quantize(v0 + frac * (v1 - v0));
+        if (loopDrag === 'in') this.loopStart = Math.min(Math.max(t, 0), this.loopEnd - 0.05);
+        else this.loopEnd = Math.min(Math.max(t, this.loopStart + 0.05), this.buffer.duration);
+        this.applyLoop();
+        this._drawnPos = undefined;
+        this.drawWave();
+        return;
+      }
       if (cueDrag !== null) {
         const rect = this.wave.getBoundingClientRect();
         const frac = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
@@ -1167,6 +1192,10 @@ class Deck {
     });
     for (const ev of ['pointerup', 'pointercancel']) {
       this.wave.addEventListener(ev, () => {
+        if (loopDrag) {   // persist the adjusted bounds like every other loop edit
+          this.tagLib({ loop: [this.loopStart, this.loopEnd] });
+          loopDrag = null;
+        }
         if (cueDrag !== null) {   // persist like a shift-click cue set
           this.tagLib({ cues: this.cues });
           cueDrag = null;
