@@ -275,7 +275,7 @@
     <p><b>right-click</b> — cue-bus preview on hot-cue and sampler pads</p>
     <p><b>library</b> — type to filter · ▶ previews on the cue bus · × deletes (two-click confirm) · ‹ › step a track into the deck</p>
     <h3>Keys</h3>
-    <p><b>q / p</b> play decks · <b>w / o</b> headphone cue · <b>1–4</b> sampler pads · <b>A S D F / H J K L</b> hot cues 5–8 · <b>← →</b> crossfader · <b>↑ ↓</b> master · <b>?</b> this help</p>
+    <p><b>q / p</b> play decks · <b>g / '</b> slip · <b>w / o</b> headphone cue · <b>1–4</b> sampler pads · <b>.</b> auto-mix · <b>A S D F / H J K L</b> hot cues 5–8 · <b>← →</b> crossfader · <b>↑ ↓</b> master · <b>?</b> this help</p>
   </div>
 </div>
 <script>
@@ -3828,6 +3828,12 @@ document.addEventListener('keydown', e => {
     case 'l': case 'L': deckB.padCue(7); break;
     case 'i': case 'I': deckB.syncTo(deckA); break;
     case 'u': case 'U': deckB.toggleLoop(); break;
+    // Slip beside the cue keys (g under the left hand, ' under the
+    // right) — the last deck-latch a keyboard mix couldn't reach.
+    case 'g': case 'G': deckA.slipBtn.click(); break;
+    case "'": deckB.slipBtn.click(); break;
+    // Auto on the period key — one press arms/disarms the whole rig.
+    case '.': autoBtn.click(); break;
   }
 });
 
