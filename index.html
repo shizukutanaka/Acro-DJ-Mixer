@@ -4587,7 +4587,7 @@ document.addEventListener('keydown', e => {
 
 // ----- Web MIDI: any connected controller drives the surface -----
 // Note-ons: 60-67 deck A pads, 68-75 deck B pads, 36-39 sampler
-// pads, 44/45 play A/B. CCs: 1 = crossfader, 7 = master,
+// pads, 44/45 play A/B, 76/77 headphone cue A/B. CCs: 1 = crossfader, 7 = master,
 // 22/23 = channel faders A/B,
 // 20/21 = channel gain A/B — the default CC names every
 // budget controller ships with, so most units work unmapped.
@@ -4635,6 +4635,10 @@ function midiMsg(e) {
     else if (n >= 55 && n < 58) deckB.setKill(['high', 'mid', 'low'][n - 55], !deckB.kills[['high', 'mid', 'low'][n - 55]]);
     else if (n === 58) deckA.setFxOn(!deckA.fxOn);
     else if (n === 59) deckB.setFxOn(!deckB.fxOn);
+    // Headphone cue (PFL): a controller's channel-cue button —
+    // 76/77 continue the per-deck pair convention past the pads.
+    else if (n === 76) deckA.toggleCue();
+    else if (n === 77) deckB.toggleCue();
     // 80/81 = loop roll A/B: held note gates a 1-beat roll like a
     // held ROLL pad on hardware — note-on starts, note-off releases.
     else if (n === 80) deckA.startRoll(1);
