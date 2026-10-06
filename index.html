@@ -1807,6 +1807,11 @@ class Deck {
     // call this, and the timer would keep posting 'rate' and fire its
     // done() callback on a dead deck.
     if (this._spinTimer) { clearInterval(this._spinTimer); this._spinTimer = null; this.spinMul = 1; }
+    // Same rule for a held pitch bend: a window blur can steal the
+    // pointerup, leaving bendMul latched and the next play ±5% off.
+    // The multiplier is transient finger state, not deck state.
+    this.bendMul = 1;
+    for (const b of this.el.querySelectorAll('[data-act=benddn],[data-act=bendup]')) b.classList.remove('on');
     if (this.engine === 'worklet') {
       this.node.port.postMessage({ type: 'pause' });
     } else if (this.source) {
