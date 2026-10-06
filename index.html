@@ -532,6 +532,15 @@ async function refreshCueDevices() {
   sel.innerHTML = '<option value="">System output</option>' +
     outs.map((d, i) => `<option value="${d.deviceId}">${d.label || 'Output ' + (i + 1)}</option>`).join('');
   sel.value = cur;
+  if (cur && sel.value !== cur) {
+    // The chosen cans were unplugged: the old deviceId no longer
+    // resolves, and the cue bus keeps pointing at a sink that emits
+    // nowhere — silent phones mid-set with no sign. Fall back to the
+    // system output and say so on the status line.
+    sel.value = '';
+    setCueDevice('');
+    deckA.status('cue output gone — using system output');
+  }
   // Restore the persisted cue device once options exist — deviceIds
   // are stable per origin, so the DJ's cans come back after reload
   // without re-picking. Runs after the await, so sessKey is live.
