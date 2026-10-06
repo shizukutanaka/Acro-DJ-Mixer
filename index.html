@@ -3914,6 +3914,7 @@ const smpSlots = [null, null, null, null];
 let smpCleared = null;   // last shift-cleared slot — right-click an empty pad restores it (one level)
 let smpGain = null;
 let smpPrev = null;
+let smpPrevPad = -1;   // pad index owning the audition — a second right-click on it is a stop switch
 let padPrev = null, padPrevOwner = null, padPrevPad = null;   // deck hot-cue preview voice, its deck, its pad
 // Auditions follow the owner doctrine: a load/eject kills only ITS
 // deck's audition, never the partner's.
@@ -3927,7 +3928,7 @@ smpSlots.forEach((_, i) => {
   const b = document.createElement('button');
   b.className = 'smp';
   b.textContent = '+';
-  b.title = 'Sampler — click loads a one-shot, click again plays it (hold = gate); wheel trims this pad\'s level; shift+empty pad resamples the playing loop; right-click previews on headphones, alt-click stops, shift-click clears — pads 1+2 and 3+4 are choke groups';
+  b.title = 'Sampler — click loads a one-shot, click again plays it (hold = gate); wheel trims this pad\'s level; shift+empty pad resamples the playing loop; right-click previews on headphones (again stops), alt-click stops, shift-click clears — pads 1+2 and 3+4 are choke groups';
   const firePad = (vel = 1) => {
     const slot = smpSlots[i];
     if (!slot || !slot.buf) return;
@@ -4015,7 +4016,7 @@ smpSlots.forEach((_, i) => {
       smpCleared = { i, slot, label: b.textContent, title: b.title };
       // A pad auditioning on the cue bus keeps ringing after its
       // sample is cleared — silence the ghost along with the slot.
-      if (smpPrev) { try { smpPrev.stop(); } catch (_) {} smpPrev = null; }
+      if (smpPrev) { try { smpPrev.stop(); } catch (_) {} smpPrev = null; smpPrevPad = -1; }
       smpSlots[i] = null;
       b.textContent = '+'; b.classList.remove('set', 'on');
       b.title = 'Sampler — click loads a one-shot, click again plays it, alt-click stops playback, shift-click clears (right-click an empty pad restores the last clear)';
@@ -4031,6 +4032,15 @@ smpSlots.forEach((_, i) => {
   b.addEventListener('contextmenu', e => {
     e.preventDefault();
     const slot = smpSlots[i];
+    // A second right-click on the auditioning pad is a stop switch —
+    // same toggle grammar as the library ▶ and hot-cue previews
+    // (ADR-0289). Without it a long sample rings to its end with no
+    // way to cut it off.
+    if (smpPrev && smpPrevPad === i) {
+      try { smpPrev.stop(); } catch (_) {}
+      smpPrev = null; smpPrevPad = -1;
+      return;
+    }
     if (!slot) {
       // Undo a shift-clear: right-click an empty pad puts the last
       // cleared sample back — one level, like the hot-cue undo.
@@ -4043,13 +4053,13 @@ smpSlots.forEach((_, i) => {
       return;
     }
     if (!slot.buf) return;
-    if (smpPrev) { try { smpPrev.stop(); } catch (_) {} smpPrev.disconnect(); smpPrev = null; }
+    if (smpPrev) { try { smpPrev.stop(); } catch (_) {} smpPrev.disconnect(); smpPrev = null; smpPrevPad = -1; }
     const src = audio().createBufferSource();
     src.buffer = slot.buf;
     src.connect(cueBus());
-    src.onended = () => { if (smpPrev === src) { src.disconnect(); smpPrev = null; } };
+    src.onended = () => { if (smpPrev === src) { src.disconnect(); smpPrev = null; smpPrevPad = -1; } };
     src.start(0, slot.start || 0);
-    smpPrev = src;
+    smpPrev = src; smpPrevPad = i;
   });
   // Drop a file straight onto a pad — the deck dropzone's grammar
   // brought to the sampler row. The destination is pinned by the
