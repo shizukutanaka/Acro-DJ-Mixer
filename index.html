@@ -4427,13 +4427,24 @@ document.addEventListener('contextmenu', e => {
 
 // Two-click confirm: arms the button for 2 s ("sure?"), a second
 // click inside the window runs fn. Load-guard and row-delete share it.
-const armConfirm = (b, fn) => {
+// Armed state can outlive its element: renderLibrary rebuilds rows on
+// every write, and a re-render inside the window would drop the arm
+// with the old node — the confirm click then re-arms instead of
+// firing. A `key` parks the arm in a map so it survives re-renders.
+const armStates = new Map();   // key -> timestamp
+const armConfirm = (b, fn, key) => {
   const now = Date.now();
-  if (b._arm && now - b._arm < 2000) { b._arm = 0; fn(); return; }
-  b._arm = now;
+  const armedAt = () => key ? (armStates.get(key) || 0) : (b._arm || 0);
+  if (armedAt() && now - armedAt() < 2000) {
+    if (key) armStates.delete(key); else b._arm = 0;
+    fn(); return;
+  }
+  if (key) armStates.set(key, now); else b._arm = now;
   const lbl = b.textContent;
   b.textContent = 'sure?';
-  setTimeout(() => { if (b._arm === now) { b.textContent = lbl; b._arm = 0; } }, 2000);
+  setTimeout(() => {
+    if (armedAt() === now) { b.textContent = lbl; if (key) armStates.delete(key); else b._arm = 0; }
+  }, 2000);
 };
 
 // Rows are draggable onto a deck — the rekordbox/Serato gesture.
@@ -4452,13 +4463,13 @@ document.getElementById('lib-rows').addEventListener('click', e => {
   const row = e.target.closest('.lib-row');
   if (!row) return;
   const id = Number(row.dataset.id);
-  if (e.target.dataset.del !== undefined) armConfirm(e.target, () => Library.remove(id));
+  if (e.target.dataset.del !== undefined) armConfirm(e.target, () => Library.remove(id), 'del:' + id);
   else if (e.target.dataset.prev !== undefined) previewTrack(id);
   else if (e.target.dataset.to) {
     // Load guard: loading into a playing deck kills the floor's audio
     // mid-set — confirm the click like a hardware load lock.
     const d = e.target.dataset.to === 'a' ? deckA : deckB;
-    if (d.playing) armConfirm(e.target, () => Library.loadInto(d, id));
+    if (d.playing) armConfirm(e.target, () => Library.loadInto(d, id), 'load:' + id + ':' + e.target.dataset.to);
     else Library.loadInto(d, id);
   }
 });
