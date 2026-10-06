@@ -4417,6 +4417,10 @@ function midiMsg(e) {
     else if (n >= 36 && n < 40) fireSmpPad(n - 36, v / 127);
     else if (n === 44) deckA.toggle();
     else if (n === 45) deckB.toggle();
+    // Instant doubles — a controller's "load to deck" keys:
+    // 40 clones A into B, 41 clones B into A (same method ×2 calls).
+    else if (n === 40) deckA.instantDouble();
+    else if (n === 41) deckB.instantDouble();
     // Transport block, same methods the buttons call:
     // 46/47 sync, 48/49 loop arm, 50/51 cue — a controller's
     // transport keys reach every core verb, not just play.
