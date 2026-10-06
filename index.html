@@ -1608,11 +1608,14 @@ class Deck {
       this.node.connect(this.deckGain);
       this.node.connect(this.cueSend);
       this.engine = 'worklet';
+      if (this.keylock) this.node.port.postMessage({ type: 'keylock', on: true });   // restored before the graph existed
     } catch (err) {
       // file:// and opaque origins block worklet module loads — fall back to
       // BufferSource varispeed; key lock (WSOLA) needs http(s).
       console.warn('AudioWorklet unavailable, using BufferSource engine:', err);
       this.engine = 'buffer';
+      this.keylock = false;
+      this.keylockBtn.classList.remove('on');
       this.keylockBtn.disabled = true;
       this.keylockBtn.title = 'Key Lock needs the app served over http(s) — worklets are blocked on file://';
     }
@@ -4575,8 +4578,10 @@ function sessSave() {
         fxon: q('[data-act=fxon]').classList.contains('on'),
         assign: q('[data-act=assign]').value, range: q('[data-act=range]').value,
         loopbeats: q('[data-act=loopbeats]').value,
+        tempo: q('[data-act=tempo]').value,
         slip: q('[data-act=slip]').classList.contains('on'),
         brake: q('[data-act=brake]').classList.contains('on'),
+        keylock: q('[data-act=keylock]').classList.contains('on'),
       };
     }
     localStorage.setItem(sessKey, JSON.stringify({ v, t, decks }));
@@ -4625,12 +4630,19 @@ try {
       setV('[data-act=assign]', s2.assign);
       setV('[data-act=range]', s2.range);
       if (s2.loopbeats != null) setV('[data-act=loopbeats]', s2.loopbeats);
+      // Tempo restores after range — widening/narrowing the range
+      // re-clamps the slider, so a stale order would eat the value.
+      setV('[data-act=tempo]', s2.tempo);
       const fxBtn = q('[data-act=fxon]');
       if (s2.fxon != null && fxBtn.classList.contains('on') !== !!s2.fxon) fxBtn.click();
       const slipB = q('[data-act=slip]');
       if (s2.slip != null && slipB.classList.contains('on') !== !!s2.slip) slipB.click();
       const brakeB = q('[data-act=brake]');
       if (s2.brake != null && brakeB.classList.contains('on') !== !!s2.brake) brakeB.click();
+      const klB = q('[data-act=keylock]');
+      // Not a click: toggleKeylock refuses before the engine exists;
+      // ensureNodes forwards the armed state once the worklet is up.
+      if (s2.keylock != null) { d.keylock = !!s2.keylock; klB.classList.toggle('on', d.keylock); }
     }
   }
 } catch {}
