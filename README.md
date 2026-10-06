@@ -320,6 +320,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   forgotten take can't hide (see ADR-0082). The browser tab title
   shows `▶ A: name` while a deck plays, so a background tab still
   tells you what's on the floor (see ADR-0114).
+- **Beat slice audition** — `Alt`+hold a hot-cue pad gate-plays that
+  beat of the grid from the cue point; release snaps back (see ADR-0209).
 - **Cue undo** — right-click an empty pad restores the last
   cleared hot cue to its original pad (see ADR-0212).
 - **Cue clear** — `Shift`+pad click deletes a hot cue —
