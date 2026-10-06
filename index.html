@@ -4782,6 +4782,7 @@ function sessSave() {
         slip: q('[data-act=slip]').classList.contains('on'),
         brake: q('[data-act=brake]').classList.contains('on'),
         keylock: q('[data-act=keylock]').classList.contains('on'),
+        remain: d.remain,
       };
     }
     localStorage.setItem(sessKey, JSON.stringify({ v, t, decks }));
@@ -4844,6 +4845,7 @@ try {
       // Not a click: toggleKeylock refuses before the engine exists;
       // ensureNodes forwards the armed state once the worklet is up.
       if (s2.keylock != null) { d.keylock = !!s2.keylock; klB.classList.toggle('on', d.keylock); }
+      if (s2.remain != null) d.remain = !!s2.remain;   // TIME mode is a preference, not a state
     }
   }
 } catch {}
