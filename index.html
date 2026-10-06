@@ -3710,6 +3710,12 @@ autoBtn.addEventListener('click', e => {
     xfader.value = f.fromX;
     applyCrossfade();
     if (f.to) f.to.pause();
+    // Disarm too: the outgoing deck is still playing past its fire
+    // point with a stopped, buffered partner — leave autoMix.on set
+    // and the next tick re-fires the same fade, making this click a
+    // no-op forever. Cancelling the transition means Auto is off.
+    autoMix.on = false;
+    autoBtn.classList.remove('on');
     autoBtn.textContent = 'Auto';
     renderLibrary();
     return;
