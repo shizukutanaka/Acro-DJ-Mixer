@@ -813,7 +813,7 @@ class Deck {
             const lc = this._lastClear; this._lastClear = null;
             this.cues[lc.i] = lc.t;
             this.pads[lc.i].classList.add('set');
-            this.pads[lc.i].title = 'Hot cue ' + fmt(lc.t) + ' — click jumps, shift-click clears';
+            this.pads[lc.i].title = 'Hot cue ' + fmt(lc.t) + ' — click jumps, shift-click clears, right-click previews';
             this.tagLib({ cues: this.cues });
             this._drawnPos = undefined;
             this.drawWave();
@@ -1121,7 +1121,7 @@ class Deck {
         const [v0, v1] = this._viewSpan();
         const t = this.quantize(v0 + frac * (v1 - v0));
         this.cues[cueDrag] = Math.min(Math.max(t, 0), this.buffer.duration);
-        this.pads[cueDrag].title = 'Hot cue ' + fmt(this.cues[cueDrag]) + ' — click jumps, shift-click clears';
+        this.pads[cueDrag].title = 'Hot cue ' + fmt(this.cues[cueDrag]) + ' — click jumps, shift-click clears, right-click previews';
         this._drawnPos = undefined;
         this.drawWave();
         return;
@@ -1297,7 +1297,7 @@ class Deck {
       // hint would lie about an occupied pad — ADR-0253 pattern).
       this.cues.forEach((c, i) => {
         this.pads[i].classList.toggle('set', c != null);
-        if (c != null) this.pads[i].title = 'Hot cue ' + fmt(c) + ' — click jumps, shift-click clears';
+        if (c != null) this.pads[i].title = 'Hot cue ' + fmt(c) + ' — click jumps, shift-click clears, right-click previews';
       });
       this._savedLoop = meta && meta.loop ? meta.loop : null;
       this._loopMem = meta && meta.mem1 ? meta.mem1 : null;
