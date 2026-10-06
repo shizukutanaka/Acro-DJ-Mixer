@@ -134,6 +134,7 @@
   .eq .band { display: flex; align-items: center; gap: 3px; flex: 1; color: var(--muted); font-size: 11px; font-weight: 600; }
   .eq .band input { flex: 1; min-width: 0; }
   .library { padding: 10px 20px; border-top: 1px solid var(--line); }
+  .library.drag { outline: 1px dashed var(--accent-a); outline-offset: -4px; }
   .library h2 { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
   #lib-search { width: 100%; box-sizing: border-box; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; color: var(--text); font-size: 12px; padding: 5px 8px; margin-bottom: 6px; }
   .lib-row { display: grid; grid-template-columns: 1fr auto auto auto auto; gap: 10px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
@@ -157,6 +158,7 @@
   .lib-row.played:not(.onA):not(.onB) { opacity: .55; }
   .lib-row.upnext { box-shadow: inset 2px 0 0 #ffb54a; }
   .lib-row.dragging { opacity: .4; }
+  .lib-row.sel { box-shadow: inset 0 0 0 1px var(--acc); }
   .lib-row.fit .name { color: #3ddc84; }
   .lib-row.fit .name::before { content: '● '; font-size: 9px; vertical-align: 1px; }
   .lib-row.onA .name::after { content: ' A'; color: #4aa3ff; font-size: 9px; font-weight: 700; }
@@ -180,7 +182,7 @@
 <main>
   <section class="deck a" id="deck-a">
     <h2>Deck A</h2>
-    <div class="dropzone" data-deck="a">Drop track or click to load</div>
+    <div class="dropzone" data-deck="a" title="Drop a track or click to load · right-click = undo the last eject">Drop track or click to load</div>
     <input type="file" accept="audio/*" hidden>
     <canvas class="wave" width="640" height="90" title="Click to seek — scroll to zoom around the playhead"></canvas>
     <canvas class="wave-mini" width="640" height="18"></canvas>
@@ -193,11 +195,11 @@
       <button data-act="loop" title="Loop — arm an N-beat loop snapped to the beat grid (shift = free-size in/out; alt = loop-back, trap the last N beats)">Loop</button><select data-act="loopbeats" title="Loop length in beats for the next armed loop"><option value="2">2b</option><option value="4" selected>4b</option><option value="8">8b</option><option value="16">16b</option></select><button data-act="reloop" title="Reloop — re-enter the last loop you exited (shift = save to memory 1, alt = slot 2: armed loop saves / disarmed recalls)">↺</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been (shift = ½ beat, alt = ¼ beat)">Roll</button><button data-act="slip" title="Slip — held pads play the cue momentarily, release resumes where the track would have been (hold Slip = momentary mode)">Slip</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier (shift: in-point a beat earlier, alt: out-point a beat earlier)">◂</button><button data-act="loopfwd" title="Move the loop one length later (shift: in-point a beat later, alt: out-point a beat later)">▸</button></span>
       <button data-act="cueout" title="Headphone cue — preview this deck on the cue output (hold = momentary listen, shift = solo cue)">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
-      <button data-act="eject" title="Eject — unload the track, reset the deck (double-click while playing)">⏏</button><button data-act="prev" title="Load the previous library track — shift skips to unplayed tracks only">‹</button><button data-act="next" title="Load the next library track — shift skips to unplayed tracks only">›</button>
+      <button data-act="eject" title="Eject — unload the track, reset the deck (double-click while playing; alt = full channel reset)">⏏</button><button data-act="prev" title="Load the previous library track — shift skips to unplayed tracks only">‹</button><button data-act="next" title="Load the next library track — shift skips to unplayed tracks only">›</button>
       <select data-act="assign" title="Channel assign — which crossfader side feeds this channel (Thru ignores the fader)"><option value="a">A</option><option value="thru">Thru</option><option value="b">B</option></select>
       <span class="time">0:00 / 0:00</span>
     </div>
-    <div class="hotcues"><button class="pad" data-pad="0" title="Hot cue — click sets a marker, click jumps, shift-click clears, right-click previews">1</button><button class="pad" data-pad="1" title="Hot cue — click sets a marker, click jumps, shift-click clears, right-click previews">2</button><button class="pad" data-pad="2" title="Hot cue — click sets a marker, click jumps, shift-click clears, right-click previews">3</button><button class="pad" data-pad="3" title="Hot cue — click sets a marker, click jumps, shift-click clears, right-click previews">4</button><button class="pad" data-pad="4" title="Hot cue — click sets a marker, click jumps, shift-click clears, right-click previews">5</button><button class="pad" data-pad="5" title="Hot cue — click sets a marker, click jumps, shift-click clears, right-click previews">6</button><button class="pad" data-pad="6" title="Hot cue — click sets a marker, click jumps, shift-click clears, right-click previews">7</button><button class="pad" data-pad="7" title="Hot cue — click sets a marker, click jumps, shift-click clears, right-click previews">8</button><span class="jump"><button data-act="jumpback" title="Jump back one beat (shift = one bar; 1 s without BPM)">−1b</button><button data-act="jumpfwd" title="Jump forward one beat (shift = one bar; 1 s without BPM)">+1b</button><button data-act="nextbar" title="Jump to the next bar downbeat — drop on the one">▸bar</button></span></div>
+    <div class="hotcues"><button class="pad" data-pad="0" title="Hot cue — click sets a marker · right-click restores the last cleared cue · alt-hold auditions a beat slice">1</button><button class="pad" data-pad="1" title="Hot cue — click sets a marker · right-click restores the last cleared cue · alt-hold auditions a beat slice">2</button><button class="pad" data-pad="2" title="Hot cue — click sets a marker · right-click restores the last cleared cue · alt-hold auditions a beat slice">3</button><button class="pad" data-pad="3" title="Hot cue — click sets a marker · right-click restores the last cleared cue · alt-hold auditions a beat slice">4</button><button class="pad" data-pad="4" title="Hot cue — click sets a marker · right-click restores the last cleared cue · alt-hold auditions a beat slice">5</button><button class="pad" data-pad="5" title="Hot cue — click sets a marker · right-click restores the last cleared cue · alt-hold auditions a beat slice">6</button><button class="pad" data-pad="6" title="Hot cue — click sets a marker · right-click restores the last cleared cue · alt-hold auditions a beat slice">7</button><button class="pad" data-pad="7" title="Hot cue — click sets a marker · right-click restores the last cleared cue · alt-hold auditions a beat slice">8</button><span class="jump"><button data-act="jumpback" title="Jump back one beat (shift = one bar; 1 s without BPM)">−1b</button><button data-act="jumpfwd" title="Jump forward one beat (shift = one bar; 1 s without BPM)">+1b</button><button data-act="nextbar" title="Jump to the next bar downbeat — drop on the one (shift = previous bar)">▸bar</button></span></div>
     <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1" title="Tempo — double-click resets to ±0%, scroll = fine trim ±0.1%"><output>+0.0%</output><span class="bend"><button data-act="benddn" title="Pitch bend — hold to slow the deck 5%">−</button><button data-act="bendup" title="Pitch bend — hold to speed the deck 5%">+</button></span><select data-act="range" title="Tempo range — ±8% fine, ±16% standard, ±50% wide"><option value="0.08">±8</option><option value="0.16" selected>±16</option><option value="0.50">±50</option></select></div>
     <div class="row eq"><label>EQ</label><span class="band"><button class="kill" data-kill="high" title="Kill high — instant −26 dB cut, click again to restore (hold = momentary)">H</button><input type="range" data-eq="high" min="-1" max="1" step="0.01" value="0" title="High shelf 4 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="mid" title="Kill mid — instant −26 dB cut, click again to restore (hold = momentary)">M</button><input type="range" data-eq="mid" min="-1" max="1" step="0.01" value="0" title="Mid 1 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="low" title="Kill low — instant −26 dB cut, click again to restore (hold = momentary)">L</button><input type="range" data-eq="low" min="-1" max="1" step="0.01" value="0" title="Low shelf 250 Hz, ±26 dB — double-click resets"></span></div>
     <div class="row"><label>Filter</label><input type="range" data-act="filter" min="-1" max="1" step="0.01" value="0" title="Color filter — left sweeps low-pass, right sweeps high-pass, center is open. Double-click resets"><output>open</output></div>
@@ -205,7 +207,7 @@
     <div class="row"><label>Stem</label><select data-act="stem" title="Mid/side split — Vocal keeps the centre channel (acapella), Inst keeps the sides (vocal-removed)"><option value="off">Full</option><option value="voc">Vocal</option><option value="inst">Inst</option></select></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1" title="Channel gain — double-click resets to unity"><output>100%</output><button data-act="mute" title="Deck mute — hold to silence the channel; playback keeps running underneath so release lands back on beat (channel on/off)">Mut</button></div>
     <div class="row"><label>Fader</label><input type="range" data-act="fader" min="0" max="1" step="0.01" value="1" title="Channel fader — the upfader: post-EQ, pre-crossfader channel level. Pulling it off zero starts a stopped deck (fader start); double-click resets to unity"><output>100%</output></div>
-    <div class="row"><span class="bpm">BPM <b>—</b><i></i></span><span class="barcount" title="Bar.beat position on the beat grid — where the phrase is">—</span><span class="beatlamp" title="Beat indicator — pulses each beat, accent on the downbeat"></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients (shift = one beat earlier)">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients (shift = one beat later)">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="stctl" title="Transpose — shift the deck's key in semitones (needs key lock / http); double-click ±N to reset"><button data-act="pitchdn">−</button><b class="st">±0</b><button data-act="pitchup">+</button></span><button data-act="keysync" title="Key sync — transpose to a key that mixes harmonically with the other deck">Key</button><span class="status"></span></div>
+    <div class="row"><span class="bpm">BPM <b>—</b><i></i></span><span class="barcount" title="Bar.beat position on the beat grid — where the phrase is">—</span><span class="beatlamp" title="Beat indicator — pulses each beat, accent on the downbeat"></span><span class="bpmctl" title="Right-click here = undo the last grid write (tap · nudge · manual BPM)"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients (shift = one beat earlier)">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients (shift = one beat later)">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="stctl" title="Transpose — shift the deck's key in semitones (needs key lock / http); double-click ±N to reset"><button data-act="pitchdn">−</button><b class="st">±0</b><button data-act="pitchup">+</button></span><button data-act="keysync" title="Key sync — transpose to a key that mixes harmonically with the other deck">Key</button><span class="status"></span></div>
   </section>
 
   <section class="mixer">
@@ -222,13 +224,13 @@
     <div class="meter cuem" title="Cue bus level (tick = peak hold)"><i id="cuemeter-fill"></i><b id="cuemeter-peak"></b></div>
     <div class="phase" id="phase" title="Beat-phase offset between decks — click to sync the non-playing deck to the playing one"></div>
     <div class="row"><label>Smpl</label><span id="smp-pads"></span><input type="range" id="smp-gain" min="0" max="1" step="0.01" value="0.8" title="Sampler level — all pads. Double-click resets to 80%"><label title="Loop pads — fired shots repeat until stopped (alt-click / choke)" style="font-size:10px;display:flex;align-items:center;gap:2px"><input type="checkbox" id="smp-loop">Loop</label><input type="range" id="smp-pitch" min="0.5" max="2" step="0.01" value="1" title="Sampler pitch — playback rate at fire time, 0.5–2×; double-click resets"><input id="smp-file" type="file" accept="audio/*" hidden></div>
-    <div class="row"><button id="automix" title="Auto mix — near the end of the playing track the other deck starts synced and the crossfader rides over (8 beats; shift = long 32-beat fade). Keeps going: the empty deck auto-loads the next library track">Auto</button><button id="recbtn" title="Record the master output — click again to stop and download a .webm; shift = pause/resume the take">Rec</button><button id="mic" title="Microphone — live input summed into the master pre-limiter (use headphones — open speakers will feed back)">Mic</button><input type="range" id="mic-gain" min="0" max="1.5" step="0.01" value="0.9" title="Mic level — trim the mic in the master; double-click resets to 0.9. Range goes past unity for quiet mics"><input type="range" id="mic-low" min="-1" max="1" step="0.01" value="0" title="Mic LOW — 200 Hz low shelf ±12 dB, double-click resets"><input type="range" id="mic-high" min="-1" max="1" step="0.01" value="0" title="Mic HI — 4 kHz high shelf ±12 dB, double-click resets"></div>
+    <div class="row"><button id="automix" title="Auto mix — near the end of the playing track the other deck starts synced and the crossfader rides over (8 beats; shift = long 32-beat fade). Keeps going: the empty deck auto-loads the next library track">Auto</button><button id="recbtn" title="Record the master output — click again to stop; the take downloads and lands in the library; shift = pause/resume the take">Rec</button><button id="mic" title="Microphone — live input summed into the master pre-limiter (use headphones — open speakers will feed back)">Mic</button><input type="range" id="mic-gain" min="0" max="1.5" step="0.01" value="0.9" title="Mic level — trim the mic in the master; double-click resets to 0.9. Range goes past unity for quiet mics"><input type="range" id="mic-low" min="-1" max="1" step="0.01" value="0" title="Mic LOW — 200 Hz low shelf ±12 dB, double-click resets"><input type="range" id="mic-high" min="-1" max="1" step="0.01" value="0" title="Mic HI — 4 kHz high shelf ±12 dB, double-click resets"></div>
     <div class="kbd-hint">Equal-power crossfade.<br>Auto BPM is an estimate — trust your ears.</div>
   </section>
 
   <section class="deck b" id="deck-b">
     <h2>Deck B</h2>
-    <div class="dropzone" data-deck="b">Drop track or click to load</div>
+    <div class="dropzone" data-deck="b" title="Drop a track or click to load · right-click = undo the last eject">Drop track or click to load</div>
     <input type="file" accept="audio/*" hidden>
     <canvas class="wave" width="640" height="90" title="Click to seek — scroll to zoom around the playhead"></canvas>
     <canvas class="wave-mini" width="640" height="18"></canvas>
@@ -241,11 +243,11 @@
       <button data-act="loop" title="Loop — arm an N-beat loop snapped to the beat grid (shift = free-size in/out; alt = loop-back, trap the last N beats)">Loop</button><select data-act="loopbeats" title="Loop length in beats for the next armed loop"><option value="2">2b</option><option value="4" selected>4b</option><option value="8">8b</option><option value="16">16b</option></select><button data-act="reloop" title="Reloop — re-enter the last loop you exited (shift = save to memory 1, alt = slot 2: armed loop saves / disarmed recalls)">↺</button><button data-act="roll" title="Loop roll — hold to loop one beat, release resumes where the track would have been (shift = ½ beat, alt = ¼ beat)">Roll</button><button data-act="slip" title="Slip — held pads play the cue momentarily, release resumes where the track would have been (hold Slip = momentary mode)">Slip</button><span class="looplen" hidden><button data-act="loopdiv" title="Halve the loop">½</button><button data-act="loopmul" title="Double the loop">2×</button><button data-act="loopback" title="Move the loop one length earlier (shift: in-point a beat earlier, alt: out-point a beat earlier)">◂</button><button data-act="loopfwd" title="Move the loop one length later (shift: in-point a beat later, alt: out-point a beat later)">▸</button></span>
       <button data-act="cueout" title="Headphone cue — preview this deck on the cue output (hold = momentary listen, shift = solo cue)">Phones</button>
       <button data-act="keylock" title="Keep pitch when tempo changes">Key Lock</button>
-      <button data-act="eject" title="Eject — unload the track, reset the deck (double-click while playing)">⏏</button><button data-act="prev" title="Load the previous library track — shift skips to unplayed tracks only">‹</button><button data-act="next" title="Load the next library track — shift skips to unplayed tracks only">›</button>
+      <button data-act="eject" title="Eject — unload the track, reset the deck (double-click while playing; alt = full channel reset)">⏏</button><button data-act="prev" title="Load the previous library track — shift skips to unplayed tracks only">‹</button><button data-act="next" title="Load the next library track — shift skips to unplayed tracks only">›</button>
       <select data-act="assign" title="Channel assign — which crossfader side feeds this channel (Thru ignores the fader)"><option value="a">A</option><option value="thru">Thru</option><option value="b">B</option></select>
       <span class="time">0:00 / 0:00</span>
     </div>
-    <div class="hotcues"><button class="pad" data-pad="0" title="Hot cue — click sets a marker, click jumps, shift-click clears, right-click previews">1</button><button class="pad" data-pad="1" title="Hot cue — click sets a marker, click jumps, shift-click clears, right-click previews">2</button><button class="pad" data-pad="2" title="Hot cue — click sets a marker, click jumps, shift-click clears, right-click previews">3</button><button class="pad" data-pad="3" title="Hot cue — click sets a marker, click jumps, shift-click clears, right-click previews">4</button><button class="pad" data-pad="4" title="Hot cue — click sets a marker, click jumps, shift-click clears, right-click previews">5</button><button class="pad" data-pad="5" title="Hot cue — click sets a marker, click jumps, shift-click clears, right-click previews">6</button><button class="pad" data-pad="6" title="Hot cue — click sets a marker, click jumps, shift-click clears, right-click previews">7</button><button class="pad" data-pad="7" title="Hot cue — click sets a marker, click jumps, shift-click clears, right-click previews">8</button><span class="jump"><button data-act="jumpback" title="Jump back one beat (shift = one bar; 1 s without BPM)">−1b</button><button data-act="jumpfwd" title="Jump forward one beat (shift = one bar; 1 s without BPM)">+1b</button><button data-act="nextbar" title="Jump to the next bar downbeat — drop on the one">▸bar</button></span></div>
+    <div class="hotcues"><button class="pad" data-pad="0" title="Hot cue — click sets a marker · right-click restores the last cleared cue · alt-hold auditions a beat slice">1</button><button class="pad" data-pad="1" title="Hot cue — click sets a marker · right-click restores the last cleared cue · alt-hold auditions a beat slice">2</button><button class="pad" data-pad="2" title="Hot cue — click sets a marker · right-click restores the last cleared cue · alt-hold auditions a beat slice">3</button><button class="pad" data-pad="3" title="Hot cue — click sets a marker · right-click restores the last cleared cue · alt-hold auditions a beat slice">4</button><button class="pad" data-pad="4" title="Hot cue — click sets a marker · right-click restores the last cleared cue · alt-hold auditions a beat slice">5</button><button class="pad" data-pad="5" title="Hot cue — click sets a marker · right-click restores the last cleared cue · alt-hold auditions a beat slice">6</button><button class="pad" data-pad="6" title="Hot cue — click sets a marker · right-click restores the last cleared cue · alt-hold auditions a beat slice">7</button><button class="pad" data-pad="7" title="Hot cue — click sets a marker · right-click restores the last cleared cue · alt-hold auditions a beat slice">8</button><span class="jump"><button data-act="jumpback" title="Jump back one beat (shift = one bar; 1 s without BPM)">−1b</button><button data-act="jumpfwd" title="Jump forward one beat (shift = one bar; 1 s without BPM)">+1b</button><button data-act="nextbar" title="Jump to the next bar downbeat — drop on the one (shift = previous bar)">▸bar</button></span></div>
     <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1" title="Tempo — double-click resets to ±0%, scroll = fine trim ±0.1%"><output>+0.0%</output><span class="bend"><button data-act="benddn" title="Pitch bend — hold to slow the deck 5%">−</button><button data-act="bendup" title="Pitch bend — hold to speed the deck 5%">+</button></span><select data-act="range" title="Tempo range — ±8% fine, ±16% standard, ±50% wide"><option value="0.08">±8</option><option value="0.16" selected>±16</option><option value="0.50">±50</option></select></div>
     <div class="row eq"><label>EQ</label><span class="band"><button class="kill" data-kill="high" title="Kill high — instant −26 dB cut, click again to restore (hold = momentary)">H</button><input type="range" data-eq="high" min="-1" max="1" step="0.01" value="0" title="High shelf 4 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="mid" title="Kill mid — instant −26 dB cut, click again to restore (hold = momentary)">M</button><input type="range" data-eq="mid" min="-1" max="1" step="0.01" value="0" title="Mid 1 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="low" title="Kill low — instant −26 dB cut, click again to restore (hold = momentary)">L</button><input type="range" data-eq="low" min="-1" max="1" step="0.01" value="0" title="Low shelf 250 Hz, ±26 dB — double-click resets"></span></div>
     <div class="row"><label>Filter</label><input type="range" data-act="filter" min="-1" max="1" step="0.01" value="0" title="Color filter — left sweeps low-pass, right sweeps high-pass, center is open. Double-click resets"><output>open</output></div>
@@ -253,12 +255,12 @@
     <div class="row"><label>Stem</label><select data-act="stem" title="Mid/side split — Vocal keeps the centre channel (acapella), Inst keeps the sides (vocal-removed)"><option value="off">Full</option><option value="voc">Vocal</option><option value="inst">Inst</option></select></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1" title="Channel gain — double-click resets to unity"><output>100%</output><button data-act="mute" title="Deck mute — hold to silence the channel; playback keeps running underneath so release lands back on beat (channel on/off)">Mut</button></div>
     <div class="row"><label>Fader</label><input type="range" data-act="fader" min="0" max="1" step="0.01" value="1" title="Channel fader — the upfader: post-EQ, pre-crossfader channel level. Pulling it off zero starts a stopped deck (fader start); double-click resets to unity"><output>100%</output></div>
-    <div class="row"><span class="bpm">BPM <b>—</b><i></i></span><span class="barcount" title="Bar.beat position on the beat grid — where the phrase is">—</span><span class="beatlamp" title="Beat indicator — pulses each beat, accent on the downbeat"></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients (shift = one beat earlier)">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients (shift = one beat later)">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="stctl" title="Transpose — shift the deck's key in semitones (needs key lock / http); double-click ±N to reset"><button data-act="pitchdn">−</button><b class="st">±0</b><button data-act="pitchup">+</button></span><button data-act="keysync" title="Key sync — transpose to a key that mixes harmonically with the other deck">Key</button><span class="status"></span></div>
+    <div class="row"><span class="bpm">BPM <b>—</b><i></i></span><span class="barcount" title="Bar.beat position on the beat grid — where the phrase is">—</span><span class="beatlamp" title="Beat indicator — pulses each beat, accent on the downbeat"></span><span class="bpmctl" title="Right-click here = undo the last grid write (tap · nudge · manual BPM)"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients (shift = one beat earlier)">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients (shift = one beat later)">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="stctl" title="Transpose — shift the deck's key in semitones (needs key lock / http); double-click ±N to reset"><button data-act="pitchdn">−</button><b class="st">±0</b><button data-act="pitchup">+</button></span><button data-act="keysync" title="Key sync — transpose to a key that mixes harmonically with the other deck">Key</button><span class="status"></span></div>
   </section>
 </main>
 <section class="library">
   <h2>Library</h2>
-  <input type="text" id="lib-search" placeholder="Filter tracks… Enter loads top match" autocomplete="off">
+  <input type="text" id="lib-search" placeholder="Filter tracks… ↑↓ pick, Enter loads" autocomplete="off">
   <div class="row"><button id="lib-exp" title="Export library metadata (BPM, key, cues, loops) as JSON">⤓ Export</button><button id="lib-imp" title="Import library metadata — matches tracks by file name+size">⤒ Import</button><input type="file" id="lib-impfile" accept=".json,application/json" hidden><button id="lib-set" title="Setlist — download every track played (persisted across reloads), in order, as a .txt">Setlist</button></div>
   <div id="lib-rows"><p class="muted">Tracks you load are saved here for instant reload.</p></div>
 </section>
@@ -565,6 +567,7 @@ class Deck {
     this.keylockBtn = root.querySelector('[data-act=keylock]');
     this.echoEl = root.querySelector('[data-act=echo]');
     this.loopBtn = root.querySelector('[data-act=loop]');
+    this.reloopBtn = root.querySelector('[data-act=reloop]');
     this.loopLenEl = root.querySelector('.looplen');
     this.loopOn = false;
     this._loopIn = null;
@@ -626,14 +629,16 @@ class Deck {
     const dz = this.el.querySelector('.dropzone');
     const file = this.el.querySelector('input[type=file]');
     dz.addEventListener('click', () => file.click());
-    // Right-click an empty deck undoes the last eject: the library
-    // record still carries grid, key, cues and loop, so loadInto
-    // restores the deck exactly as it was.
+    // Right-click an empty deck undoes the last eject. Library
+    // tracks reload through loadInto (the record carries grid, key,
+    // cues and loop); file-loaded tracks replay the stashed File
+    // through load() with the prep snapshot taken at eject time.
     dz.addEventListener('contextmenu', e => {
       e.preventDefault();
       if (this.buffer || this._ejected == null) return;
-      const id = this._ejected; this._ejected = null;
-      Library.loadInto(this, id);
+      const ej = this._ejected; this._ejected = null;
+      if (typeof ej === 'number') Library.loadInto(this, ej);
+      else this.load(ej.file, ej.meta);
     });
     file.addEventListener('change', e => {
       const f = e.target.files[0];
@@ -670,7 +675,7 @@ class Deck {
     this._cueBtnEl = cueBtnEl;
     this._cueTitle = () => {
       cueBtnEl.title = 'Cue — jump to cue point (hold while stopped to audition from it; ' +
-        'shift = set cue point here) · cue at ' + fmt(this.cueIn || 0);
+        'shift = set cue point here; right-click = undo last set) · cue at ' + fmt(this.cueIn || 0);
     };
     this._cueTitle();
     cueBtnEl.addEventListener('click', e => {
@@ -760,6 +765,7 @@ class Deck {
         this._prevLoopMem = { slot: 1, mem: this._loopMem };
         this._loopMem = [this.loopStart, this.loopEnd];
         this.status('loop saved to memory');
+        this._memTitle();
         this.tagLib({ mem1: this._loopMem });   // same prep doctrine as cues/loop
         return;
       }
@@ -770,6 +776,7 @@ class Deck {
           this._prevLoopMem = { slot: 2, mem: this._loopMem2 };
           this._loopMem2 = [this.loopStart, this.loopEnd];
           this.status('loop saved to memory 2');
+          this._memTitle();
           this.tagLib({ mem2: this._loopMem2 });
         } else {
           this.reloop(this._loopMem2);
@@ -820,8 +827,10 @@ class Deck {
     };
     this.cueBtn.addEventListener('pointerup', cueMomEnd);
     this.cueBtn.addEventListener('pointercancel', cueMomEnd);
+    let _slice = null;
     this.pads.forEach((pad, i) => {
       pad.addEventListener('click', e => {
+        if (e.altKey) return;                          // alt = slice audition, not a cue jump
         if (e.shiftKey) { this.clearPad(i); return; }   // shift-click clears — no right-click needed
         if (!this.slip) this.padCue(i);
       });
@@ -836,7 +845,7 @@ class Deck {
             const lc = this._lastClear; this._lastClear = null;
             this.cues[lc.i] = lc.t;
             this.pads[lc.i].classList.add('set');
-            this.pads[lc.i].title = 'Hot cue ' + fmt(lc.t) + ' — click jumps, shift-click clears';
+            this.pads[lc.i].title = 'Hot cue ' + fmt(lc.t) + ' — click jumps, shift-click clears, right-click previews';
             this.tagLib({ cues: this.cues });
             this._drawnPos = undefined;
             this.drawWave();
@@ -856,9 +865,30 @@ class Deck {
         src.start(0, this.cues[i]);
         padPrev = src; padPrevOwner = this; padPrevPad = pad;
       });
-      pad.addEventListener('pointerdown', e => { if (e.button === 0 && !e.shiftKey) this.slipCueStart(i); });
+      pad.addEventListener('pointerdown', e => {
+        if (e.button === 0 && !e.shiftKey && !e.altKey) this.slipCueStart(i);
+        // Alt+hold = slice audition: gate-play one beat of the grid
+        // measured from cueIn (pad i = i-th beat). Release snaps back,
+        // exactly like the Cue-preview idiom — transport is restored.
+        if (e.button === 0 && e.altKey && this.grid && this.buffer) {
+          const beatLen = 60 / this.grid.bpm;
+          const base = this.cueIn != null ? this.cueIn : this.grid.beatOff;
+          const start = Math.min(base + i * beatLen, this.buffer.duration);
+          _slice = { pad, pos: this.pos(), playing: this.playing };
+          this.seekTo(start);
+          this.play();
+          pad.classList.add('on');
+        }
+      });
+      const sliceEnd = () => {
+        if (!_slice) return;
+        const sl = _slice; _slice = null;
+        sl.pad.classList.remove('on');
+        this.seekTo(sl.pos);
+        if (!sl.playing) this.pause();
+      };
       for (const ev of ['pointerup', 'pointerleave', 'pointercancel'])
-        pad.addEventListener(ev, () => this.slipCueEnd());
+        pad.addEventListener(ev, () => { this.slipCueEnd(); sliceEnd(); });
     });
     this.slip = false;
     this._slip = null;
@@ -889,19 +919,21 @@ class Deck {
     this.slipBtn.addEventListener('pointercancel', slipMomEnd);
     this.el.querySelector('[data-act=jumpback]').addEventListener('click', e => this.beatJump(e.shiftKey ? -4 : -1));
     this.el.querySelector('[data-act=jumpfwd]').addEventListener('click', e => this.beatJump(e.shiftKey ? 4 : 1));
-    this.el.querySelector('[data-act=nextbar]').addEventListener('click', () => this.jumpBar());
+    this.el.querySelector('[data-act=nextbar]').addEventListener('click', e => this.jumpBar(e.shiftKey ? -1 : 1));
     this.keylockBtn.addEventListener('click', () => this.toggleKeylock());
     this.el.querySelector('[data-act=eject]').addEventListener('click', e => {
       // Same accident class as load: eject on a playing deck silences
       // the floor — arm the two-click confirm like ->A/->B and < >.
-      if (this.playing) armConfirm(e.target, () => this.eject());
-      else this.eject();
+      // Alt = full channel reset: eject plus zero the mixer strip.
+      const go = () => e.altKey ? this.resetChannel() : this.eject();
+      if (this.playing) armConfirm(e.target, go);
+      else go();
     });
     // ‹ › step through the library in list order — crate-dig without
     // leaving the deck. Same order as the library (updated_at desc);
     // playing decks route through the two-click load guard.
     const stepLib = async (dir, btn, freshOnly = false) => {
-      let rows = (await Library.all()).filter(t => !t.deleted_at).sort((a, b) => b.updated_at - a.updated_at);
+      let rows = (await Library.all()).filter(t => !t.deleted_at && t.pad == null).sort((a, b) => b.updated_at - a.updated_at);
       if (freshOnly) rows = rows.filter(t => !t.plays);   // shift = unplayed tracks only, matching the dimmed-row / auto-mix freshness rule
       if (!rows.length) { if (freshOnly) this.status('no unplayed tracks'); return; }
       const cur = rows.findIndex(t => t.id === this.libId);
@@ -968,8 +1000,34 @@ class Deck {
     this.fxBtn = this.el.querySelector('[data-act=fxon]');
     const fxBtn = this.fxBtn;
     const setFxOn = on => this.setFxOn(on);
-    fxBtn.addEventListener('click', () => {
+    this._fxPreset = null;   // shift+FX stores the strip, alt+FX recalls it
+    fxBtn.addEventListener('click', e => {
       if (fxBtn._suppress) { fxBtn._suppress = false; return; }  // click after a momentary hold
+      if (e.shiftKey) {
+        this._fxPreset = {
+          sel: this.fxSel.value, beat: this.fxBeat.value,
+          lvl: this.echoEl.value, tap: this.el.querySelector('[data-act=fxtap]').value,
+          on: this.fxOn,
+        };
+        this.status('fx strip stored — alt+FX recalls');
+        return;
+      }
+      if (e.altKey) {
+        const p = this._fxPreset;
+        if (!p) { this.status('no fx strip stored'); return; }
+        this.fxSel.value = p.sel;
+        this.fxSel.dispatchEvent(new Event('change'));
+        this.fxBeat.value = p.beat;
+        this.fxBeat.dispatchEvent(new Event('change'));
+        const tapEl = this.el.querySelector('[data-act=fxtap]');
+        tapEl.value = p.tap;
+        tapEl.dispatchEvent(new Event('change'));
+        this.echoEl.value = p.lvl;
+        this.echoEl.dispatchEvent(new Event('input'));
+        setFxOn(p.on);
+        this.status('fx strip recalled');
+        return;
+      }
       setFxOn(!this.fxOn);
     });
     // Momentary FX punch (same idiom as momentary EQ kills): when the
@@ -985,7 +1043,7 @@ class Deck {
     };
     fxBtn.addEventListener('pointerup', fxMomEnd);
     fxBtn.addEventListener('pointercancel', fxMomEnd);
-    fxBtn.title = 'Beat FX on/off — click toggles, hold = momentary punch (knob position kept)';
+    fxBtn.title = 'Beat FX on/off — click toggles, hold = momentary punch (knob position kept), shift = store strip, alt = recall';
     this.el.querySelector('[data-act=fxtap]').addEventListener('change', e => {
       this.setFxTap(e.target.value === 'post');
     });
@@ -1056,8 +1114,27 @@ class Deck {
     }
     this.filterEl.addEventListener('input', () => this.setFilter(parseFloat(this.filterEl.value)));
     this.filterEl.addEventListener('dblclick', () => { this.filterEl.value = 0; this.setFilter(0); });
-    this.stemSel.addEventListener('change', () => this.setStem(this.stemSel.value));
+    this.stemSel.addEventListener('change', () => {
+      this.setStem(this.stemSel.value);
+      if (this.buffer) this.tagLib({ stem: this.stemSel.value });  // same prep doctrine as cues/loop
+    });
     this.el.querySelector('[data-act=tap]').addEventListener('click', () => this.tapTempo());
+    // Grid undo: right-click the tempo controls restores the grid the
+    // last write destroyed — same right-click-restores grammar as
+    // empty pads, the Cue button, and dropzones (ADR-0291).
+    this._prevGrid = undefined;
+    this.el.querySelector('.bpmctl').addEventListener('contextmenu', e => {
+      e.preventDefault();
+      if (this._prevGrid === undefined) return;
+      this.grid = this._prevGrid ? { ...this._prevGrid } : null;
+      this._prevGrid = undefined;
+      this.tagLib(this.grid ? { bpm: this.grid.bpm, beatOff: this.grid.beatOff } : { bpm: null, beatOff: null });
+      this._syncDelay();
+      this.bpmEl.textContent = this.grid ? this.grid.bpm.toFixed(1) : '—';
+      this._drawnPos = undefined;
+      this.drawWave();
+      this.status(this.grid ? 'grid restored ' + this.grid.bpm.toFixed(1) + ' BPM' : 'grid cleared');
+    });
     // Manual BPM entry: click the readout for an inline field —
     // the fastest fix when detection is close-but-wrong (tap handles
     // unknown tempo, 1-beat shift handles off-by-a-beat phase).
@@ -1074,6 +1151,7 @@ class Deck {
         if (commit) {
           const v = parseFloat(inp.value);
           if (v > 30 && v < 400) {
+            this._prevGrid = this.grid ? { bpm: this.grid.bpm, beatOff: this.grid.beatOff } : null;
             this.grid = this.grid || { bpm: v, beatOff: 0 };
             this.grid.bpm = v;
             this.tagLib({ bpm: v });
@@ -1102,7 +1180,7 @@ class Deck {
       this.nudgeGrid(e.shiftKey && this.grid ? 60 / this.grid.bpm : 0.01));
     // Jog scrub: press anywhere seeks, and holding the button drags
     // the playhead continuously — CDJ-style searching by feel.
-    let scrubbing = false, jog = false, loopDrag = null, cueDrag = null;   // loopDrag: 'in'|'out' on a loop edge; cueDrag: pad index on a cue tick
+    let scrubbing = false, jog = false, cueInDrag = false, loopDrag = null, cueDrag = null;   // cueInDrag: pulling the cyan cue tick; loopDrag: 'in'|'out' on a loop edge; cueDrag: pad index on a hot-cue tick
     const jogEnd = () => {
       if (!jog) return;
       jog = false;
@@ -1142,6 +1220,20 @@ class Deck {
         else if (Math.abs(px - x(this.loopEnd)) <= 8) loopDrag = 'out';
         if (loopDrag) { this.wave.setPointerCapture(e.pointerId); return; }
       }
+      // Deck cue-point drag: grab the cyan tick to move cueIn — a
+      // misplaced cue point otherwise costs shift+Cue at the right
+      // playhead position. Qtz snaps the landing to the grid.
+      if (this.buffer && this.cueIn != null) {
+        const rect = this.wave.getBoundingClientRect();
+        const px = e.clientX - rect.left;
+        const [v0, v1] = this._viewSpan();
+        const x = t => (t - v0) / (v1 - v0) * rect.width;
+        if (Math.abs(px - x(this.cueIn)) <= 8) {
+          cueInDrag = true;
+          this.wave.setPointerCapture(e.pointerId);
+          return;
+        }
+      }
       // Hot-cue marker drag: grab a colored tick and pull it — a
       // mis-set cue otherwise costs shift-click + re-hit to fix.
       // Qtz snaps the landing point to the grid.
@@ -1159,6 +1251,21 @@ class Deck {
       this.wave.setPointerCapture(e.pointerId);
       this.seekFromEvent(e);
     });
+    // Right-click drops the cue point at that spot — see it, place
+    // it, no playhead detour. Same write as Shift+Cue (persisted).
+    this.wave.addEventListener('contextmenu', e => {
+      if (!this.buffer) return;
+      e.preventDefault();
+      const rect = this.wave.getBoundingClientRect();
+      const frac = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
+      const [v0, v1] = this._viewSpan();
+      this.cueIn = Math.min(Math.max(v0 + frac * (v1 - v0), 0), this.buffer.duration);
+      if (!this.playing) this.offset = this.cueIn;   // playing: offset anchors pos(), moving it would jump the playhead
+      this.tagLib({ cueIn: this.cueIn });
+      this._drawnPos = undefined;
+      this.drawWave();
+      this.status('cue set ' + fmt(this.cueIn));
+    });
     this.wave.addEventListener('pointermove', e => {
       if (loopDrag) {
         const rect = this.wave.getBoundingClientRect();
@@ -1172,13 +1279,24 @@ class Deck {
         this.drawWave();
         return;
       }
+      if (cueInDrag) {
+        const rect = this.wave.getBoundingClientRect();
+        const frac = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
+        const [v0, v1] = this._viewSpan();
+        const t = this.quantize(v0 + frac * (v1 - v0));
+        this.cueIn = Math.min(Math.max(t, 0), this.buffer.duration);
+        if (!this.playing) this.offset = this.cueIn;   // playing: offset anchors pos(), moving it would jump the playhead
+        this._drawnPos = undefined;
+        this.drawWave();
+        return;
+      }
       if (cueDrag !== null) {
         const rect = this.wave.getBoundingClientRect();
         const frac = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
         const [v0, v1] = this._viewSpan();
         const t = this.quantize(v0 + frac * (v1 - v0));
         this.cues[cueDrag] = Math.min(Math.max(t, 0), this.buffer.duration);
-        this.pads[cueDrag].title = 'Hot cue ' + fmt(this.cues[cueDrag]) + ' — click jumps, shift-click clears';
+        this.pads[cueDrag].title = 'Hot cue ' + fmt(this.cues[cueDrag]) + ' — click jumps, shift-click clears, right-click previews';
         this._drawnPos = undefined;
         this.drawWave();
         return;
@@ -1195,6 +1313,10 @@ class Deck {
         if (loopDrag) {   // persist the adjusted bounds like every other loop edit
           this.tagLib({ loop: [this.loopStart, this.loopEnd] });
           loopDrag = null;
+        }
+        if (cueInDrag) {   // persist like a shift+Cue set
+          this.tagLib({ cueIn: this.cueIn });
+          cueInDrag = false;
         }
         if (cueDrag !== null) {   // persist like a shift-click cue set
           this.tagLib({ cues: this.cues });
@@ -1255,6 +1377,7 @@ class Deck {
     const bpm = 60000 / beat;
     if (bpm < 40 || bpm > 400) { this._taps = []; this.status('tap out of range'); return; }
     if (this._taps.length > 8) this._taps.shift();
+    this._prevGrid = this.grid ? { bpm: this.grid.bpm, beatOff: this.grid.beatOff } : null;
     if (!this.grid) this.grid = { bpm, beatOff: 0 };
     this.grid.bpm = bpm;
     this.grid.beatOff = this._taps[this._taps.length - 1].pos;
@@ -1270,6 +1393,7 @@ class Deck {
   // — the detector gets phase close, this is the last-mile trim.
   nudgeGrid(d) {
     if (!this.grid) return;
+    this._prevGrid = { bpm: this.grid.bpm, beatOff: this.grid.beatOff };
     this.grid.beatOff += d;
     this.tagLib({ beatOff: this.grid.beatOff });
     this._drawnPos = undefined;
@@ -1343,6 +1467,7 @@ class Deck {
       this._cueTitle();
       this.status(this.cueIn > 0.05 ? 'auto-cue +' + this.cueIn.toFixed(1) + 's' : '');
       this.grid = null;
+      this._prevGrid = undefined;
       this.key = null;
       // Partner's harmonic tint referenced our key — recompute it
       // now that there's nothing to match against.
@@ -1352,6 +1477,14 @@ class Deck {
       this.loopBtn.classList.remove('armed');
       this._loopIn = null;
       this._prevLoop = null;
+      // A held slip cue or loop roll belongs to the old track: a late
+      // release would seek to a stale position or re-arm the old
+      // loop bounds (and tagLib them) on the new one.
+      this._slip = null;
+      this._roll = null;
+      this._loopT = null;
+      this._loopEnterPos = 0;
+      this.rollBtn.classList.remove('on');
       this.loopLenEl.hidden = true;
       this.keyEl.textContent = '—';
       this.keyEl.className = 'key';
@@ -1362,11 +1495,13 @@ class Deck {
       // hint would lie about an occupied pad — ADR-0253 pattern).
       this.cues.forEach((c, i) => {
         this.pads[i].classList.toggle('set', c != null);
-        if (c != null) this.pads[i].title = 'Hot cue ' + fmt(c) + ' — click jumps, shift-click clears';
+        if (c != null) this.pads[i].title = 'Hot cue ' + fmt(c) + ' — click jumps, shift-click clears, right-click previews';
       });
       this._savedLoop = meta && meta.loop ? meta.loop : null;
       this._loopMem = meta && meta.mem1 ? meta.mem1 : null;
       this._loopMem2 = meta && meta.mem2 ? meta.mem2 : null;
+      this.stemSel.value = meta && meta.stem ? meta.stem : 'off';
+      this.setStem(this.stemSel.value);   // the select alone doesn't move the matrix
       this._prevLoopMem = undefined;   // memory-undo belongs to the previous track
       this.peaks = computePeaks(buf, this.wave.width);
       this.drawWave();
@@ -1601,11 +1736,14 @@ class Deck {
       this.node.connect(this.deckGain);
       this.node.connect(this.cueSend);
       this.engine = 'worklet';
+      if (this.keylock) this.node.port.postMessage({ type: 'keylock', on: true });   // restored before the graph existed
     } catch (err) {
       // file:// and opaque origins block worklet module loads — fall back to
       // BufferSource varispeed; key lock (WSOLA) needs http(s).
       console.warn('AudioWorklet unavailable, using BufferSource engine:', err);
       this.engine = 'buffer';
+      this.keylock = false;
+      this.keylockBtn.classList.remove('on');
       this.keylockBtn.disabled = true;
       this.keylockBtn.title = 'Key Lock needs the app served over http(s) — worklets are blocked on file://';
     }
@@ -1720,9 +1858,24 @@ class Deck {
     // the track would land on a deck the user just cleared.
     this._loadSeq = (this._loadSeq || 0) + 1;
     if (!this.buffer) { this.status(''); return; }
-    // Stash for right-click-on-dropzone undo — file-loaded tracks
-    // (no libId) can't be restored, so don't promise them.
-    this._ejected = this.libId != null ? this.libId : null;
+    // Stash for right-click-on-dropzone undo. Library tracks keep
+    // just the record id; file-loaded tracks keep the File itself
+    // plus the prep that lived on the deck (cue point, hot cues,
+    // saved loop + memory slots, grid, key) — load() restores them
+    // from meta exactly like a library record would.
+    this._ejected = this.libId != null ? this.libId
+      : this._fileObj && {
+          file: this._fileObj,
+          meta: {
+            cueIn: this.cueIn,
+            cues: this.cues.slice(),
+            loop: this._savedLoop,
+            mem1: this._loopMem, mem2: this._loopMem2,
+            bpm: this.grid && this.grid.bpm,
+            beatOff: this.grid && this.grid.beatOff,
+            key: this.key,
+          },
+        } || null;
     this.leading = false;
     this.syncBtn.classList.remove('on');
     // Bail out of an in-flight auto-mix fade touching this deck first.
@@ -1749,16 +1902,21 @@ class Deck {
     this._cueTitle();
     this.offset = 0;
     this.cues = [null, null, null, null, null, null, null, null];
-    this.pads.forEach(p => { p.classList.remove('set'); p.title = 'Hot cue — click sets a marker, click jumps, shift-click clears, right-click previews'; });
+    this.pads.forEach(p => { p.classList.remove('set'); p.title = 'Hot cue — click sets a marker · right-click restores the last cleared cue'; });
     this._lastClear = null;
     this.loopOn = false;
     this._prevLoop = null;
+    this._prevGrid = undefined;   // grid-undo belongs to the ejected track
     this._loopMem = null;
     this._loopMem2 = null;
     this._prevLoopMem = undefined;
+    this._memTitle();
     this._loopIn = null;
     this._loopT = null;
     this._loopEnterPos = 0;
+    this._slip = null;
+    this._roll = null;
+    this.rollBtn.classList.remove('on');
     this.loopLenEl.hidden = true;
     this.loopBtn.classList.remove('on', 'armed');
     this.loopBtn.textContent = 'Loop';
@@ -1779,12 +1937,37 @@ class Deck {
     renderLibrary();
   }
 
+  // Alt+Eject = full channel reset: unload plus zero the mixer strip
+  // — tempo, gain, EQ kills/bands, filter, transpose — for handing
+  // the channel over clean to the next track (or the next DJ).
+  resetChannel() {
+    this.eject();
+    this.tempoEl.value = 1;
+    this.setRate(1);
+    this.gainEl.value = 1;
+    this.setGain(1);
+    for (const [band, el] of Object.entries(this.eqEls)) {
+      el.value = 0;
+      if (this.kills[band]) { this.kills[band] = false; this.killEls[band].classList.remove('on'); }
+      this.setBand(band, 0);
+    }
+    this.filterEl.value = 0;
+    this.setFilter(0);
+    this.transpose(-this.st);
+    this.status('Channel reset.');
+  }
+
   stopPlayback() {
     this.playing = false;
     // An in-flight brake ramp must not outlive its owner — eject/cue
     // call this, and the timer would keep posting 'rate' and fire its
     // done() callback on a dead deck.
     if (this._spinTimer) { clearInterval(this._spinTimer); this._spinTimer = null; this.spinMul = 1; }
+    // Same rule for a held pitch bend: a window blur can steal the
+    // pointerup, leaving bendMul latched and the next play ±5% off.
+    // The multiplier is transient finger state, not deck state.
+    this.bendMul = 1;
+    for (const b of this.el.querySelectorAll('[data-act=benddn],[data-act=bendup]')) b.classList.remove('on');
     if (this.engine === 'worklet') {
       this.node.port.postMessage({ type: 'pause' });
     } else if (this.source) {
@@ -2018,26 +2201,7 @@ class Deck {
   // Clamp to [0.25, 1] — a quiet track stays quiet (user can push the
   // fader) instead of being pumped into the limiter.
   applyAutoGain(mono) {
-    const kw = kWeight(mono);
-    // EBU R128 gating: measure 400 ms blocks at 75% overlap, drop blocks
-    // below the -70 LUFS absolute gate, then below mean-10 LU relative
-    // gate — intros/outros/breaks no longer deflate the measurement.
-    const block = Math.round(0.4 * ANALYSIS_SR), hop = Math.round(block / 4);
-    const lk = [];
-    for (let b = 0; b + block <= kw.length; b += hop) {
-      let z = 0;
-      for (let i = b; i < b + block; i++) z += kw[i] * kw[i];
-      z /= block;
-      const L = -0.691 + 10 * Math.log10(Math.max(z, 1e-12));
-      if (L >= -70) lk.push([z, L]);
-    }
-    let sum = 0, n = 0;
-    if (lk.length) {
-      const meanL = 10 * Math.log10(lk.reduce((a, p) => a + p[0], 0) / lk.length) - 0.691;
-      for (const [z, L] of lk) if (L >= meanL - 10) { sum += z; n++; }
-    }
-    const rms = n ? Math.sqrt(sum / n) : (kw.length ? Math.sqrt(kw.reduce((a, v) => a + v * v, 0) / kw.length) : 0);
-    const g = rms < 1e-4 ? 1 : Math.min(1, Math.max(0.25, 0.18 / rms));
+    const g = gatedGain(mono);
     this.gainEl.value = g;
     this.setGain(g);
   }
@@ -2179,6 +2343,12 @@ class Deck {
         c.fillStyle = '#4fc3f7';
         c.fillRect(Math.floor(xOf(this.cueIn)) - 1, 0, 2, h);
       }
+      // Free-size loop in-point (shift+Loop first press): a half-height
+      // amber tick so the pending mark is visible before the loop arms.
+      if (this._loopIn != null && this._loopIn >= v0 && this._loopIn <= v1) {
+        c.fillStyle = 'rgba(255,171,64,0.9)';
+        c.fillRect(Math.floor(xOf(this._loopIn)) - 1, h / 4, 2, h / 2);
+      }
       if (this._fadeAt != null && this._fadeAt >= v0 && this._fadeAt <= v1) {
         // Auto-mix fade fires on this beat — the transition zone made
         // visible on the timeline, not just as a button countdown.
@@ -2211,32 +2381,44 @@ class Deck {
     // answered — peaks, loop band, playhead, and the zoomed
     // viewport box when the main wave is zoomed in.
     const mc = this.wmctx;
-    mc.clearRect(0, 0, 640, 18);
+    const mw = this.waveMini.width, mh = this.waveMini.height;
+    mc.clearRect(0, 0, mw, mh);
     if (this.peaks) {
       const n = this.peaks.length;
       mc.fillStyle = 'rgba(140,160,200,0.45)';
-      for (let x2 = 0; x2 < 640; x2++) {
-        const i = Math.min(n - 1, Math.floor(x2 / 640 * n));
+      for (let x2 = 0; x2 < mw; x2++) {
+        const i = Math.min(n - 1, Math.floor(x2 / mw * n));
         const amp = Math.max(this.peaks[i] * 9, 0.5);
-        mc.fillRect(x2, 9 - amp, 1, amp * 2);
+        mc.fillRect(x2, mh / 2 - amp, 1, amp * 2);
       }
       const dur2 = this.buffer.duration;
-      const xm = t => t / dur2 * 640;
+      const xm = t => t / dur2 * mw;
       if (this.loopOn) {
         mc.fillStyle = 'rgba(61,220,132,.25)';
-        mc.fillRect(xm(this.loopStart), 0, xm(this.loopEnd) - xm(this.loopStart), 18);
+        mc.fillRect(xm(this.loopStart), 0, xm(this.loopEnd) - xm(this.loopStart), mh);
       }
       if (this._fadeAt != null) {
         mc.fillStyle = 'rgba(255,171,64,0.7)';
-        mc.fillRect(Math.floor(xm(this._fadeAt)) - 1, 0, 2, 18);
+        mc.fillRect(Math.floor(xm(this._fadeAt)) - 1, 0, 2, mh);
+      }
+      // Hot-cue ticks on the overview too — when zoomed in, the strip is
+      // the only place all the pad positions are visible at once.
+      for (const [i, t] of this.cues.entries()) {
+        if (t == null) continue;
+        mc.fillStyle = this.padColors[i];
+        mc.fillRect(Math.floor(xm(t)) - 1, 0, 2, 18);
+      }
+      if (this._loopIn != null) {
+        mc.fillStyle = 'rgba(255,171,64,0.9)';
+        mc.fillRect(Math.floor(xm(this._loopIn)) - 1, 4, 2, 10);
       }
       if (this.zoom > 1) {
         mc.strokeStyle = 'rgba(255,255,255,0.6)';
         mc.lineWidth = 1;
-        mc.strokeRect(xm(v0), 0, (v1 - v0) / dur2 * 640, 18);
+        mc.strokeRect(xm(v0), 0, (v1 - v0) / dur2 * mw, mh);
       }
       mc.fillStyle = '#fff';
-      mc.fillRect(xm(cur) - 1, 0, 2, 18);
+      mc.fillRect(xm(cur) - 1, 0, 2, mh);
     }
   }
 
@@ -2331,7 +2513,7 @@ class Deck {
     this._lastClear = { i, t: this.cues[i] };
     this.cues[i] = null;
     this.pads[i].classList.remove('set');
-    this.pads[i].title = 'Hot cue — click sets a marker, click jumps, shift-click clears, right-click previews';
+    this.pads[i].title = 'Hot cue — click sets a marker · right-click restores the last cleared cue';
     this.tagLib({ cues: this.cues });
     this._drawnPos = undefined;
     this.drawWave();
@@ -2348,11 +2530,13 @@ class Deck {
   // Jump to the next bar downbeat — dropping or cueing on "the one" is
   // how transitions phrase. floor+1 so a pos already on a downbeat
   // still advances one bar; no grid → no-op.
-  jumpBar() {
+  jumpBar(dir = 1) {
     if (!this.grid || !this.buffer) return;
     const barLen = 4 * 60 / this.grid.bpm;
-    const n = Math.floor((this.pos() - this.grid.beatOff) / barLen) + 1;
-    const next = this.grid.beatOff + n * barLen;
+    const n = Math.floor((this.pos() - this.grid.beatOff) / barLen) + dir;
+    // dir -1 (shift+▸bar) jumps back to the previous bar's downbeat —
+    // re-drop a section you just overshot, symmetric with forward.
+    const next = Math.max(0, this.grid.beatOff + n * barLen);
     if (next < this.buffer.duration) this.seekTo(next);
   }
 
@@ -2553,6 +2737,15 @@ class Deck {
   // LOOP MOVE: slide the armed loop by its own length — the CDJ move
   // for adjusting a loop across phrase boundaries without re-arming.
   // Reloop: re-enter the last loop that was exited — bounds survive
+  // Reloop button title carries the saved slots' regions — a recall
+  // you can't see is a recall into the dark.
+  _memTitle() {
+    const r = m => m ? ' [' + fmt(m[0]) + '–' + fmt(m[1]) + ']' : '';
+    this.reloopBtn.title = 'Reloop — re-enter the last loop you exited' +
+      ' (shift = save to memory 1' + r(this._loopMem) +
+      ', alt = slot 2' + r(this._loopMem2) + ': armed loop saves / disarmed recalls)';
+  }
+
   // disarm so exit/reloop works like the hardware EXIT/RELOOP button.
   reloop(mem = this._loopMem || this._loopMem2 || this._prevLoop) {
     if (this.loopOn || !mem || !this.buffer) return;
@@ -2748,6 +2941,31 @@ function kWeight(x) {
 
 // Shared mono downmix for all analysis — one OfflineAudioContext render feeds
 // BPM and key estimation alike.
+// EBU R128 gated track gain: measure 400 ms K-weighted blocks at
+// 75% overlap, drop blocks below the -70 LUFS absolute gate, then
+// below mean-10 LU relative gate — intros/outros/breaks no longer
+// deflate the measurement. Attenuation only. Shared by deck
+// auto-gain and the library preview bus.
+function gatedGain(mono) {
+  const kw = kWeight(mono);
+  const block = Math.round(0.4 * ANALYSIS_SR), hop = Math.round(block / 4);
+  const lk = [];
+  for (let b = 0; b + block <= kw.length; b += hop) {
+    let z = 0;
+    for (let i = b; i < b + block; i++) z += kw[i] * kw[i];
+    z /= block;
+    const L = -0.691 + 10 * Math.log10(Math.max(z, 1e-12));
+    if (L >= -70) lk.push([z, L]);
+  }
+  let sum = 0, n = 0;
+  if (lk.length) {
+    const meanL = 10 * Math.log10(lk.reduce((a, p) => a + p[0], 0) / lk.length) - 0.691;
+    for (const [z, L] of lk) if (L >= meanL - 10) { sum += z; n++; }
+  }
+  const rms = n ? Math.sqrt(sum / n) : (kw.length ? Math.sqrt(kw.reduce((a, v) => a + v * v, 0) / kw.length) : 0);
+  return rms < 1e-4 ? 1 : Math.min(1, Math.max(0.25, 0.18 / rms));
+}
+
 async function monoResample(buf) {
   const off = new OfflineAudioContext(1, Math.ceil(buf.duration * ANALYSIS_SR), ANALYSIS_SR);
   const src = off.createBufferSource();
@@ -2935,6 +3153,42 @@ function estimateKey(d) {
 
 // Camelot mixing rule: same code, relative major/minor (same number), or
 // adjacent on the wheel (same letter, +-1) all mix harmonically.
+// The auto-mix next-track pick, shared by the loader and the amber
+// 'upnext' row marker. Walk the visible order past the playing row:
+// prefer an unplayed harmonic fit (±tempo range, Camelot-compatible
+// vs the EFFECTIVE transposed key — the same criteria as the green
+// 'fit' highlight), then first unplayed, then a played fit, then any
+// played row — a set shouldn't repeat a track while fresh rows
+// remain (ADR-0174). Returns { pick, reason } — pick may be null.
+function autoMixPick(rows, playing, vacatedId) {
+  const cur = rows.findIndex(t => t.id === playing.libId);
+  const taken = new Set([playing.libId, vacatedId]);
+  const eff = playing.key
+    ? { num: ((playing.key.num - 1 + 7 * (playing.st || 0)) % 12 + 12) % 12 + 1,
+        letter: playing.key.letter }
+    : null;
+  const fits = t => eff && playing.grid && t.key && t.bpm
+    && t.bpm / playing.grid.bpm >= 1 - playing.tempoRange
+    && t.bpm / playing.grid.bpm <= 1 + playing.tempoRange
+    && harmonic(eff, t.key);
+  let pick = null, firstFree = null, firstPlayed = null, firstPlayedFit = null;
+  for (let i = 1; i <= rows.length; i++) {
+    const t = rows[(cur + i) % rows.length];
+    if (!t || taken.has(t.id)) continue;
+    if (t.plays) {
+      if (!firstPlayed) firstPlayed = t;
+      if (fits(t) && !firstPlayedFit) firstPlayedFit = t;
+      continue;
+    }
+    if (!firstFree) firstFree = t;
+    if (fits(t)) { pick = t; break; }
+  }
+  return {
+    pick: pick || firstFree || firstPlayedFit || firstPlayed,
+    reason: pick ? 'harmonic fit' : 'next in line',
+  };
+}
+
 function harmonic(a, b) {
   const d = Math.min(Math.abs(a.num - b.num), 12 - Math.abs(a.num - b.num));
   return a.num === b.num || (a.letter === b.letter && d === 1);
@@ -3015,11 +3269,19 @@ const Library = {
     return new Promise((res, rej) => { const rq = s.getAll(); rq.onsuccess = () => res(rq.result); rq.onerror = () => rej(rq.error); });
   },
   async addFromFile(fileObj, duration) {
-    // Dedupe by name+size: re-loading the same track refreshes its record.
+    // Dedupe by content hash first (a renamed file is the same track),
+    // name+size second (old records predate hashes) — two files that
+    // merely share a name can no longer steal each other's cues/loops.
     const rows = await this.all();
-    const ex = rows.find(t => t.name === fileObj.name && t.size === fileObj.size && !t.deleted_at);
+    const hash = await trackHash(fileObj);
+    // Both hashed -> hashes decide. Only fall back to name+size when
+    // one side has no hash (old records, insecure contexts).
+    const ex = rows.find(t => !t.deleted_at && t.pad == null && (
+      hash && t.hash ? t.hash === hash
+                     : t.name === fileObj.name && t.size === fileObj.size));
     const now = Date.now();
     const rec = ex || { created_at: now, deleted_at: null, version: 0 };
+    if (hash) rec.hash = hash;
     rec.name = fileObj.name;
     rec.size = fileObj.size;
     rec.type = fileObj.type || '';
@@ -3040,7 +3302,12 @@ const Library = {
   _mutate(fn) {
     // A failed write must not poison the chain — swallow after logging
     // so later mutations still run.
-    this._wr = this._wr.then(fn).catch(err => { console.error('library write failed:', err); });
+    this._wr = this._wr.then(fn).catch(err => {
+      console.error('library write failed:', err);
+      // A dead store (quota, private mode) loses prep silently — say it
+      // once per session instead of letting cues/grids vanish on eject.
+      if (!this._wrWarned) { this._wrWarned = true; deckA.status('Library writes are failing — prep may not persist'); }
+    });
     return this._wr;
   },
   async tag(id, patch) {
@@ -3097,12 +3364,13 @@ const Library = {
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 let libQuery = '';
+let libSel = 0;   // keyboard pick in the filter — ↑↓ moves, Enter loads it
 let libSeq = 0;   // render token — overlapping renders, latest wins (ADR-0261's idiom)
 
 // Library preview (rekordbox-style): audition a row's audio on the
 // headphone cue bus without touching a deck — the "is this the right
 // track" check before committing a load.
-let previewSrc = null, previewId = null, previewToken = 0;
+let previewSrc = null, previewId = null, previewToken = 0, previewGain = null;
 // Setlist survives a reload like the rest of the mixer surface
 // (ADR-0158): entries persist to localStorage, capped so a month
 // of sessions can't grow it without bound.
@@ -3118,30 +3386,45 @@ function setLogPush(e) {
   if (setLog.length > 2000) setLog.splice(0, setLog.length - 2000);
   try { localStorage.setItem(SETLOG_KEY, JSON.stringify(setLog)); } catch (_) {}
 }
+// Which row is ringing on the cue bus? The auditioning row's ▶
+// lights up — a crate full of identical ▶s is useless mid-audition.
+function prevMark() {
+  document.querySelectorAll('#lib-rows [data-prev]').forEach(el =>
+    el.classList.toggle('on', previewId != null && el.closest('.lib-row').dataset.id == previewId));
+}
 async function previewTrack(id) {
   const wasPlaying = previewId === id;
   const tok = ++previewToken;
-  if (previewSrc) { try { previewSrc.stop(); } catch (_) {} previewSrc.disconnect(); previewSrc = previewId = null; }
-  if (wasPlaying) return;   // second click on the same row = stop
+  if (previewSrc) { try { previewSrc.stop(); } catch (_) {} previewSrc.disconnect(); previewSrc = previewId = null; if (previewGain) { previewGain.disconnect(); previewGain = null; } }
+  if (wasPlaying) { prevMark(); return; }   // second click on the same row = stop
   let rec;
-  try { rec = await Library.get(id); } catch (_) { Library.fail(); return; }
-  if (!rec || !rec.blob || tok !== previewToken) return;
+  try { rec = await Library.get(id); } catch (_) { Library.fail(); prevMark(); return; }
+  if (!rec || !rec.blob || tok !== previewToken) { prevMark(); return; }
   const ac = audio(); cueBus();
   let buf;
   try { buf = await ac.decodeAudioData(await rec.blob.arrayBuffer()); }
   catch (_) { deckA.status('preview: undecodable audio'); return; }
   // A newer preview started while this decode was in flight — let it
   // win instead of layering a second source on the cue bus.
+  const g = gatedGain(await monoResample(buf));
+  // Re-check after the analysis await too, or two auditions can layer.
   if (tok !== previewToken) return;
   previewSrc = ac.createBufferSource();
   previewSrc.buffer = buf;
-  previewSrc.connect(cueIn);
+  // Previews get the same gated gain a deck load applies — an
+  // un-normalised file can blast the cue bus relative to the
+  // levelled deck you were just listening to.
+  previewGain = ac.createGain();
+  previewGain.gain.value = g;
+  previewGain.connect(cueIn);
+  previewSrc.connect(previewGain);
   const src = previewSrc;
-  src.onended = () => { if (previewSrc === src) { src.disconnect(); previewSrc = null; previewId = null; } };
+  src.onended = () => { if (previewSrc === src) { src.disconnect(); previewSrc = null; previewId = null; if (previewGain) { previewGain.disconnect(); previewGain = null; } prevMark(); } };
   // Audition from the cue point like a deck's auto-cue — the lead-in
   // silence isn't what you're previewing.
   previewSrc.start(0, rec.cueIn || 0);
   previewId = id;
+  prevMark();
 }
 
 // Background analysis — crate digging shouldn't require loading every
@@ -3187,7 +3470,7 @@ async function renderLibrary() {
   const seq = ++libSeq;
   const rowsEl = document.getElementById('lib-rows');
   let rows;
-  try { rows = (await Library.all()).filter(t => !t.deleted_at).sort((a, b) => b.updated_at - a.updated_at); }
+  try { rows = (await Library.all()).filter(t => !t.deleted_at && t.pad == null).sort((a, b) => b.updated_at - a.updated_at); }
   catch (_) { Library.fail(); return; }
   if (seq !== libSeq) return;   // a newer render superseded this one
   // Up-next under auto-mix: the row continuous auto-mix will load
@@ -3197,24 +3480,11 @@ async function renderLibrary() {
   let upnextId = null;
   if (autoMix.on) {
     const p = [deckA, deckB].find(d => d.playing && d.buffer && !d.partner.playing);
+    // Same helper the loader runs — the marker must name the row
+    // auto-mix will actually take, including the played-last-resort rule.
     if (p && rows.length) {
-      const cur = rows.findIndex(t => t.id === p.libId);
-      const taken = new Set([p.libId, p.partner.libId]);
-      const eff = p.key
-        ? { num: ((p.key.num - 1 + 7 * (p.st || 0)) % 12 + 12) % 12 + 1, letter: p.key.letter }
-        : null;
-      const fitsNext = t => eff && p.grid && t.key && t.bpm
-        && t.bpm / p.grid.bpm >= 1 - p.tempoRange
-        && t.bpm / p.grid.bpm <= 1 + p.tempoRange
-        && harmonic(eff, t.key);
-      let firstFree = null;
-      for (let i = 1; i <= rows.length; i++) {
-        const t = rows[(cur + i) % rows.length];
-        if (!t || taken.has(t.id)) continue;
-        if (!firstFree) firstFree = t;
-        if (fitsNext(t)) { upnextId = t.id; break; }
-      }
-      if (upnextId == null && firstFree) upnextId = firstFree.id;
+      const { pick } = autoMixPick(rows, p, p.partner.libId);
+      if (pick) upnextId = pick.id;
     }
   }
   const q = libQuery.trim().toLowerCase();
@@ -3230,16 +3500,16 @@ async function renderLibrary() {
       && t.bpm / d.grid.bpm >= 1 - d.tempoRange && t.bpm / d.grid.bpm <= 1 + d.tempoRange
       && harmonic(d.effKey ? d.effKey() : d.key, t.key))
     .map(([name]) => name);
-  rowsEl.innerHTML = rows.map(t => { const f = fit(t);
+  rowsEl.innerHTML = rows.map((t, i) => { const f = fit(t);
     const nC = (t.cues || []).filter(c => c != null).length;
     const prep = nC || t.loop || t.plays ? ` <span class="prep" title="Saved prep / plays">${nC ? '⚑' + nC : ''}${t.loop ? ' ∞' : ''}${t.plays ? ' ×' + t.plays : ''}</span>` : '';
     const onDeck = t.id === deckA.libId ? ' onA' : t.id === deckB.libId ? ' onB' : '';
-    return `<div class="lib-row${f.length ? ' fit' : ''}${onDeck}${t.plays ? ' played' : ''}${t.id === upnextId ? ' upnext' : ''}" data-id="${t.id}" draggable="true">
+    return `<div class="lib-row${i === libSel ? ' sel' : ''}${f.length ? ' fit' : ''}${onDeck}${t.plays ? ' played' : ''}${t.id === upnextId ? ' upnext' : ''}" data-id="${t.id}" draggable="true">
     <span class="name" title="${esc(t.name)}${f.length ? ' — fits deck ' + f.join('/') + ' (key + tempo)' : ''}">${esc(t.name)}${prep}</span>
     <span>${t.bpm ? Math.round(t.bpm) : '—'} BPM</span>
     <span>${t.key ? esc(t.key.num + t.key.letter + ' ' + t.key.name) : '—'}</span>
     <span>${fmt(t.duration || 0)}</span>
-    <span><button data-prev title="Preview — audition the track on the headphone cue bus without loading a deck">▶</button><button data-to="a" title="Load into Deck A">→A</button><button data-to="b" title="Load into Deck B">→B</button><button class="lib-del" data-del title="Remove from library">×</button></span>
+    <span><button data-prev class="${previewId === t.id ? 'on' : ''}" title="Preview — audition the track on the headphone cue bus without loading a deck">▶</button><button data-to="a" title="Load into Deck A">→A</button><button data-to="b" title="Load into Deck B">→B</button><button class="lib-del" data-del title="Remove from library">×</button></span>
   </div>`; }).join('');
 }
 
@@ -3249,6 +3519,26 @@ const deckA = new Deck(document.getElementById('deck-a'), 'a');
 const deckB = new Deck(document.getElementById('deck-b'), 'b');
 deckA.partner = deckB;
 deckB.partner = deckA;
+
+// The wave canvases declare a fixed 640px bitmap but lay out at 100%
+// width — on any deck wider than that the browser stretches the
+// bitmap and the waveform blurs. Fit the bitmap to the layout width
+// once and on every resize, rebuilding peaks at the new resolution.
+const fitWaves = () => {
+  for (const d of [deckA, deckB]) {
+    for (const cv of [d.wave, d.waveMini]) {
+      const w = Math.round(cv.clientWidth);
+      if (w && cv.width !== w) cv.width = w;
+    }
+    if (d.buffer) {
+      d.peaks = computePeaks(d.buffer, d.wave.width);
+      d._drawnPos = undefined;
+      d.drawWave();
+    }
+  }
+};
+window.addEventListener('resize', fitWaves);
+fitWaves();
 const xfader = document.getElementById('xfader');
 
 const xfcurve = document.getElementById('xfcurve');
@@ -3432,7 +3722,9 @@ autoBtn.addEventListener('click', e => {
 // recording is open; playing decks need no guard (the mixer surface
 // restores itself, and the library/setlist already saved).
 window.addEventListener('beforeunload', e => {
-  if (recorder && recorder.state === 'recording') e.preventDefault();
+  // Non-null covers every state with unsaved chunks: 'recording',
+  // 'paused', and the flush window between stop() and onstop's save.
+  if (recorder) e.preventDefault();
 });
 // Flush the pending session snapshot on the way out — the 400 ms
 // debounce would otherwise drop the last adjustments. pagehide, not
@@ -3528,46 +3820,18 @@ function autoMixTick() {
 // IS the playing track (library of one) or nothing's left.
 async function autoNext(vacated, playing) {
   try {
-    const rows = (await Library.all()).filter(t => !t.deleted_at).sort((a, b) => b.updated_at - a.updated_at);
-    if (!rows.length) return false;
-    const cur = rows.findIndex(t => t.id === playing.libId);
-    const taken = new Set([playing.libId, vacated.libId]);
-    // Prefer a harmonic pick: walk the visible order and take the
-    // first row whose key+tempo mixes into the deck still playing —
-    // same criteria as the green 'fit' highlight (±tempo range and
-    // Camelot-compatible vs the EFFECTIVE transposed key). Falls back
-    // to plain next-in-line rather than leave the deck empty.
-    const eff = playing.key
-      ? { num: ((playing.key.num - 1 + 7 * (playing.st || 0)) % 12 + 12) % 12 + 1,
-          letter: playing.key.letter }
-      : null;
-    const fits = t => eff && playing.grid && t.key && t.bpm
-      && t.bpm / playing.grid.bpm >= 1 - playing.tempoRange
-      && t.bpm / playing.grid.bpm <= 1 + playing.tempoRange
-      && harmonic(eff, t.key);
-    // Already-played tracks (row greyed per ADR-0174) are last
-    // resort — a set shouldn't repeat a track while fresh rows remain.
-    let pick = null, firstFree = null, firstPlayed = null, firstPlayedFit = null;
-    for (let i = 1; i <= rows.length; i++) {
-      const t = rows[(cur + i) % rows.length];
-      if (!t || taken.has(t.id)) continue;
-      if (t.plays) {
-        if (!firstPlayed) firstPlayed = t;
-        if (fits(t) && !firstPlayedFit) firstPlayedFit = t;
-        continue;
-      }
-      if (!firstFree) firstFree = t;
-      if (fits(t)) { pick = t; break; }
-    }
-    // Say why: the autopilot earns trust by explaining its pick —
-    // 'harmonic fit' vs a plain 'next in line' fallback.
-    const reason = pick ? 'harmonic fit' : 'next in line';
-    pick = pick || firstFree || firstPlayedFit || firstPlayed;
-    if (!pick) return false;
+    const rows = (await Library.all()).filter(t => !t.deleted_at && t.pad == null).sort((a, b) => b.updated_at - a.updated_at);
+    if (!rows.length) { vacated.status('Library empty — auto-mix stops.'); return false; }
+    const { pick, reason } = autoMixPick(rows, playing, vacated.libId);
+    if (!pick) { vacated.status('No next track available.'); return false; }
     await Library.loadInto(vacated, pick.id);
     vacated.status('Auto-load: ' + (pick.name || 'track') + ' — ' + reason);
     return true;
-  } catch (_) { return false; }
+  } catch (err) {
+    console.warn('autoNext failed:', err);
+    vacated.status('Auto-load failed.');
+    return false;
+  }
 }
 
 // Mic input: summed into the master at monoNode — pre-limiter and
@@ -3647,9 +3911,57 @@ micBtn2.title = 'Microphone — click toggles live input into the master pre-lim
 // shift-click clears. One voice per pad; output enters masterGain so
 // master level, ducking, mono fold, cut, and recording all apply.
 const smpSlots = [null, null, null, null];
+// Pad persistence: each loaded pad's audio is stored as planar
+// float PCM in a pad-marked library record (filtered out of every
+// track surface), so prepared one-shots survive reloads like the
+// rest of the prep state.
+async function padSave(i) {
+  try {
+    const slot = smpSlots[i];
+    const rows = (await Library.all()).filter(t => t.pad === i && !t.deleted_at);
+    const rec = rows[0] || { created_at: Date.now(), deleted_at: null, version: 0 };
+    for (const extra of rows.slice(1)) { extra.deleted_at = Date.now(); extra.version++; await Library.put(extra); }
+    if (!slot || !slot.buf) {
+      if (rec.id) { rec.deleted_at = Date.now(); rec.version++; await Library.put(rec); }
+      return;
+    }
+    const ch = slot.buf.numberOfChannels, n = slot.buf.length;
+    const pcm = new Float32Array(n * ch);
+    for (let c = 0; c < ch; c++) pcm.set(slot.buf.getChannelData(c), c * n);
+    rec.pad = i; rec.name = slot.name || ('pad' + (i + 1));
+    rec.blob = new Blob([pcm]); rec.padCh = ch; rec.padSr = slot.buf.sampleRate;
+    rec.gain = slot.gain; rec.start = slot.start || 0;
+    rec.updated_at = Date.now(); rec.version++;
+    rec.id = await Library.put(rec);
+    slot.padRecId = rec.id;
+  } catch (_) {}
+}
+let padTimer = null;
+const padsSaveSoon = () => { clearTimeout(padTimer); padTimer = setTimeout(() => { for (let i = 0; i < 4; i++) padSave(i); }, 600); };
+async function padsRestore() {
+  try {
+    const rows = (await Library.all()).filter(t => t.pad != null && !t.deleted_at);
+    for (const rec of rows) {
+      const i = rec.pad; if (i < 0 || i > 3 || !rec.blob) continue;
+      const f = new Float32Array(await rec.blob.arrayBuffer());
+      const ch = rec.padCh || 1, n = Math.floor(f.length / ch);
+      if (n <= 0) continue;
+      const nb = audio().createBuffer(ch, n, rec.padSr || 44100);
+      for (let c = 0; c < ch; c++) nb.getChannelData(c).set(f.subarray(c * n, (c + 1) * n));
+      smpSlots[i] = { buf: nb, name: rec.name, src: null, gain: rec.gain, start: rec.start || 0, padRecId: rec.id };
+      const b = smpPadsEl.children[i];
+      b.textContent = (rec.name || '').length > 6 ? rec.name.slice(0, 6) : (rec.name || 'pad');
+      b.classList.add('set');
+      b.title = rec.name;
+    }
+  } catch (_) {}
+}
+
 let smpCleared = null;   // last shift-cleared slot — right-click an empty pad restores it (one level)
+
 let smpGain = null;
 let smpPrev = null;
+let smpPrevPad = -1;   // pad index owning the audition — a second right-click on it is a stop switch
 let padPrev = null, padPrevOwner = null, padPrevPad = null;   // deck hot-cue preview voice, its deck, its pad
 // Auditions follow the owner doctrine: a load/eject kills only ITS
 // deck's audition, never the partner's.
@@ -3663,7 +3975,7 @@ smpSlots.forEach((_, i) => {
   const b = document.createElement('button');
   b.className = 'smp';
   b.textContent = '+';
-  b.title = 'Sampler — click loads a one-shot, click again plays it (hold = gate); wheel trims this pad\'s level; shift+empty pad resamples the playing loop; right-click previews on headphones, alt-click stops, shift-click clears — pads 1+2 and 3+4 are choke groups';
+  b.title = 'Sampler — click loads a one-shot, click again plays it (hold = gate); wheel trims this pad\'s level; shift+empty pad resamples the playing loop; right-click previews on headphones (again stops), alt-click stops, shift-click clears — pads 1+2 and 3+4 are choke groups';
   const firePad = (vel = 1) => {
     const slot = smpSlots[i];
     if (!slot || !slot.buf) return;
@@ -3696,7 +4008,7 @@ smpSlots.forEach((_, i) => {
     g.connect(smpGain);
     slot.g = g;
     src.onended = () => { if (slot.src === src) { b.classList.remove('on'); slot.src = null; } };
-    src.start();
+    src.start(0, slot.start || 0);
     slot.src = src;
     b.classList.add('on');
   };
@@ -3746,15 +4058,17 @@ smpSlots.forEach((_, i) => {
         smpSlots[i] = { buf: nb, name: 'loop@' + d.name, src: null, gain: 1 };
         b.textContent = 'loop'; b.classList.add('set');
         b.title = 'Resampled loop — ' + d.name + ' ' + (d.loopEnd - d.loopStart).toFixed(2) + 's';
+        padsSaveSoon();
         return;
       }
       smpCleared = { i, slot, label: b.textContent, title: b.title };
       // A pad auditioning on the cue bus keeps ringing after its
       // sample is cleared — silence the ghost along with the slot.
-      if (smpPrev) { try { smpPrev.stop(); } catch (_) {} smpPrev = null; }
+      if (smpPrev) { try { smpPrev.stop(); } catch (_) {} smpPrev = null; smpPrevPad = -1; }
       smpSlots[i] = null;
       b.textContent = '+'; b.classList.remove('set', 'on');
       b.title = 'Sampler — click loads a one-shot, click again plays it, alt-click stops playback, shift-click clears (right-click an empty pad restores the last clear)';
+      padsSaveSoon();
       return;
     }
     if (!slot) { smpPending = i; smpFile.value = ''; smpFile.click(); return; }
@@ -3767,6 +4081,15 @@ smpSlots.forEach((_, i) => {
   b.addEventListener('contextmenu', e => {
     e.preventDefault();
     const slot = smpSlots[i];
+    // A second right-click on the auditioning pad is a stop switch —
+    // same toggle grammar as the library ▶ and hot-cue previews
+    // (ADR-0289). Without it a long sample rings to its end with no
+    // way to cut it off.
+    if (smpPrev && smpPrevPad === i) {
+      try { smpPrev.stop(); } catch (_) {}
+      smpPrev = null; smpPrevPad = -1;
+      return;
+    }
     if (!slot) {
       // Undo a shift-clear: right-click an empty pad puts the last
       // cleared sample back — one level, like the hot-cue undo.
@@ -3779,13 +4102,13 @@ smpSlots.forEach((_, i) => {
       return;
     }
     if (!slot.buf) return;
-    if (smpPrev) { try { smpPrev.stop(); } catch (_) {} smpPrev.disconnect(); smpPrev = null; }
+    if (smpPrev) { try { smpPrev.stop(); } catch (_) {} smpPrev.disconnect(); smpPrev = null; smpPrevPad = -1; }
     const src = audio().createBufferSource();
     src.buffer = slot.buf;
     src.connect(cueBus());
-    src.onended = () => { if (smpPrev === src) { src.disconnect(); smpPrev = null; } };
-    src.start();
-    smpPrev = src;
+    src.onended = () => { if (smpPrev === src) { src.disconnect(); smpPrev = null; smpPrevPad = -1; } };
+    src.start(0, slot.start || 0);
+    smpPrev = src; smpPrevPad = i;
   });
   // Drop a file straight onto a pad — the deck dropzone's grammar
   // brought to the sampler row. The destination is pinned by the
@@ -3803,14 +4126,24 @@ smpSlots.forEach((_, i) => {
     const slot = smpSlots[i];
     if (!slot || !slot.buf) return;
     e.preventDefault();
+    if (e.shiftKey) {
+      // Shift+wheel trims the start offset — drop lead-in silence or
+      // a pickup before the hit, like trimming an SP pad's start.
+      slot.start = Math.min(Math.max(0, (slot.start || 0) - Math.sign(e.deltaY) * 0.05),
+        Math.max(0, slot.buf.duration - 0.05));
+      b.title = slot.name + ' — starts ' + slot.start.toFixed(2) + 's in (shift+wheel trims)';
+      return;
+    }
     slot.gain = Math.min(1.5, Math.max(0.1, (slot.gain != null ? slot.gain : 1) - Math.sign(e.deltaY) * 0.05));
     if (slot.g) slot.g.gain.setTargetAtTime(slot.gain, ctx.currentTime, 0.01);
-    b.title = slot.name + ' — level ' + slot.gain.toFixed(2) + 'x (wheel trims)';
+    b.title = slot.name + ' — level ' + slot.gain.toFixed(2) + 'x (wheel trims; shift+wheel trims start)';
+    padsSaveSoon();
   }, { passive: false });
   smpPadsEl.appendChild(b);
   // Shared entry for MIDI notes: click the pad to load, fire if loaded.
   b.__fire = firePad;
 });
+padsRestore();
 function fireSmpPad(i, vel) {
   const pad = smpPadsEl.children[i];
   if (!pad) return;
@@ -3834,7 +4167,17 @@ const smpPitchEl = document.getElementById('smp-pitch');
 smpPitchEl.addEventListener('dblclick', () => { smpPitchEl.value = 1; });
 
 async function loadSmpFile(i, f) {
-  const buf = await audio().decodeAudioData(await f.arrayBuffer());
+  let buf;
+  try { buf = await audio().decodeAudioData(await f.arrayBuffer()); }
+  catch (err) {
+    // Loud fail: a pad that swallows the error looks armed but
+    // never loads — say so on the pad itself.
+    console.warn('sampler decode failed:', err);
+    const b = smpPadsEl.children[i];
+    b.textContent = '!';
+    b.title = 'Could not decode ' + f.name;
+    return;
+  }
   // A voice or cue-bus audition playing the old sample can't outlive
   // the slot it was fired from — silence both before the buffer swaps
   // out (same ghost class as pad clearing, ADR-0250).
@@ -3851,6 +4194,7 @@ async function loadSmpFile(i, f) {
   b.textContent = f.name.length > 6 ? f.name.slice(0, 6) : f.name;
   b.classList.add('set');
   b.title = f.name;
+  padsSaveSoon();
 }
 smpFile.addEventListener('change', async e => {
   const f = e.target.files[0];
@@ -3934,25 +4278,45 @@ if (navigator.mediaDevices) navigator.mediaDevices.addEventListener('devicechang
 
 document.getElementById('lib-search').addEventListener('input', e => {
   libQuery = e.target.value;
+  libSel = 0;   // a new query means a new top match
   renderLibrary();
 });
+// Content identity: SHA-256 of head+tail chunks — cheap even for
+// hour-long files, catches same-name-different-audio collisions and
+// recognizes renames. Absent in insecure contexts: degrade, don't break.
+async function trackHash(fileObj) {
+  if (!crypto.subtle || !fileObj || !fileObj.size) return null;
+  const head = fileObj.slice(0, 65536);
+  const tail = fileObj.size > 65536 ? fileObj.slice(-65536) : fileObj.slice(0, 0);
+  const digest = await crypto.subtle.digest('SHA-256', await new Blob([fileObj.size + '', await head.arrayBuffer(), await tail.arrayBuffer()]).arrayBuffer());
+  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 // Enter in the filter loads the top match into the free deck — the
 // crate-dig flow: type, hit enter, it's on a deck. Same pick as a
 // row double-click: the stopped deck, A when both are free, nothing
 // when both are playing.
 document.getElementById('lib-search').addEventListener('keydown', e => {
+  const rows = [...document.querySelectorAll('#lib-rows .lib-row')];
+  if (!rows.length) return;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    libSel = (libSel + (e.key === 'ArrowDown' ? 1 : -1) + rows.length) % rows.length;
+    rows.forEach((r, i) => r.classList.toggle('sel', i === libSel));
+    rows[libSel].scrollIntoView({ block: 'nearest' });
+    return;
+  }
   if (e.key !== 'Enter') return;
-  const row = document.querySelector('#lib-rows .lib-row');
-  if (!row) return;
+  const row = rows[Math.min(libSel, rows.length - 1)] || rows[0];
   const free = !deckA.playing ? deckA : (!deckB.playing ? deckB : null);
   if (free) Library.loadInto(free, Number(row.dataset.id));
 });
 // Library metadata export/import: the analysis + prep (BPM, grid,
 // key, hot cues, loop) is the valuable part — audio blobs stay put,
 // so entries match by name+size on the other side.
-const LIB_META_KEYS = ['name', 'size', 'type', 'duration', 'bpm', 'beatOff', 'key', 'cues', 'cueIn', 'loop', 'mem1', 'mem2'];
+const LIB_META_KEYS = ['name', 'size', 'hash', 'type', 'duration', 'bpm', 'beatOff', 'key', 'cues', 'cueIn', 'loop', 'stem', 'mem1', 'mem2'];
 document.getElementById('lib-exp').addEventListener('click', async () => {
-  const rows = (await Library.all()).filter(t => !t.deleted_at);
+  const rows = (await Library.all()).filter(t => !t.deleted_at && t.pad == null);
   const data = rows.map(t => Object.fromEntries(LIB_META_KEYS.filter(k => t[k] !== undefined).map(k => [k, t[k]])));
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' }));
@@ -3971,6 +4335,33 @@ document.getElementById('lib-set').addEventListener('click', () => {
 });
 const libImpFile = document.getElementById('lib-impfile');
 document.getElementById('lib-imp').addEventListener('click', () => libImpFile.click());
+
+// Drop files straight onto the library — crate building shouldn't
+// require loading each track into a deck first. Every dropped audio
+// file lands as a library row (decks take files[0]; the crate takes
+// them all). Duration is probed via <audio> metadata, no full decode —
+// BPM/key fill in later through bgScan while the app idles.
+const libDropEl = document.querySelector('.library');
+const libDurOf = f => new Promise(res => {
+  const a = new Audio();
+  a.preload = 'metadata';
+  a.onloadedmetadata = () => { URL.revokeObjectURL(a.src); res(a.duration || 0); };
+  a.onerror = () => res(0);
+  a.src = URL.createObjectURL(f);
+});
+libDropEl.addEventListener('dragover', e => { e.preventDefault(); libDropEl.classList.add('drag'); });
+libDropEl.addEventListener('dragleave', () => libDropEl.classList.remove('drag'));
+libDropEl.addEventListener('drop', async e => {
+  e.preventDefault(); libDropEl.classList.remove('drag');
+  const files = [...(e.dataTransfer.files || [])]
+    .filter(f => (f.type || '').startsWith('audio') || /\.(mp3|wav|ogg|ogm|flac|m4a|aac|aiff?|webm)$/i.test(f.name));
+  if (!files.length) return;
+  let n = 0;
+  for (const f of files) {
+    try { await Library.addFromFile(f, await libDurOf(f)); n++; } catch (_) {}
+  }
+  deckA.status('added ' + n + ' track' + (n === 1 ? '' : 's') + ' to library');
+});
 libImpFile.addEventListener('change', async () => {
   const f = libImpFile.files[0];
   libImpFile.value = '';
@@ -3978,13 +4369,14 @@ libImpFile.addEventListener('change', async () => {
   let data;
   try { data = JSON.parse(await f.text()); } catch { deckA.status('import: not a library file'); return; }
   if (!Array.isArray(data)) { deckA.status('import: not a library file'); return; }
-  const rows = (await Library.all()).filter(t => !t.deleted_at);
+  const rows = (await Library.all()).filter(t => !t.deleted_at && t.pad == null);
   let n = 0;
   for (const e of data) {
-    const rec = rows.find(t => t.name === e.name && t.size === e.size);
+    const rec = (e.hash && rows.find(t => t.hash === e.hash))
+             || rows.find(t => t.name === e.name && t.size === e.size);
     if (!rec) continue;   // audio not loaded here — nothing to tag
     const patch = {};
-    for (const k of ['duration', 'bpm', 'beatOff', 'key', 'cues', 'cueIn', 'loop', 'mem1', 'mem2']) if (e[k] !== undefined) patch[k] = e[k];
+    for (const k of ['duration', 'bpm', 'beatOff', 'key', 'cues', 'cueIn', 'loop', 'stem', 'mem1', 'mem2']) if (e[k] !== undefined) patch[k] = e[k];
     await Library.tag(rec.id, patch);
     n++;
   }
@@ -4089,6 +4481,14 @@ document.addEventListener('click', e => {
   if (b && e.detail > 0) b.blur();
 });
 
+// A clicked checkbox keeps DOM focus and Space natively re-toggles it
+// — the same footgun buttons have (ADR-0321), one element: smp-loop.
+// Blur on pointer-originated clicks only; keyboard activation reports
+// detail 0 so Tab+Space still works.
+document.addEventListener('click', e => {
+  if (e.target.matches('input[type=checkbox]') && e.detail > 0) e.target.blur();
+});
+
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' && e.target.type === 'text') return;
   if (e.target.tagName === 'SELECT') return;
@@ -4167,6 +4567,7 @@ document.addEventListener('keydown', e => {
 // ----- Web MIDI: any connected controller drives the surface -----
 // Note-ons: 60-67 deck A pads, 68-75 deck B pads, 36-39 sampler
 // pads, 44/45 play A/B. CCs: 1 = crossfader, 7 = master,
+// 22/23 = channel faders A/B,
 // 20/21 = channel gain A/B, 78/79 = reloop A/B — the default CC names every
 // budget controller ships with, so most units work unmapped.
 // Held-note timestamps for the pad gate: the app's own momentary
@@ -4194,6 +4595,10 @@ function midiMsg(e) {
     else if (n >= 36 && n < 40) fireSmpPad(n - 36, v / 127);
     else if (n === 44) deckA.toggle();
     else if (n === 45) deckB.toggle();
+    // Instant doubles — a controller's "load to deck" keys:
+    // 40 clones A into B, 41 clones B into A (same method ×2 calls).
+    else if (n === 40) deckA.instantDouble();
+    else if (n === 41) deckB.instantDouble();
     // Transport block, same methods the buttons call:
     // 46/47 sync, 48/49 loop arm, 50/51 cue — a controller's
     // transport keys reach every core verb, not just play.
@@ -4231,6 +4636,10 @@ function midiMsg(e) {
     else if (n === 7) { master.value = f; master.dispatchEvent(new Event('input')); }
     else if (n === 20) { deckA.gainEl.value = f; deckA.setGain(f); }
     else if (n === 21) { deckB.gainEl.value = f; deckB.setGain(f); }
+    // Channel upfaders on the next pair — hardware channel faders
+    // commonly sit right after the trim CCs.
+    else if (n === 22) { deckA.faderEl.value = f; deckA.setFader(f); }
+    else if (n === 23) { deckB.faderEl.value = f; deckB.setFader(f); }
     // Tempo: full CC travel maps onto the deck's own range (±8/16/50
     // select included), with the same centre detent as the slider.
     else if (n === 14 || n === 15) {
@@ -4552,8 +4961,12 @@ function sessSave() {
         fxon: q('[data-act=fxon]').classList.contains('on'),
         assign: q('[data-act=assign]').value, range: q('[data-act=range]').value,
         loopbeats: q('[data-act=loopbeats]').value,
+        tempo: q('[data-act=tempo]').value,
+        stem: q('[data-act=stem]').value,
         slip: q('[data-act=slip]').classList.contains('on'),
         brake: q('[data-act=brake]').classList.contains('on'),
+        keylock: q('[data-act=keylock]').classList.contains('on'),
+        remain: d.remain,
       };
     }
     localStorage.setItem(sessKey, JSON.stringify({ v, t, decks }));
@@ -4602,12 +5015,21 @@ try {
       setV('[data-act=assign]', s2.assign);
       setV('[data-act=range]', s2.range);
       if (s2.loopbeats != null) setV('[data-act=loopbeats]', s2.loopbeats);
+      // Tempo restores after range — widening/narrowing the range
+      // re-clamps the slider, so a stale order would eat the value.
+      setV('[data-act=tempo]', s2.tempo);
+      setV('[data-act=stem]', s2.stem);   // setStem re-reads the select when the graph builds
       const fxBtn = q('[data-act=fxon]');
       if (s2.fxon != null && fxBtn.classList.contains('on') !== !!s2.fxon) fxBtn.click();
       const slipB = q('[data-act=slip]');
       if (s2.slip != null && slipB.classList.contains('on') !== !!s2.slip) slipB.click();
       const brakeB = q('[data-act=brake]');
       if (s2.brake != null && brakeB.classList.contains('on') !== !!s2.brake) brakeB.click();
+      const klB = q('[data-act=keylock]');
+      // Not a click: toggleKeylock refuses before the engine exists;
+      // ensureNodes forwards the armed state once the worklet is up.
+      if (s2.keylock != null) { d.keylock = !!s2.keylock; klB.classList.toggle('on', d.keylock); }
+      if (s2.remain != null) d.remain = !!s2.remain;   // TIME mode is a preference, not a state
     }
   }
 } catch {}
