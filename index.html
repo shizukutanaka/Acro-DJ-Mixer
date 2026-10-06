@@ -3768,7 +3768,9 @@ const smpPitchEl = document.getElementById('smp-pitch');
 smpPitchEl.addEventListener('dblclick', () => { smpPitchEl.value = 1; });
 
 async function loadSmpFile(i, f) {
-  const buf = await audio().decodeAudioData(await f.arrayBuffer());
+  let buf;
+  try { buf = await audio().decodeAudioData(await f.arrayBuffer()); }
+  catch (_) { deckA.status('sample: undecodable audio'); return; }
   // A voice or cue-bus audition playing the old sample can't outlive
   // the slot it was fired from — silence both before the buffer swaps
   // out (same ghost class as pad clearing, ADR-0250).
