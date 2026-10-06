@@ -2630,23 +2630,39 @@ const Library = {
     renderLibrary();
     return rec.id;
   },
+  // tag/remove are read-modify-write: two writers on the same record
+  // (a track can sit on both decks — one's plays tag, the other's
+  // cues) must not interleave or the later put resurrects stale
+  // fields. Chain every mutation through one promise so writes
+  // serialize instead of racing.
+  _wr: Promise.resolve(),
+  _mutate(fn) {
+    // A failed write must not poison the chain — swallow after logging
+    // so later mutations still run.
+    this._wr = this._wr.then(fn).catch(err => { console.error('library write failed:', err); });
+    return this._wr;
+  },
   async tag(id, patch) {
     if (!id) return;
-    const rec = await this.get(id);
-    if (!rec) return;
-    Object.assign(rec, patch);
-    rec.updated_at = Date.now();
-    rec.version++;
-    await this.put(rec);
-    renderLibrary();
+    return this._mutate(async () => {
+      const rec = await this.get(id);
+      if (!rec) return;
+      Object.assign(rec, patch);
+      rec.updated_at = Date.now();
+      rec.version++;
+      await this.put(rec);
+      renderLibrary();
+    });
   },
   async remove(id) {
-    const rec = await this.get(id);
-    if (!rec) return;
-    rec.deleted_at = Date.now();
-    rec.version++;
-    await this.put(rec);
-    renderLibrary();
+    return this._mutate(async () => {
+      const rec = await this.get(id);
+      if (!rec) return;
+      rec.deleted_at = Date.now();
+      rec.version++;
+      await this.put(rec);
+      renderLibrary();
+    });
   },
   async loadInto(deck, id) {
     const rec = await this.get(id);
