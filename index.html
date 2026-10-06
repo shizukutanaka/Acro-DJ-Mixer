@@ -4492,6 +4492,19 @@ document.addEventListener('wheel', e => {
 const helpEl = document.getElementById('help');
 const toggleHelp = () => { helpEl.hidden = !helpEl.hidden; };
 helpEl.addEventListener('click', () => { helpEl.hidden = true; });
+// Window blur steals the pointerup every momentary control waits on:
+// hold Phones and alt-tab, release on the other window — the PFL,
+// kill, mute, bend, roll, mic, scrub or jog stays latched forever.
+// Every momentary surface also listens for 'pointercancel', so on
+// blur fan one out to anything that could be mid-hold; end handlers
+// that aren't armed just no-op.
+window.addEventListener('blur', () => {
+  const ev = new PointerEvent('pointercancel');
+  for (const el of document.querySelectorAll('button, canvas, .pad, input[type=range]')) {
+    try { el.dispatchEvent(ev); } catch (_) {}
+  }
+});
+
 // Mouse-clicked buttons keep DOM focus — a later Space/Enter press then
 // natively re-clicks them. On a two-stage guard that's the confirm: click
 // Delete ('sure?' armed), press Enter for the filter, and the track is
