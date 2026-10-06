@@ -472,7 +472,8 @@ Ordered by value per the ADR's automation layer:
 3d. ~~Headphone cue.~~ Done (ADR-0007) — pre-fader cue bus via
    MediaStream + `setSinkId`.
 4. ~~Track library with persistence.~~ Done (ADR-0008) — IndexedDB,
-   `id`/`created_at`/`updated_at`/`deleted_at`/`version` per record.
+   `id`/`created_at`/`updated_at`/`deleted_at`/`version` per record;
+   deletion frees the audio blob (ADR-0232).
 4b. ~~Hot cues.~~ Done (ADR-0010) — four per deck, persisted in the
    library; eight since ADR-0140. Beat-jump added in ADR-0012.
 5. ~~Stem separation.~~ Done (ADR-0026) — dependency-free mid/side
