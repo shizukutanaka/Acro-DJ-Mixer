@@ -98,7 +98,10 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   (see ADR-0023).
 - **Row double-click** — double-clicking a library row loads it
   into whichever deck is free (see ADR-0223).
-- **Library** — every loaded track is auto-saved to IndexedDB (audio +
+- **Library** — drop audio files anywhere on the library panel to
+  add them all at once, no deck load needed; duration is read from
+  file metadata and BPM/key fill in the background (see ADR-0247).
+  Every loaded track is also auto-saved to IndexedDB (audio +
   BPM/key analysis, soft-deletable); `→A`/`→B` reloads instantly with
   cached analysis, survives page reloads. Reloading a *playing* deck
   needs a second confirming click ("sure?") — the load lock
