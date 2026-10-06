@@ -217,7 +217,7 @@
     <div class="meter cuem" title="Cue bus level (tick = peak hold)"><i id="cuemeter-fill"></i><b id="cuemeter-peak"></b></div>
     <div class="phase" id="phase" title="Beat-phase offset between decks"></div>
     <div class="row"><label>Smpl</label><span id="smp-pads"></span><input type="range" id="smp-gain" min="0" max="1" step="0.01" value="0.8" title="Sampler level — all pads"><label title="Loop pads — fired shots repeat until stopped (alt-click / choke)" style="font-size:10px;display:flex;align-items:center;gap:2px"><input type="checkbox" id="smp-loop">Loop</label><input type="range" id="smp-pitch" min="0.5" max="2" step="0.01" value="1" title="Sampler pitch — playback rate at fire time, 0.5–2×; double-click resets"><input id="smp-file" type="file" accept="audio/*" hidden></div>
-    <div class="row"><button id="automix" title="Auto mix — near the end of the playing track the other deck starts synced and the crossfader rides over (8 beats; shift = long 32-beat fade). Keeps going: the empty deck auto-loads the next library track">Auto</button><button id="recbtn" title="Record the master output — click again to stop and download a .webm">Rec</button><button id="mic" title="Microphone — live input summed into the master pre-limiter (use headphones — open speakers will feed back)">Mic</button><input type="range" id="mic-gain" min="0" max="1.5" step="0.01" value="0.9" title="Mic level — trim the mic in the master; double-click resets to 0.9. Range goes past unity for quiet mics"><input type="range" id="mic-low" min="-1" max="1" step="0.01" value="0" title="Mic LOW — 200 Hz low shelf ±12 dB, double-click resets"><input type="range" id="mic-high" min="-1" max="1" step="0.01" value="0" title="Mic HI — 4 kHz high shelf ±12 dB, double-click resets"></div>
+    <div class="row"><button id="automix" title="Auto mix — near the end of the playing track the other deck starts synced and the crossfader rides over (8 beats; shift = long 32-beat fade). Keeps going: the empty deck auto-loads the next library track">Auto</button><button id="recbtn" title="Record the master output — click again to stop and download a .webm; shift = pause/resume the take">Rec</button><button id="mic" title="Microphone — live input summed into the master pre-limiter (use headphones — open speakers will feed back)">Mic</button><input type="range" id="mic-gain" min="0" max="1.5" step="0.01" value="0.9" title="Mic level — trim the mic in the master; double-click resets to 0.9. Range goes past unity for quiet mics"><input type="range" id="mic-low" min="-1" max="1" step="0.01" value="0" title="Mic LOW — 200 Hz low shelf ±12 dB, double-click resets"><input type="range" id="mic-high" min="-1" max="1" step="0.01" value="0" title="Mic HI — 4 kHz high shelf ±12 dB, double-click resets"></div>
     <div class="kbd-hint">Equal-power crossfade.<br>Auto BPM is an estimate — trust your ears.</div>
   </section>
 
@@ -2982,10 +2982,29 @@ const autoBtn = document.getElementById('automix');
 // ----- Set recording -----
 // MediaStream tap on the master (same pattern as the cue bus) ->
 // MediaRecorder -> .webm download on stop.
-let recDest = null, recorder = null, recChunks = [], recStart = 0, recTick = null;
+let recDest = null, recorder = null, recChunks = [], recStart = 0, recTick = null, recPausedAt = 0;
 const recBtn = document.getElementById('recbtn');
-recBtn.addEventListener('click', () => {
+const recPaint = () => {
+  const t = Math.floor((performance.now() - recStart) / 1000);
+  recBtn.textContent = `Rec ${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
+};
+recBtn.addEventListener('click', e => {
   audio();  // the click is a gesture — safe to create/resume the ctx
+  if (recorder && e.shiftKey) {
+    // Shift+Rec pauses/resumes the take — an MC break or a chat with
+    // the crowd no longer costs the whole recording.
+    if (recorder.state === 'recording') {
+      recorder.pause();
+      recPausedAt = performance.now();
+      clearInterval(recTick); recTick = null;
+      recBtn.textContent = 'Rec II';
+    } else if (recorder.state === 'paused') {
+      recorder.resume();
+      recStart += performance.now() - recPausedAt;   // paused time doesn't count
+      recTick = setInterval(recPaint, 1000);
+    }
+    return;
+  }
   if (!recorder) {
     if (!recDest) { recDest = ctx.createMediaStreamDestination(); limiter.connect(recDest); }
     recChunks = [];
@@ -3019,12 +3038,9 @@ recBtn.addEventListener('click', () => {
     // Running timer on the button — the "is it actually recording?"
     // glance, and the catch for a forgotten still-running take.
     recStart = performance.now();
-    recTick = setInterval(() => {
-      const t = Math.floor((performance.now() - recStart) / 1000);
-      recBtn.textContent = `Rec ${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
-    }, 1000);
+    recTick = setInterval(recPaint, 1000);
   } else {
-    recorder.stop();
+    recorder.stop();   // flushes from paused too — a paused take still saves
   }
 });
 autoBtn.addEventListener('click', e => {
