@@ -171,7 +171,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   (see ADR-0059). `Shift+↺` stores the armed loop in a dedicated
   memory slot that survives later exits — Serato's loop memory
   (see ADR-0116); `Alt+↺` owns a second slot the same way: armed
-  loop saves, disarmed click recalls (see ADR-0166).
+  loop saves, disarmed click recalls (see ADR-0166); both slots
+  persist in the library record like cues and loops (see ADR-0221).
 - **Slip cues** — `Slip` makes pad presses momentary: hold to play the
   cue, release to snap back to where the track would have been
   (see ADR-0060); with Slip on, loop exits land on the true timeline

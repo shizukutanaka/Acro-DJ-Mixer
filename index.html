@@ -676,6 +676,7 @@ class Deck {
         if (!this.loopOn) return;
         this._loopMem = [this.loopStart, this.loopEnd];
         this.status('loop saved to memory');
+        this.tagLib({ mem1: this._loopMem });   // same prep doctrine as cues/loop
         return;
       }
       // Alt = the second memory slot (CDJ memory banks): armed loop
@@ -684,6 +685,7 @@ class Deck {
         if (this.loopOn) {
           this._loopMem2 = [this.loopStart, this.loopEnd];
           this.status('loop saved to memory 2');
+          this.tagLib({ mem2: this._loopMem2 });
         } else {
           this.reloop(this._loopMem2);
         }
@@ -1157,6 +1159,8 @@ class Deck {
       while (this.cues.length < 8) this.cues.push(null);
       this.cues.forEach((c, i) => this.pads[i].classList.toggle('set', c != null));
       this._savedLoop = meta && meta.loop ? meta.loop : null;
+      this._loopMem = meta && meta.mem1 ? meta.mem1 : null;
+      this._loopMem2 = meta && meta.mem2 ? meta.mem2 : null;
       this.peaks = computePeaks(buf, this.wave.width);
       this.drawWave();
       this.libId = meta ? meta.libId : null;
@@ -3330,7 +3334,7 @@ document.getElementById('lib-search').addEventListener('input', e => {
 // Library metadata export/import: the analysis + prep (BPM, grid,
 // key, hot cues, loop) is the valuable part — audio blobs stay put,
 // so entries match by name+size on the other side.
-const LIB_META_KEYS = ['name', 'size', 'type', 'duration', 'bpm', 'beatOff', 'key', 'cues', 'cueIn', 'loop'];
+const LIB_META_KEYS = ['name', 'size', 'type', 'duration', 'bpm', 'beatOff', 'key', 'cues', 'cueIn', 'loop', 'mem1', 'mem2'];
 document.getElementById('lib-exp').addEventListener('click', async () => {
   const rows = (await Library.all()).filter(t => !t.deleted_at);
   const data = rows.map(t => Object.fromEntries(LIB_META_KEYS.filter(k => t[k] !== undefined).map(k => [k, t[k]])));
@@ -3364,7 +3368,7 @@ libImpFile.addEventListener('change', async () => {
     const rec = rows.find(t => t.name === e.name && t.size === e.size);
     if (!rec) continue;   // audio not loaded here — nothing to tag
     const patch = {};
-    for (const k of ['duration', 'bpm', 'beatOff', 'key', 'cues', 'cueIn', 'loop']) if (e[k] !== undefined) patch[k] = e[k];
+    for (const k of ['duration', 'bpm', 'beatOff', 'key', 'cues', 'cueIn', 'loop', 'mem1', 'mem2']) if (e[k] !== undefined) patch[k] = e[k];
     await Library.tag(rec.id, patch);
     n++;
   }
