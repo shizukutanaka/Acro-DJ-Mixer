@@ -96,9 +96,15 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   click the readout to sync the non-playing deck to the playing one
   (ADR-0196)
   (see ADR-0023).
+- **Track identity** — records match by content hash (size +
+  head/tail SHA-256), so renames keep their prep and same-name
+  impostors can't steal it (see ADR-0211).
 - **Row double-click** — double-clicking a library row loads it
   into whichever deck is free (see ADR-0223).
-- **Library** — every loaded track is auto-saved to IndexedDB (audio +
+- **Library** — drop audio files anywhere on the library panel to
+  add them all at once, no deck load needed; duration is read from
+  file metadata and BPM/key fill in the background (see ADR-0247).
+  Every loaded track is also auto-saved to IndexedDB (audio +
   BPM/key analysis, soft-deletable); `→A`/`→B` reloads instantly with
   cached analysis, survives page reloads. Reloading a *playing* deck
   needs a second confirming click ("sure?") — the load lock
@@ -210,7 +216,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   during any slip borrow (see ADR-0156). Hold `Slip` ≥250 ms for
   momentary mode — one-off slips without a second click (see ADR-0177).
 - **Next-bar jump** — `▸bar` on the hot-cue row lands the playhead on
-  the next bar downbeat, so drops hit "the one" (see ADR-0061).
+  the next bar downbeat, so drops hit "the one" (see ADR-0061);
+  shift jumps back one bar to re-drop (see ADR-0201).
 - **Tempo reset** — double-click the tempo slider for an exact ±0.0%,
   like the hardware TEMPO RESET (see ADR-0062). Scrolling over the
   slider trims ±0.1% per notch for fine pitch rides (see ADR-0109);
@@ -285,7 +292,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   like the decks; rapid row clicks can never layer two auditions
   (see ADR-0080, ADR-0108, ADR-0260). Loading or deleting the row
   stops its audition — no double on the cue bus and the floor
-  (see ADR-0246, ADR-0248).
+  (see ADR-0246, ADR-0248). Auditions play through the same gated
+  gain a deck load applies (see ADR-0224). The auditioning row's ▶ lights up
+  while it rings (see ADR-0249).
 - **Beat FX select** — the FX knob drives `Echo`, `Flng` (LFO-swept
   comb), `Trans` (beat-synced gate chop), `Noise` (swept
   bandpass riser that breathes in time with the BEAT division,
@@ -297,7 +306,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   `FX` button punches the effect in/out without touching the knob —
   hold for a momentary stab (see ADR-0133, ADR-0144). Off closes the
   delay/reverb SEND so a tail in the line rings out at the knob's
-  wet level instead of being hard-cut (see ADR-0182). The
+  wet level instead of being hard-cut (see ADR-0182). `Shift+FX`
+  stores the whole strip (algorithm, division, level, tap, on/off)
+  and `Alt+FX` recalls it (see ADR-0235). The
   `pre`/`post` select moves the send tap — tails that outlive the
   crossfader (pre) or fader FX that die with the side (post; see
   ADR-0134).
@@ -309,13 +320,17 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   forgotten take can't hide (see ADR-0082). The browser tab title
   shows `▶ A: name` while a deck plays, so a background tab still
   tells you what's on the floor (see ADR-0114).
+- **Beat slice audition** — `Alt`+hold a hot-cue pad gate-plays that
+  beat of the grid from the cue point; release snaps back (see ADR-0209).
 - **Cue undo** — right-click an empty pad restores the last
   cleared hot cue to its original pad (see ADR-0212).
 - **Cue clear** — `Shift`+pad click deletes a hot cue —
   trackpad-friendly (see ADR-0083); right-click previews instead
   (see ADR-0161).
 - **Eject** — `⏏` unloads the track and resets deck readouts;
-  control settings survive (see ADR-0084); ejecting a deck mid-
+  control settings survive (see ADR-0084); `Alt+⏏` is a full
+  channel reset — tempo, gain, EQ, filter, transpose all zeroed
+  (see ADR-0199); ejecting a deck mid-
   auto-mix-fade parks the crossfader on the surviving deck's side
   (ADR-0193). `‹`/`›` beside it step
   the deck through the library in list order — crate-dig without
@@ -430,6 +445,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   lead-in silence can be dropped (see ADR-0226). Pads auto-gain on load
   through the same K-weighted pipeline as the decks, so shots start level
   (see ADR-0197); resampled loops normalize the same way (see ADR-0202).
+  Loaded pads persist across reloads as marked library records,
+  hidden from the track list (see ADR-0228).
   Pads form two choke groups — 1+2 and 3+4: firing one chokes only its
   groupmate, so layers across groups keep ringing (see ADR-0121, ADR-0239);
   clearing a pad stops its cue audition (see ADR-0250). Right-click on an
@@ -447,10 +464,13 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   (see ADR-0231, ADR-0255). While a slider is
   focused, arrow keys belong to it — no double-drive of fader +
   crossfader (see ADR-0251).
+- **MIDI channel faders** — CC 22/23 drive the deck upfaders,
+  next to the gain trims on CC 20/21 (see ADR-0215).
 - **Web MIDI** — connected controllers drive the surface: notes
   60–75 = deck A/B pads, 36–39 = sampler pads (velocity-sensitive,
   ADR-0168; held ≥250 ms gates the shot like a held mouse pad,
-  ADR-0169), 44/45 = play A/B, 46/47 = sync, 48/49 = loop,
+  ADR-0169), 44/45 = play A/B, 40/41 = instant doubles A→B / B→A
+  (ADR-0183), 46/47 = sync, 48/49 = loop,
   50/51 = cue (ADR-0173), 52–57 = deck A/B H/M/L kills,
   58/59 = deck A/B FX on/off (ADR-0180);
   CC1 = crossfader, CC7 = master, CC20/21 = channel gains,
