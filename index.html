@@ -1519,6 +1519,10 @@ class Deck {
 
   stopPlayback() {
     this.playing = false;
+    // An in-flight brake ramp must not outlive its owner — eject/cue
+    // call this, and the timer would keep posting 'rate' and fire its
+    // done() callback on a dead deck.
+    if (this._spinTimer) { clearInterval(this._spinTimer); this._spinTimer = null; this.spinMul = 1; }
     if (this.engine === 'worklet') {
       this.node.port.postMessage({ type: 'pause' });
     } else if (this.source) {
