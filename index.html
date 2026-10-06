@@ -3155,6 +3155,8 @@ async function previewTrack(id) {
   catch (_) { deckA.status('preview: undecodable audio'); return; }
   // A newer preview started while this decode was in flight — let it
   // win instead of layering a second source on the cue bus.
+  const g = gatedGain(await monoResample(buf));
+  // Re-check after the analysis await too, or two auditions can layer.
   if (tok !== previewToken) return;
   previewSrc = ac.createBufferSource();
   previewSrc.buffer = buf;
@@ -3162,7 +3164,7 @@ async function previewTrack(id) {
   // un-normalised file can blast the cue bus relative to the
   // levelled deck you were just listening to.
   previewGain = ac.createGain();
-  previewGain.gain.value = gatedGain(await monoResample(buf));
+  previewGain.gain.value = g;
   previewGain.connect(cueIn);
   previewSrc.connect(previewGain);
   const src = previewSrc;
