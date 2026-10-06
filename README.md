@@ -375,7 +375,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   K-weighted pipeline as the decks, so shots start level (see ADR-0197);
   resampled loops normalize the same way (see ADR-0202).
   Pads are single-voice: firing one chokes the others (see ADR-0121);
-  clearing a pad stops its cue audition (see ADR-0250).
+  clearing a pad stops its cue audition (see ADR-0250). Right-click on an
+  empty pad restores the last shift-cleared sample (see ADR-0240).
 - **Wheel nudge** — scrolling over any fader or knob steps it one
   detent (EQ, filter, FX, gain, master, crossfader); the tempo
   slider keeps its finer ±0.1% trim (see ADR-0109, ADR-0112).
