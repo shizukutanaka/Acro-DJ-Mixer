@@ -37,12 +37,16 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Key lock** — preserve pitch while tempo changes (WSOLA time-stretching
   in an `AudioWorklet`, see ADR-0003). Requires http(s); on `file://` the
   button is disabled and tempo stays varispeed.
-- **Gain** — per-deck channel fader; `Mut` beside it is a momentary
+- **Gain** — per-deck channel trim; `Mut` beside it is a momentary
   channel on/off — hold to silence, playback keeps running underneath
   so release lands on beat (see ADR-0137).
 - **3-band EQ** — High/Mid/Low per deck (shelf 250 Hz / peak 1 kHz /
   shelf 4 kHz, ±26 dB isolator-style travel, double-click resets).
   See ADR-0005.
+- **Channel fader** — an upfader per deck between the channel
+  strip and the crossfader: ride channel level like a real mixer.
+  Double-click resets to unity; the channel meter stays pre-fader
+  (see ADR-0214).
 - **Crossfader** — equal-power law for constant loudness through the middle.
 - **Waveform overview** with playhead per deck.
 - **Auto BPM estimate + beat grid** — energy-flux autocorrelation, 60–180 BPM,
@@ -53,11 +57,16 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   drift the grid ~2 beats over a 4-min track (see ADR-0027). `Tap` sets
   tempo + phase by hand for tracks the detector can't read (see ADR-0029);
   `‹`/`›` nudge the grid phase ±10 ms to trim ticks onto transients
-  (see ADR-0030).y detection** — chromagram + Krumhansl–Schmuckler profiles → Camelot
+  (see ADR-0030).
+- **Key detection** — chromagram + Krumhansl–Schmuckler profiles → Camelot
   code shown next to BPM; green = mixes harmonically with the other deck,
-  amber = clash (see ADR-0004).
+  amber = clash (see ADR-0004). The readout shows the effective key —
+  detection plus any transpose — and matching compares both decks'
+  effective keys (see ADR-0198).
 - **Sync** — one click matches a deck's tempo and beat phase to the other deck
   (tempo limited to the ±16% slider range, like hardware).
+- **Loop-back** — `Alt`+Loop traps the last N beats you just
+  heard instead of arming forward (see ADR-0218).
 - **Loop** — one click captures a beat-grid-quantized 4-beat (one bar)
   loop on either engine; the region highlights on the waveform and
   seeking outside it exits the loop (see ADR-0006); `½`/`2×` halve or
@@ -83,7 +92,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   See ADR-0007. A thin level meter under the selector shows what the
   phones are hearing, with a peak-hold tick like the other meters
   (see ADR-0022, ADR-0107). A `Δ ±x% beat` readout below it
-  shows the live beat-phase offset between decks — green when locked
+  shows the live beat-phase offset between decks — green when locked;
+  click the readout to sync the non-playing deck to the playing one
+  (ADR-0196)
   (see ADR-0023).
 - **Row double-click** — double-clicking a library row loads it
   into whichever deck is free (see ADR-0223).
@@ -99,7 +110,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   key filled in the background — one track at a time, only while both
   decks are stopped (see ADR-0243). A coloured `A`/`B` letter marks the row a deck
   currently holds (see ADR-0136). Filter box narrows rows by name as
-  you type (see ADR-0032).
+  you type (see ADR-0032); `Enter` loads the top match into the free
+  deck (see ADR-0229).
 - **Crossfader curve** — `Smooth` (equal-power, default) or `Cut`
   (each side reaches full within 10% of travel for scratch chops; both
   full in the middle), selected next to the fader (see ADR-0036).
@@ -107,10 +119,12 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   and re-armed on reload, like hot cues (see ADR-0038).
 - **Loop roll** — hold `Roll` to loop the current beat, release to
   resume where the track would have been (slip); an armed loop is
-  restored on release (see ADR-0037); `Shift`+Roll rolls a ½ beat
-  (see ADR-0103).
+  restored on release (see ADR-0037); `Shift`+Roll rolls a ½ beat,
+  `Alt`+Roll a ¼ beat (see ADR-0103, ADR-0181).
 - **Instant doubles** — `×2` clones the deck into the partner at the
-  same position and tempo, playing if it was playing (see ADR-0039).
+  same position and tempo, playing if it was playing (see ADR-0039);
+  `Shift+×2` swaps both decks' full state — position, tempo, play
+  state, cues, loops, keys (see ADR-0192).
 - **Vinyl brake** — `Brake` toggle makes pause spin down and play
   spin up like a turntable; off = instant stop (see ADR-0040).
 - **Beat echo** — `Echo` slider adds a 3/4-beat feedback delay that
@@ -133,8 +147,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Track-end warning** — the time readout flashes red during the
   last 30 s of a track, CDJ-style (see ADR-0045).
 - **Key sync** — `Key` button transposes the deck to the smallest
-  shift that mixes harmonically with the other deck; the key readout
-  colours by the effective (transposed) key (see ADR-0046).
+  shift that mixes harmonically with the other deck's effective key;
+  the key readout shows and colours by the effective (transposed)
+  key (see ADR-0046, ADR-0198).
 - **Elapsed / remaining** — click the time readout to flip between
   `pos / dur` and `-remaining / dur`, CDJ TIME-mode style (see
   ADR-0047).
@@ -166,6 +181,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Quantize toggle** — `Qtz` beside `Rev` switches beat-grid snapping
   for hot cues and loop in-points on/off (on by default)
   (see ADR-0055).
+- **Effective BPM** — once the tempo fader moves, the readout
+  adds `→N` for what's actually playing, next to the detected
+  tempo (see ADR-0219).
 - **Decimal BPM** — the readout shows the fractional estimate
   (`120.2`), so matched decks are visibly matched (see ADR-0056).
 - **Manual loop** — tracks with no detected grid can still loop:
@@ -223,6 +241,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   (see ADR-0154). Holding the Mic button while off works as
   press-to-talk — tap latches, hold is momentary like kills, mute,
   FX, pads, and Phones (see ADR-0155, ADR-0175).
+- **Channel fader start** — pulling a deck's upfader off zero
+  starts a stopped deck, the same FADER START idiom as the
+  crossfader (see ADR-0216).
 - **Fader start** — pushing the crossfader fully into a stopped deck's
   side starts it (see ADR-0068).
 - **Tempo range** — `±8 / ±16 / ±50` select per deck trades slider
@@ -236,14 +257,16 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Library export/import** — `⤓` downloads BPM, key, cues and loops
   as JSON; `⤒` merges them onto tracks matched by name+size
   (see ADR-0072) and reports how many records matched (see ADR-0230).
-- **Setlist** — every track actually played is logged in order;
-  `Setlist` downloads the session's playlist as a dated .txt
+- **Setlist** — every track actually played is logged in order and
+  kept across reloads; `Setlist` downloads the playlist as a dated
+  .txt
   (see ADR-0093).
 - **Cue marker** — the deck cue point (auto-cue or track start) shows
   as a cyan tick on the waveform, and the Cue button's tooltip reads
   the exact landing time (see ADR-0074, ADR-0253).
 - **Beat sync** — `Shift+Sync` slips beat phase only, leaving the
-  tempo fader alone (see ADR-0075).
+  tempo fader alone (see ADR-0075); right-click matches tempo
+  only, leaving this deck's position untouched (see ADR-0206).
 - **Waveform scrub** — hold and drag on the waveform to jog the
   playhead continuously (see ADR-0076); `Shift`-drag while playing
   bends pitch like a finger on the platter (see ADR-0102).
@@ -254,8 +277,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Library preview** — `▶` on a library row auditions the track on the
   headphone cue bus without loading a deck, starting at the cue point
   like the decks; rapid row clicks can never layer two auditions
-  (see ADR-0080, ADR-0108, ADR-0260). Loading that track stops
-  its audition — no double on the cue bus and the floor (see ADR-0246).
+  (see ADR-0080, ADR-0108, ADR-0260). Loading or deleting the row
+  stops its audition — no double on the cue bus and the floor
+  (see ADR-0246, ADR-0248).
 - **Beat FX select** — the FX knob drives `Echo`, `Flng` (LFO-swept
   comb), `Trans` (beat-synced gate chop), `Noise` (swept
   bandpass riser that breathes in time with the BEAT division,
@@ -265,7 +289,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   only the selected effect sounds (see ADR-0081, ADR-0097, ADR-0126,
   ADR-0127, ADR-0128, ADR-0160). The
   `FX` button punches the effect in/out without touching the knob —
-  hold for a momentary stab (see ADR-0133, ADR-0144). The
+  hold for a momentary stab (see ADR-0133, ADR-0144). Off closes the
+  delay/reverb SEND so a tail in the line rings out at the knob's
+  wet level instead of being hard-cut (see ADR-0182). The
   `pre`/`post` select moves the send tap — tails that outlive the
   crossfader (pre) or fader FX that die with the side (post; see
   ADR-0134).
@@ -277,6 +303,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   forgotten take can't hide (see ADR-0082). The browser tab title
   shows `▶ A: name` while a deck plays, so a background tab still
   tells you what's on the floor (see ADR-0114).
+- **Cue undo** — right-click an empty pad restores the last
+  cleared hot cue to its original pad (see ADR-0212).
 - **Cue clear** — `Shift`+pad click deletes a hot cue —
   trackpad-friendly (see ADR-0083); right-click previews instead
   (see ADR-0161).
@@ -285,14 +313,19 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   auto-mix-fade parks the crossfader on the surviving deck's side
   (ADR-0193). `‹`/`›` beside it step
   the deck through the library in list order — crate-dig without
-  leaving the deck; playing decks still confirm (see ADR-0124).
+  leaving the deck; playing decks still confirm (see ADR-0124). Hold
+  `Shift` to step through unplayed tracks only (see ADR-0225).
+  Library rows are also draggable onto a deck's dropzone (ADR-0194).
 - **Channel assign** — `A/Thru/B` select routes each deck to a
   crossfader side or bypasses it; fader-start follows the assign
   (see ADR-0085).
 - **Continuous auto-mix** — after each auto fade the vacated deck
   auto-loads the next library track and stays armed (see ADR-0086);
   the pick prefers a Camelot+tempo fit to the playing deck before
-  falling back to list order (see ADR-0146).
+  falling back to list order (see ADR-0146) — and says which it
+  did on the deck's status line (see ADR-0207). It skips already-played
+  tracks unless they're all that's left (see ADR-0203); the picked row
+  carries an amber left edge while armed (see ADR-0179).
 - **Phones volume** — a level knob for the whole cue bus, independent
   of the cue/PGM blend (see ADR-0087).
 - **Wake lock** — the screen can't sleep while a deck is playing,
@@ -365,11 +398,13 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   peaks (see ADR-0018).
 - **Master level meter** — post-limiter output with a decaying
   peak-hold tick like the channel meters (see ADR-0106), plus a
-  K-weighted momentary LU readout beside the GR text (~400 ms window;
+  K-weighted LU readout beside the GR text (~400 ms momentary;
+  click for the integrated view, double-click resets it — ADR-0187;
   −14 LU is the streaming target; see ADR-0139), turning green inside
   the −14 ± 1 band (see ADR-0165) — and master gain.
 - **Sampler** — `Smpl` row: 4 one-shot pads into the master chain.
-  Click loads a file, click again fires (retrigger restarts;
+  Click loads a file — or drop a file straight onto a pad (ADR-0186) —
+  click again fires (retrigger restarts;
   press-and-hold plays only while held — gate mode, ADR-0149; `Loop` makes fired shots repeat,
   ADR-0150; the pitch slider retunes shots 0.5–2×, ADR-0152),
   alt-click stops the ringing voice, shift-click clears — and
@@ -396,7 +431,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   deck B `B N M ,` `H J K L` `I` `U` (see ADR-0031, ADR-0101,
   ADR-0157). `?` (or `/`) toggles a gesture-legend overlay listing the
   modifier grammar — click/hold/double-click/wheel/shift/alt/
-  right-click — and the key map (see ADR-0231). While a slider is
+  right-click — the library gestures, and the key map
+  (see ADR-0231, ADR-0255). While a slider is
   focused, arrow keys belong to it — no double-drive of fader +
   crossfader (see ADR-0251).
 - **Web MIDI** — connected controllers drive the surface: notes
@@ -406,7 +442,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   50/51 = cue (ADR-0173), 52–57 = deck A/B H/M/L kills,
   58/59 = deck A/B FX on/off (ADR-0180);
   CC1 = crossfader, CC7 = master, CC20/21 = channel gains,
-  CC14/15 = deck tempo, CC16/17 = colour filter —
+  CC14/15 = deck tempo, CC16/17 = colour filter,
+  pitch-bend wheel ch1/ch2 = deck A/B bend ±5% (ADR-0184) —
   works unmapped on most budget controllers (see ADR-0163, ADR-0172).
 - **Session persistence** — the mixer surface (faders, EQ, filters,
   FX selection, toggles, sampler and mic trims) is saved on change
@@ -445,7 +482,8 @@ Ordered by value per the ADR's automation layer:
 3d. ~~Headphone cue.~~ Done (ADR-0007) — pre-fader cue bus via
    MediaStream + `setSinkId`.
 4. ~~Track library with persistence.~~ Done (ADR-0008) — IndexedDB,
-   `id`/`created_at`/`updated_at`/`deleted_at`/`version` per record.
+   `id`/`created_at`/`updated_at`/`deleted_at`/`version` per record;
+   deletion frees the audio blob (ADR-0232).
 4b. ~~Hot cues.~~ Done (ADR-0010) — four per deck, persisted in the
    library; eight since ADR-0140. Beat-jump added in ADR-0012.
 5. ~~Stem separation.~~ Done (ADR-0026) — dependency-free mid/side
@@ -453,6 +491,18 @@ Ordered by value per the ADR's automation layer:
    centre-panned extraction isn't enough.
 6. ~~Recommendation / auto-mix assistance.~~ Done — harmonic-fit
    highlighting (ADR-0011) + one-click auto transitions (ADR-0013).
+
+## Local stats
+
+Lifetime counters (loads / plays / loops / auto transitions /
+recordings) live in `localStorage` — hover the footer to read them.
+Local-only; nothing is sent anywhere (see ADR-0237).
+
+## Accessibility
+
+Every control's tooltip is mirrored into `aria-label` at boot, so
+icon buttons announce verbs to assistive tech, and deck status
+lines are `aria-live` (see ADR-0236).
 
 ## Security
 
