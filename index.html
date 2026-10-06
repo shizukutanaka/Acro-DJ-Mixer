@@ -3377,7 +3377,7 @@ document.addEventListener('keydown', e => {
 
 // ----- Web MIDI: any connected controller drives the surface -----
 // Note-ons: 60-67 deck A pads, 68-75 deck B pads, 36-39 sampler
-// pads, 44/45 play A/B. CCs: 1 = crossfader, 7 = master,
+// pads, 44/45 play A/B, 76/77 headphone cue A/B. CCs: 1 = crossfader, 7 = master,
 // 20/21 = channel gain A/B — the default CC names every
 // budget controller ships with, so most units work unmapped.
 // Held-note timestamps for the pad gate: the app's own momentary
@@ -3414,6 +3414,10 @@ function midiMsg(e) {
     else if (n === 49) deckB.toggleLoop();
     else if (n === 50) deckA.cue();
     else if (n === 51) deckB.cue();
+    // Headphone cue (PFL): a controller's channel-cue button —
+    // 76/77 continue the per-deck pair convention past the pads.
+    else if (n === 76) deckA.toggleCue();
+    else if (n === 77) deckB.toggleCue();
   } else if ((kind === 0x80 || (kind === 0x90 && v === 0)) && n >= 36 && n < 40) {
     // Note-off on a pad held >=250 ms = gate release, same as a held
     // mouse press. A quick tap's off arrives well under that and the
