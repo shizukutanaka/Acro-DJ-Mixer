@@ -3233,6 +3233,9 @@ smpSlots.forEach((_, i) => {
         const nb = ctx.createBuffer(d.buffer.numberOfChannels, z - a, ctx.sampleRate);
         for (let ch = 0; ch < nb.numberOfChannels; ch++)
           nb.copyToChannel(d.buffer.getChannelData(ch).subarray(a, z), ch);
+        // Same normalization as file-loaded pads (ADR-0197) — a
+        // resampled loop shouldn't bypass auto-gain.
+        smpAutoGain(nb).then(g => { if (smpSlots[i] && smpSlots[i].buf === nb) smpSlots[i].gain = g; });
         smpSlots[i] = { buf: nb, name: 'loop@' + d.name, src: null, gain: 1 };
         b.textContent = 'loop'; b.classList.add('set');
         b.title = 'Resampled loop — ' + d.name + ' ' + (d.loopEnd - d.loopStart).toFixed(2) + 's';
