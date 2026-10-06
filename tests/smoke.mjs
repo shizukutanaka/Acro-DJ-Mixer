@@ -1,0 +1,91 @@
+// Smoke gate for Acro DJ Mixer — the app ships zero-dependency, so the
+// test lives outside the page: launch Chrome with
+//   --remote-debugging-port=9222
+// serve the repo (e.g. `python3 -m http.server 8931`), then:
+//   npm i playwright   (dev-time only — nothing ships)
+//   node tests/smoke.mjs
+//
+// It loads the app, synthesises a WAV, loads it into both decks, and
+// asserts the core contract: decode, nodes, play/pause, crossfader
+// gains, hot cue set/jump/clear, tempo sync, page-error-free run.
+
+import { chromium } from 'playwright';
+
+const CDP = process.env.CDP_URL || 'http://localhost:9222';
+const URL_ = process.env.APP_URL || 'http://localhost:8931/index.html';
+
+const browser = await chromium.connectOverCDP(CDP);
+const page = await browser.contexts()[0].newPage();
+const errs = [];
+page.on('pageerror', e => errs.push(e.message));
+
+await page.goto(URL_ + '?v=' + Date.now());
+await page.waitForTimeout(800);
+
+const r = await page.evaluate(async () => {
+  const out = {};
+  audio();                                   // creates/resumes ctx
+  const mk = secs => {                        // 16-bit stereo WAV
+    const sr = 44100, n = sr * secs;
+    const buf = new ArrayBuffer(44 + n * 4), dv = new DataView(buf);
+    const ws = (o, s) => { for (let i = 0; i < s.length; i++) dv.setUint8(o + i, s.charCodeAt(i)); };
+    ws(0, 'RIFF'); dv.setUint32(4, 36 + n * 4, true); ws(8, 'WAVEfmt ');
+    dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 2, true);
+    dv.setUint32(24, sr, true); dv.setUint32(28, sr * 4, true);
+    dv.setUint16(32, 4, true); dv.setUint16(34, 16, true);
+    ws(36, 'data'); dv.setUint32(40, n * 4, true);
+    for (let i = 0; i < n; i++) {
+      const v = Math.sin(i * 0.05) * 0.3 * 32767 | 0;
+      dv.setInt16(44 + i * 4, v, true); dv.setInt16(46 + i * 4, v, true);
+    }
+    return buf;
+  };
+
+  deckA.buffer = await ctx.decodeAudioData(mk(20));
+  deckB.buffer = await ctx.decodeAudioData(mk(20));
+  await deckA.ensureNodes(); await deckB.ensureNodes();
+  out.nodes = !!(deckA.engine && deckA.deckGain && deckA.xfGain);
+
+  deckA.play();
+  out.plays = deckA.playing === true;
+  deckA.pause();
+  out.pauses = deckA.playing === false;
+
+  // Crossfader ends: full left = A only, full right = B only.
+  xfader.value = 0; applyCrossfade();
+  await new Promise(r => setTimeout(r, 300));
+  out.xfLeft = deckA.xfGain.gain.value > 0.9 && deckB.xfGain.gain.value < 0.1;
+  xfader.value = 1; applyCrossfade();
+  await new Promise(r => setTimeout(r, 300));
+  out.xfRight = deckB.xfGain.gain.value > 0.9 && deckA.xfGain.gain.value < 0.1;
+  xfader.value = 0.5; applyCrossfade();
+
+  // Hot cue set/jump/clear round-trip.
+  deckA.seekTo(5);
+  deckA.padCue(0);
+  out.cueSet = typeof deckA.cues[0] === 'number';
+  deckA.seekTo(0); deckA.padCue(0);
+  out.cueJump = Math.abs(deckA.pos() - deckA.cues[0]) < 0.05;
+  deckA.clearPad(0);
+  out.cueClear = deckA.cues[0] == null;
+
+  // Sync: B's rate tracks A's effective tempo (grids stubbed — the
+  // synthetic WAV has no analysed BPM).
+  deckA.grid = { bpm: 120, beatOff: 0 };
+  deckB.grid = { bpm: 118, beatOff: 0 };
+  deckA.rate = 1.1; deckB.rate = 0.9;
+  deckA.play(); deckB.play();
+  deckB.syncTo(deckA);
+  out.syncs = Math.abs(deckB.rate - (120 * 1.1 / 118)) < 0.01;
+  deckA.pause(); deckB.pause();
+  return out;
+});
+
+const failed = Object.entries(r).filter(([, v]) => v !== true);
+console.log(JSON.stringify({ ...r, pageErrors: errs }, null, 1));
+if (failed.length || errs.length) {
+  console.error('FAIL:', failed.map(([k]) => k).join(',') || 'pageErrors');
+  process.exit(1);
+}
+console.log('smoke OK');
+await browser.close();
