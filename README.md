@@ -306,6 +306,7 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   the deck through the library in list order — crate-dig without
   leaving the deck; playing decks still confirm (see ADR-0124). Hold
   `Shift` to step through unplayed tracks only (see ADR-0225).
+  Library rows are also draggable onto a deck's dropzone (ADR-0194).
 - **Channel assign** — `A/Thru/B` select routes each deck to a
   crossfader side or bypasses it; fader-start follows the assign
   (see ADR-0085).
