@@ -494,6 +494,10 @@ function cueBus() {
     // Phones master level: cue and PGM both sum through phonesOut so
     // one knob sets the headphone loudness whatever the blend is.
     phonesOut = ac.createGain();
+    // The bus is lazily built on first cue — session restore may have
+    // already moved the knobs while the nodes didn't exist, so read
+    // levels from the controls, not defaults.
+    phonesOut.gain.value = parseFloat(document.getElementById('cuevol').value);
     phonesOut.connect(cueDest);
     cuePan = ac.createStereoPanner();
     cueIn.connect(cuePan);
@@ -504,7 +508,7 @@ function cueBus() {
     // Cue mix: a PGM send taps the master bus into the phones, so the
     // Mix slider blends pre-fader cue with post-fader program.
     pgmSend = ac.createGain();
-    pgmSend.gain.value = 0;
+    pgmSend.gain.value = parseFloat(document.getElementById('cuemix').value);
     masterGain.connect(pgmSend);
     pgmPan = ac.createStereoPanner();
     pgmSend.connect(pgmPan);
