@@ -1257,6 +1257,7 @@ class Deck {
       // start at the first sample above −50 dBFS (scans max 30 s).
       this.cueIn = 0;
       this._prevCueIn = null;   // cue-undo belongs to the previous track
+      this._lastClear = null;   // so does the cleared-cue undo
       {
         const chs = [];
         for (let c = 0; c < buf.numberOfChannels; c++) chs.push(buf.getChannelData(c));
@@ -1697,6 +1698,7 @@ class Deck {
     this.offset = 0;
     this.cues = [null, null, null, null, null, null, null, null];
     this.pads.forEach(p => { p.classList.remove('set'); p.title = 'Hot cue — click sets a marker, click jumps, shift-click clears, right-click previews'; });
+    this._lastClear = null;
     this.loopOn = false;
     this._prevLoop = null;
     this._loopMem = null;
