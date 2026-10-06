@@ -714,7 +714,14 @@ class Deck {
       e.preventDefault();
       this.syncTo(this.partner, false, true);
     });
-    this.el.querySelector('[data-act=dbl]').addEventListener('click', () => this.instantDouble());
+    this.el.querySelector('[data-act=dbl]').addEventListener('click', e => {
+      // Doubling onto a PLAYING partner replaces its track — the same
+      // footgun the load guard (ADR-0104) exists for. Arm-confirm it
+      // like every other load path; stopped partners double free.
+      const p = this.partner;
+      if (p && p.playing) armConfirm(e.target, () => this.instantDouble());
+      else this.instantDouble();
+    });
     this.loopBtn.addEventListener('click', e => this.toggleLoop(e.shiftKey, e.altKey));
     this.el.querySelector('[data-act=reloop]').addEventListener('click', e => {
       // Shift = loop memory: store the armed loop for later re-entry
