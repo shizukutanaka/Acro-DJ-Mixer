@@ -3298,6 +3298,10 @@ autoBtn.addEventListener('click', e => {
 window.addEventListener('beforeunload', e => {
   if (recorder && recorder.state === 'recording') e.preventDefault();
 });
+// Flush the pending session snapshot on the way out — the 400 ms
+// debounce would otherwise drop the last adjustments. pagehide, not
+// beforeunload: mobile Safari skips the latter entirely.
+window.addEventListener('pagehide', () => { clearTimeout(sessTimer); sessSave(); });
 
 function autoMixTick() {
   if (autoMix.fade) {
