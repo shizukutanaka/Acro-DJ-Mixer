@@ -3973,7 +3973,7 @@ async function padsRestore() {
       const b = smpPadsEl.children[i];
       b.textContent = (rec.name || '').length > 6 ? rec.name.slice(0, 6) : (rec.name || 'pad');
       b.classList.add('set');
-      b.title = rec.name;
+      b.title = smpPadTitle(rec.name);
     }
   } catch (_) {}
 }
@@ -3992,11 +3992,18 @@ const killPadPrev = deck => {
 const smpPadsEl = document.getElementById('smp-pads');
 const smpFile = document.getElementById('smp-file');
 let smpPending = -1;
+// One canonical sampler-pad grammar: every path that writes a pad
+// title must name the same gesture set, or a restored/loaded/resampled
+// pad advertises fewer gestures than a trimmed one (ADR-0315's rule).
+const SMP_EMPTY_TITLE = 'Sampler — click loads a one-shot, click again plays it (hold = gate); wheel trims this pad\'s level; shift+empty pad resamples the playing loop; right-click previews on headphones (again stops), alt-click stops, shift-click clears — pads 1+2 and 3+4 are choke groups';
+const SMP_GESTURES = 'click plays (hold = gate); wheel trims level, shift+wheel trims start; right-click previews on headphones (again stops), alt-click stops, shift-click clears — pads 1+2 and 3+4 choke';
+const smpPadTitle = name => name + ' — ' + SMP_GESTURES;
+
 smpSlots.forEach((_, i) => {
   const b = document.createElement('button');
   b.className = 'smp';
   b.textContent = '+';
-  b.title = 'Sampler — click loads a one-shot, click again plays it (hold = gate); wheel trims this pad\'s level; shift+empty pad resamples the playing loop; right-click previews on headphones (again stops), alt-click stops, shift-click clears — pads 1+2 and 3+4 are choke groups';
+  b.title = SMP_EMPTY_TITLE;
   const firePad = (vel = 1) => {
     const slot = smpSlots[i];
     if (!slot || !slot.buf) return;
@@ -4078,7 +4085,7 @@ smpSlots.forEach((_, i) => {
         smpAutoGain(nb).then(g => { if (smpSlots[i] && smpSlots[i].buf === nb) smpSlots[i].gain = g; });
         smpSlots[i] = { buf: nb, name: 'loop@' + d.name, src: null, gain: 1 };
         b.textContent = 'loop'; b.classList.add('set');
-        b.title = 'Resampled loop — ' + d.name + ' ' + (d.loopEnd - d.loopStart).toFixed(2) + 's';
+        b.title = smpPadTitle('Resampled loop — ' + d.name + ' ' + (d.loopEnd - d.loopStart).toFixed(2) + 's');
         padsSaveSoon();
         return;
       }
@@ -4088,7 +4095,7 @@ smpSlots.forEach((_, i) => {
       if (smpPrev) { try { smpPrev.stop(); } catch (_) {} smpPrev = null; smpPrevPad = -1; }
       smpSlots[i] = null;
       b.textContent = '+'; b.classList.remove('set', 'on');
-      b.title = 'Sampler — click loads a one-shot, click again plays it, alt-click stops playback, shift-click clears (right-click an empty pad restores the last clear)';
+      b.title = SMP_EMPTY_TITLE;
       padsSaveSoon();
       return;
     }
@@ -4153,6 +4160,7 @@ smpSlots.forEach((_, i) => {
       slot.start = Math.min(Math.max(0, (slot.start || 0) - Math.sign(e.deltaY) * 0.05),
         Math.max(0, slot.buf.duration - 0.05));
       b.title = slot.name + ' — starts ' + slot.start.toFixed(2) + 's in (shift+wheel trims)';
+      padsSaveSoon();   // rec.start is persisted — same debounce as the level trim
       return;
     }
     slot.gain = Math.min(1.5, Math.max(0.1, (slot.gain != null ? slot.gain : 1) - Math.sign(e.deltaY) * 0.05));
@@ -4214,7 +4222,7 @@ async function loadSmpFile(i, f) {
   const b = smpPadsEl.children[i];
   b.textContent = f.name.length > 6 ? f.name.slice(0, 6) : f.name;
   b.classList.add('set');
-  b.title = f.name;
+  b.title = smpPadTitle(f.name);
   padsSaveSoon();
 }
 smpFile.addEventListener('change', async e => {
