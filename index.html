@@ -3378,7 +3378,7 @@ document.addEventListener('keydown', e => {
 // ----- Web MIDI: any connected controller drives the surface -----
 // Note-ons: 60-67 deck A pads, 68-75 deck B pads, 36-39 sampler
 // pads, 44/45 play A/B. CCs: 1 = crossfader, 7 = master,
-// 20/21 = channel gain A/B — the default CC names every
+// 20/21 = channel gain A/B, 78/79 = reloop A/B — the default CC names every
 // budget controller ships with, so most units work unmapped.
 // Held-note timestamps for the pad gate: the app's own momentary
 // grammar (tap = latch, hold >=250 ms = momentary) ported to MIDI —
@@ -3414,6 +3414,14 @@ function midiMsg(e) {
     else if (n === 49) deckB.toggleLoop();
     else if (n === 50) deckA.cue();
     else if (n === 51) deckB.cue();
+    // 78/79 = reloop — a controller's RELOOP button re-enters the
+    // last exited loop (or the saved memory slot) hands-free.
+    else if (n === 78) deckA.reloop();
+    else if (n === 79) deckB.reloop();
+    // 78/79 = reloop — a controller's RELOOP button re-enters the
+    // last exited loop (or the saved memory slot) hands-free.
+    else if (n === 78) deckA.reloop();
+    else if (n === 79) deckB.reloop();
   } else if ((kind === 0x80 || (kind === 0x90 && v === 0)) && n >= 36 && n < 40) {
     // Note-off on a pad held >=250 ms = gate release, same as a held
     // mouse press. A quick tap's off arrives well under that and the
