@@ -30,7 +30,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 ## Features
 
 - **Two decks** — load audio by click or drag & drop (MP3/WAV/OGG/FLAC/M4A,
-  whatever the browser's `decodeAudioData` supports).
+  whatever the browser's `decodeAudioData` supports). Rapid loads
+  can't interleave — the last caller wins (see ADR-0261).
 - **Transport** — play/pause, cue-to-start, click waveform to seek.
 - **Tempo** — ±16% playback-rate slider per deck.
 - **Key lock** — preserve pitch while tempo changes (WSOLA time-stretching
@@ -117,7 +118,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   the visible slice (see ADR-0043).
 - **Auto-cue** — loading a track skips lead-in silence: the playhead
   starts at the first sample over −50 dBFS and `Cue` returns there
-  (see ADR-0044).
+  (see ADR-0044). Pressing `Play` after a track ends restarts at that
+  same cue point (see ADR-0257).
 - **Track-end warning** — the time readout flashes red during the
   last 30 s of a track, CDJ-style (see ADR-0045).
 - **Key sync** — `Key` button transposes the deck to the smallest
@@ -237,8 +239,10 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   Enter commits, Esc cancels (see ADR-0079).
 - **Library preview** — `▶` on a library row auditions the track on the
   headphone cue bus without loading a deck, starting at the cue point
-  like the decks (see ADR-0080, ADR-0108); loading or deleting a
-  row stops its audition (see ADR-0246, ADR-0248).
+  like the decks; rapid row clicks can never layer two auditions
+  (see ADR-0080, ADR-0108, ADR-0260). Loading or deleting the row
+  stops its audition — no double on the cue bus and the floor
+  (see ADR-0246, ADR-0248).
 - **Beat FX select** — the FX knob drives `Echo`, `Flng` (LFO-swept
   comb), `Trans` (beat-synced gate chop), `Noise` (swept
   bandpass riser that breathes in time with the BEAT division,
@@ -289,7 +293,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
-  click again to cancel mid-fade; Shift+Auto arms a long 32-beat
+  click again to cancel mid-fade — the fader and the incoming deck
+  roll back to pre-fade state (ADR-0191); Shift+Auto arms a long 32-beat
   blend (see ADR-0013, ADR-0073). The button counts down beats to
   the fade (`Auto 14b`) and shows fade progress (`Auto 31%`); with a
   beat grid the fire point snaps to the nearest bar so transitions
@@ -356,7 +361,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   the slider beside them trims the shared sample level
   (see ADR-0120), and scrolling over a loaded pad trims that pad's
   own level (see ADR-0167). Pads are single-voice: firing one chokes the
-  others (see ADR-0121).
+  others (see ADR-0121); clearing a pad stops its cue audition
+  (see ADR-0250).
 - **Wheel nudge** — scrolling over any fader or knob steps it one
   detent (EQ, filter, FX, gain, master, crossfader); the tempo
   slider keeps its finer ±0.1% trim (see ADR-0109, ADR-0112).
