@@ -4489,6 +4489,7 @@ function sessSave() {
         assign: q('[data-act=assign]').value, range: q('[data-act=range]').value,
         loopbeats: q('[data-act=loopbeats]').value,
         slip: q('[data-act=slip]').classList.contains('on'),
+        brake: q('[data-act=brake]').classList.contains('on'),
       };
     }
     localStorage.setItem(sessKey, JSON.stringify({ v, t, decks }));
@@ -4541,6 +4542,8 @@ try {
       if (s2.fxon != null && fxBtn.classList.contains('on') !== !!s2.fxon) fxBtn.click();
       const slipB = q('[data-act=slip]');
       if (s2.slip != null && slipB.classList.contains('on') !== !!s2.slip) slipB.click();
+      const brakeB = q('[data-act=brake]');
+      if (s2.brake != null && brakeB.classList.contains('on') !== !!s2.brake) brakeB.click();
     }
   }
 } catch {}
