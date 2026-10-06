@@ -733,13 +733,13 @@ class Deck {
         // sampler pads: audition this hot cue on the cue bus.
         // Clearing lives on shift-click (ADR-0083).
         if (this.cues[i] == null || !this.buffer) return;
-        if (padPrev) { try { padPrev.stop(); } catch (_) {} padPrev.disconnect(); padPrev = null; }
+        killPadPrev(this);
         const src = audio().createBufferSource();
         src.buffer = this.buffer;
         src.connect(cueBus());
         src.onended = () => { if (padPrev === src) padPrev = null; };
         src.start(0, this.cues[i]);
-        padPrev = src;
+        padPrev = src; padPrevOwner = this;
       });
       pad.addEventListener('pointerdown', e => { if (e.button === 0 && !e.shiftKey) this.slipCueStart(i); });
       for (const ev of ['pointerup', 'pointerleave', 'pointercancel'])
@@ -1084,6 +1084,7 @@ class Deck {
   }
 
   async load(fileObj, meta) {
+    killPadPrev(this);   // the old track's cue audition can't outlive it
     this.status('decoding…');
     // Two rapid loads must never interleave: the last caller wins.
     // Guard every await — a stale continuation that kept writing
@@ -1472,6 +1473,7 @@ class Deck {
   }
 
   eject() {
+    killPadPrev(this);
     if (!this.buffer) return;
     this.leading = false;
     this.syncBtn.classList.remove('on');
@@ -3073,7 +3075,12 @@ micBtn2.title = 'Microphone — click toggles live input into the master pre-lim
 const smpSlots = [null, null, null, null];
 let smpGain = null;
 let smpPrev = null;
-let padPrev = null;   // deck hot-cue preview voice (right-click audition)    // cue-bus audition voice
+let padPrev = null, padPrevOwner = null;   // deck hot-cue preview voice + the deck it belongs to
+// Auditions follow the owner doctrine: a load/eject kills only ITS
+// deck's audition, never the partner's.
+const killPadPrev = deck => {
+  if (padPrev && padPrevOwner === deck) { try { padPrev.stop(); } catch (_) {} padPrev.disconnect(); padPrev = padPrevOwner = null; }
+};
 const smpPadsEl = document.getElementById('smp-pads');
 const smpFile = document.getElementById('smp-file');
 let smpPending = -1;
