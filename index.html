@@ -88,6 +88,7 @@
   button.on { border-color: #3ddc84; color: #3ddc84; }
   .smp { min-width: 40px; font-size: 11px; overflow: hidden; }
   .smp.set { border-color: var(--acc); }
+  .smp.drag { border-color: var(--acc); color: var(--acc); }
   button.primary { flex: 1; font-weight: 600; }
   .deck.a button.primary { border-color: var(--accent-a); }
   .deck.b button.primary { border-color: var(--accent-b); }
@@ -3486,6 +3487,16 @@ smpSlots.forEach((_, i) => {
     src.start();
     smpPrev = src;
   });
+  // Drop a file straight onto a pad — the deck dropzone's grammar
+  // brought to the sampler row. The destination is pinned by the
+  // gesture itself, so no smpPending is needed.
+  b.addEventListener('dragover', e => { e.preventDefault(); b.classList.add('drag'); });
+  b.addEventListener('dragleave', () => b.classList.remove('drag'));
+  b.addEventListener('drop', e => {
+    e.preventDefault(); b.classList.remove('drag');
+    const f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) loadSmpFile(i, f);
+  });
   // Wheel on a loaded pad trims that pad's level — same wheel-trim
   // grammar as the faders. Live voices follow through slot.g.
   b.addEventListener('wheel', e => {
@@ -3521,11 +3532,7 @@ async function smpAutoGain(buf) {
 const smpPitchEl = document.getElementById('smp-pitch');
 smpPitchEl.addEventListener('dblclick', () => { smpPitchEl.value = 1; });
 
-smpFile.addEventListener('change', async e => {
-  const f = e.target.files[0];
-  const i = smpPending;           // pin the destination now —
-  smpPending = -1;                // later pad clicks can't steal it
-  if (!f || i < 0) return;
+async function loadSmpFile(i, f) {
   const buf = await audio().decodeAudioData(await f.arrayBuffer());
   // Auto-gain like the decks (ADR-0019): one-shots come in at their
   // file loudness — a whisper snare next to a slammed clap. Normalize
@@ -3537,6 +3544,13 @@ smpFile.addEventListener('change', async e => {
   b.textContent = f.name.length > 6 ? f.name.slice(0, 6) : f.name;
   b.classList.add('set');
   b.title = f.name;
+}
+smpFile.addEventListener('change', async e => {
+  const f = e.target.files[0];
+  const i = smpPending;           // pin the destination now —
+  smpPending = -1;                // later pad clicks can't steal it
+  if (!f || i < 0) return;
+  await loadSmpFile(i, f);
 });
 
 {

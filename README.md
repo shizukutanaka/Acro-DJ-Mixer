@@ -385,7 +385,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   −14 LU is the streaming target; see ADR-0139), turning green inside
   the −14 ± 1 band (see ADR-0165) — and master gain.
 - **Sampler** — `Smpl` row: 4 one-shot pads into the master chain.
-  Click loads a file, click again fires (retrigger restarts;
+  Click loads a file — or drop a file straight onto a pad (ADR-0186) —
+  click again fires (retrigger restarts;
   press-and-hold plays only while held — gate mode, ADR-0149; `Loop` makes fired shots repeat,
   ADR-0150; the pitch slider retunes shots 0.5–2×, ADR-0152),
   alt-click stops the ringing voice, shift-click clears — and
