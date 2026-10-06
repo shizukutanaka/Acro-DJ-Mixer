@@ -1488,7 +1488,11 @@ class Deck {
 
   eject() {
     killPadPrev(this);
-    if (!this.buffer) return;
+    // Invalidate an in-flight load first — during 'decoding…' the
+    // buffer is still null, so the guard below would pass silently and
+    // the track would land on a deck the user just cleared.
+    this._loadSeq = (this._loadSeq || 0) + 1;
+    if (!this.buffer) { this.status(''); return; }
     this.leading = false;
     this.syncBtn.classList.remove('on');
     // Bail out of an in-flight auto-mix fade touching this deck first.
