@@ -4005,6 +4005,9 @@ document.addEventListener('keydown', e => {
   if (e.repeat && !e.key.startsWith('Arrow')) return;
   if (e.key === 'Escape') { helpEl.hidden = true; return; }
   if (e.key === '?' || e.key === '/') { toggleHelp(); e.preventDefault(); return; }
+  // The help card is modal: while it's open, keys belong to it —
+  // pressing q to read about q must not also fire the deck.
+  if (!helpEl.hidden) return;
   switch (e.key) {
     case 'q': case 'Q': deckA.toggle(); break;
     case 'p': case 'P': deckB.toggle(); break;
