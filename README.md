@@ -179,6 +179,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Quantize toggle** — `Qtz` beside `Rev` switches beat-grid snapping
   for hot cues and loop in-points on/off (on by default)
   (see ADR-0055).
+- **Effective BPM** — once the tempo fader moves, the readout
+  adds `→N` for what's actually playing, next to the detected
+  tempo (see ADR-0219).
 - **Decimal BPM** — the readout shows the fractional estimate
   (`120.2`), so matched decks are visibly matched (see ADR-0056).
 - **Manual loop** — tracks with no detected grid can still loop:
