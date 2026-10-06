@@ -444,8 +444,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   pitch-bend wheel ch1/ch2 = deck A/B bend ±5% (ADR-0184) —
   works unmapped on most budget controllers (see ADR-0163, ADR-0172).
 - **Session persistence** — the mixer surface (faders, EQ, filters,
-  FX selection, toggles, sampler and mic trims) is saved on change
-  and restored on reload through the same handlers (see ADR-0158).
+  FX selection, toggles, sampler, mic trims, phones volume and loop
+  length selects) is saved on change and restored on reload through
+  the same handlers (see ADR-0158, ADR-0252).
 - **Status line** — deck status messages are ephemeral: they confirm
   the action that just happened, then clear themselves after 5 s so a
   stale message never reads like live state (see ADR-0245).
