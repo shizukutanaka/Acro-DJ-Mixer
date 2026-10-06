@@ -844,13 +844,17 @@ class Deck {
           }
           return;
         }
+        // Right-click on the pad whose audition is ringing stops it —
+        // the same second-click-stops idiom the library ▶ uses,
+        // and the only off switch a hot-cue preview had.
+        if (padPrevPad === pad) { killPadPrev(this); return; }
         killPadPrev(this);
         const src = audio().createBufferSource();
         src.buffer = this.buffer;
         src.connect(cueBus());
         src.onended = () => { if (padPrev === src) { src.disconnect(); padPrev = null; } };
         src.start(0, this.cues[i]);
-        padPrev = src; padPrevOwner = this;
+        padPrev = src; padPrevOwner = this; padPrevPad = pad;
       });
       pad.addEventListener('pointerdown', e => { if (e.button === 0 && !e.shiftKey) this.slipCueStart(i); });
       for (const ev of ['pointerup', 'pointerleave', 'pointercancel'])
@@ -1605,6 +1609,9 @@ class Deck {
 
   play() {
     if (!this.buffer || this.playing || !this.engine) return;
+    // A cue audition is a pre-flight check — once the deck goes live
+    // the check is over; it can't keep ringing over the floor's deck.
+    killPadPrev(this);
     stat('plays');
     if (this._spinTimer) { clearInterval(this._spinTimer); this._spinTimer = null; this.spinMul = 1; }
     if (this.offset >= this.buffer.duration - 0.01) {
@@ -3576,11 +3583,11 @@ const smpSlots = [null, null, null, null];
 let smpCleared = null;   // last shift-cleared slot — right-click an empty pad restores it (one level)
 let smpGain = null;
 let smpPrev = null;
-let padPrev = null, padPrevOwner = null;   // deck hot-cue preview voice + the deck it belongs to
+let padPrev = null, padPrevOwner = null, padPrevPad = null;   // deck hot-cue preview voice, its deck, its pad
 // Auditions follow the owner doctrine: a load/eject kills only ITS
 // deck's audition, never the partner's.
 const killPadPrev = deck => {
-  if (padPrev && padPrevOwner === deck) { try { padPrev.stop(); } catch (_) {} padPrev.disconnect(); padPrev = padPrevOwner = null; }
+  if (padPrev && padPrevOwner === deck) { try { padPrev.stop(); } catch (_) {} padPrev.disconnect(); padPrev = padPrevOwner = padPrevPad = null; }
 };
 const smpPadsEl = document.getElementById('smp-pads');
 const smpFile = document.getElementById('smp-file');
