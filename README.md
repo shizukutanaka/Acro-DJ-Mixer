@@ -96,9 +96,15 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   click the readout to sync the non-playing deck to the playing one
   (ADR-0196)
   (see ADR-0023).
+- **Track identity** — records match by content hash (size +
+  head/tail SHA-256), so renames keep their prep and same-name
+  impostors can't steal it (see ADR-0211).
 - **Row double-click** — double-clicking a library row loads it
   into whichever deck is free (see ADR-0223).
-- **Library** — every loaded track is auto-saved to IndexedDB (audio +
+- **Library** — drop audio files anywhere on the library panel to
+  add them all at once, no deck load needed; duration is read from
+  file metadata and BPM/key fill in the background (see ADR-0247).
+  Every loaded track is also auto-saved to IndexedDB (audio +
   BPM/key analysis, soft-deletable); `→A`/`→B` reloads instantly with
   cached analysis, survives page reloads. Reloading a *playing* deck
   needs a second confirming click ("sure?") — the load lock
@@ -196,7 +202,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   honours Quantize like hot cues (see ADR-0058, ADR-0176).
 - **Reloop** — `↺` beside `Loop` re-enters the last exited loop with
   its exact bounds; seeking out of a loop is also reloop-able
-  (see ADR-0059). `Shift+↺` stores the armed loop in a dedicated
+  (see ADR-0059); the button's title lists each saved slot's
+  region so recall is inspectable before firing (see ADR-0220).
+  `Shift+↺` stores the armed loop in a dedicated
   memory slot that survives later exits — Serato's loop memory
   (see ADR-0116); `Alt+↺` owns a second slot the same way: armed
   loop saves, disarmed click recalls (see ADR-0166); both slots
@@ -265,7 +273,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   (see ADR-0093).
 - **Cue marker** — the deck cue point (auto-cue or track start) shows
   as a cyan tick on the waveform, and the Cue button's tooltip reads
-  the exact landing time (see ADR-0074, ADR-0253).
+  the exact landing time (see ADR-0074, ADR-0253). Hot-cue ticks also
+  appear on the mini overview, and a pending free-size loop's
+  in-point shows as an amber half-tick (see ADR-0238).
 - **Beat sync** — `Shift+Sync` slips beat phase only, leaving the
   tempo fader alone (see ADR-0075); right-click matches tempo
   only, leaving this deck's position untouched (see ADR-0206).
@@ -281,7 +291,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   like the decks; rapid row clicks can never layer two auditions
   (see ADR-0080, ADR-0108, ADR-0260). Loading or deleting the row
   stops its audition — no double on the cue bus and the floor
-  (see ADR-0246, ADR-0248).
+  (see ADR-0246, ADR-0248). Auditions play through the same gated
+  gain a deck load applies (see ADR-0224).
 - **Beat FX select** — the FX knob drives `Echo`, `Flng` (LFO-swept
   comb), `Trans` (beat-synced gate chop), `Noise` (swept
   bandpass riser that breathes in time with the BEAT division,
@@ -339,9 +350,11 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Mic ducking** — opening the mic squeezes the music ~12 dB
   (broadcast talkover), restored on close (see ADR-0091).
 - **Manual cue point** — `Shift+Cue` sets the cue point at the
-  playhead; persisted and restored on reload (see ADR-0092), and
+  playhead, or drag the cyan tick on the waveform (ADR-0190);
+  persisted and restored on reload (see ADR-0092), and
   snaps to the grid when Quantize is on like every other marker
   (see ADR-0200).
+  Right-click the waveform to drop it where you clicked (see ADR-0205).
 - **Auto mix** — `Auto` button: at 16 beats before the playing deck
   ends, the other deck starts on its first beat, tempo-synced, and the
   crossfader rides across over 8 beats; one click per transition,
@@ -420,9 +433,10 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   (see ADR-0118/ADR-0132/ADR-0145/ADR-0147). Keys `1`–`4` fire the pads (see ADR-0119);
   the slider beside them trims the shared sample level
   (see ADR-0120), and scrolling over a loaded pad trims that pad's
-  own level (see ADR-0167). Pads auto-gain on load through the same
-  K-weighted pipeline as the decks, so shots start level (see ADR-0197);
-  resampled loops normalize the same way (see ADR-0202).
+  own level (see ADR-0167); shift+scroll trims the pad's start offset so
+  lead-in silence can be dropped (see ADR-0226). Pads auto-gain on load
+  through the same K-weighted pipeline as the decks, so shots start level
+  (see ADR-0197); resampled loops normalize the same way (see ADR-0202).
   Loaded pads persist across reloads as marked library records,
   hidden from the track list (see ADR-0228).
   Pads form two choke groups — 1+2 and 3+4: firing one chokes only its
