@@ -1830,12 +1830,15 @@ class Deck {
   // the harmonic-mixing move. WSOLA-only: emitted samples read input at
   // i*2^(st/12); the buffer engine and an unloaded deck ignore it.
   transpose(d) {
+    // On the fallback engine the worklet isn't there to do the shift —
+    // mutating st anyway would lie twice: the ±N readout and effKey()'s
+    // harmonic matching would claim a key the audio isn't playing.
+    if (this.engine !== 'worklet') { this.status('Transpose needs key lock (http).'); return; }
     const st = Math.min(6, Math.max(-6, this.st + d));
     if (st === this.st) return;
     this.st = st;
     this.stEl.textContent = st === 0 ? '±0' : (st > 0 ? '+' : '') + st + 'st';
-    if (this.engine === 'worklet') this.node.port.postMessage({ type: 'pitch', rate: Math.pow(2, st / 12) });
-    else this.status('Transpose needs key lock (http).');
+    this.node.port.postMessage({ type: 'pitch', rate: Math.pow(2, st / 12) });
     this.refreshKey();
     if (this.partner) this.partner.refreshKey();
   }
@@ -1910,6 +1913,9 @@ class Deck {
   }
 
   toggleKeylock() {
+    // Same engine honesty: a lit Key Lock on the fallback path would
+    // claim pitch-preservation the BufferSource can't do.
+    if (this.engine !== 'worklet') { this.status('Key lock needs http.'); return; }
     this.keylock = !this.keylock;
     this.keylockBtn.classList.toggle('on', this.keylock);
     if (this.engine === 'worklet') {
