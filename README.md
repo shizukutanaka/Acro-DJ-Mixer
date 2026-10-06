@@ -421,7 +421,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   50/51 = cue (ADR-0173), 52–57 = deck A/B H/M/L kills,
   58/59 = deck A/B FX on/off (ADR-0180);
   CC1 = crossfader, CC7 = master, CC20/21 = channel gains,
-  CC14/15 = deck tempo, CC16/17 = colour filter —
+  CC14/15 = deck tempo, CC16/17 = colour filter,
+  pitch-bend wheel ch1/ch2 = deck A/B bend ±5% (ADR-0184) —
   works unmapped on most budget controllers (see ADR-0163, ADR-0172).
 - **Session persistence** — the mixer surface (faders, EQ, filters,
   FX selection, toggles, sampler and mic trims) is saved on change
