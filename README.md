@@ -484,6 +484,12 @@ Lifetime counters (loads / plays / loops / auto transitions /
 recordings) live in `localStorage` — hover the footer to read them.
 Local-only; nothing is sent anywhere (see ADR-0237).
 
+## Accessibility
+
+Every control's tooltip is mirrored into `aria-label` at boot, so
+icon buttons announce verbs to assistive tech, and deck status
+lines are `aria-live` (see ADR-0236).
+
 ## Security
 
 Local files only; no network calls, no telemetry, no secrets. Report
