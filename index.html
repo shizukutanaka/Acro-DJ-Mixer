@@ -3845,6 +3845,24 @@ libImpFile.addEventListener('change', async () => {
                  : 'import: no matching tracks');
 });
 
+// Controls are primary-button only: a context menu opened by a
+// right-button press can swallow the pointerup a momentary hold
+// (Roll, Cut, Mic, EQ kills, Bend…) is waiting for and latch the
+// effect forever mid-set. Capture-phase gate covers every present
+// and future control; right-click *meanings* live on contextmenu
+// handlers, which are unaffected.
+document.addEventListener('pointerdown', e => {
+  if (e.button !== 0) e.stopPropagation();
+}, true);
+// The app gives right-click its own grammar (undo, preview, sync
+// modes) via contextmenu handlers — anywhere else the browser menu
+// would only cover the deck mid-set. Text fields keep theirs
+// (paste in the BPM/filter fields).
+document.addEventListener('contextmenu', e => {
+  if (e.target.matches('input[type=text], textarea')) return;
+  e.preventDefault();
+});
+
 // Two-click confirm: arms the button for 2 s ("sure?"), a second
 // click inside the window runs fn. Load-guard and row-delete share it.
 const armConfirm = (b, fn) => {
