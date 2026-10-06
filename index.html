@@ -672,6 +672,7 @@ class Deck {
         if (!this.buffer) return;
         // Same quantize contract as hot cues (ADR-0021) and free-loop
         // bounds (ADR-0176): Qtz on = snap to the grid, off = freehand.
+        this._prevCueIn = this.cueIn;
         this.cueIn = this.quantize(this.pos());
         this.offset = this.cueIn;
         this.tagLib({ cueIn: this.cueIn });   // survives reload like hot cues
@@ -682,6 +683,19 @@ class Deck {
         return;
       }
       this.cue();
+    });
+    cueBtnEl.addEventListener('contextmenu', e => {
+      // Right-click = one-level undo of the last cue-point overwrite —
+      // same right-click-restores grammar as empty pads and dropzones.
+      e.preventDefault();
+      if (this._prevCueIn == null) return;
+      this.cueIn = this._prevCueIn;
+      this._prevCueIn = null;
+      this.tagLib({ cueIn: this.cueIn });
+      this._drawnPos = undefined;
+      this.drawWave();
+      this._cueTitle();
+      this.status('cue restored ' + fmt(this.cueIn));
     });
     // Cue preview (CDJ CUE hold): while stopped, holding the button
     // plays from the cue point; releasing pauses and snaps back.
@@ -1227,6 +1241,7 @@ class Deck {
       // Auto-cue: skip lead-in silence — playback and the Cue button
       // start at the first sample above −50 dBFS (scans max 30 s).
       this.cueIn = 0;
+      this._prevCueIn = null;   // cue-undo belongs to the previous track
       {
         const chs = [];
         for (let c = 0; c < buf.numberOfChannels; c++) chs.push(buf.getChannelData(c));
@@ -1661,6 +1676,7 @@ class Deck {
     this.key = null;
     if (this.partner) this.partner.refreshKey();   // partner's tint referenced our key
     this.cueIn = 0;
+    this._prevCueIn = null;
     this._cueTitle();
     this.offset = 0;
     this.cues = [null, null, null, null, null, null, null, null];
