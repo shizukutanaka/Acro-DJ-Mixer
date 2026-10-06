@@ -565,6 +565,7 @@ class Deck {
     this.keylockBtn = root.querySelector('[data-act=keylock]');
     this.echoEl = root.querySelector('[data-act=echo]');
     this.loopBtn = root.querySelector('[data-act=loop]');
+    this.reloopBtn = root.querySelector('[data-act=reloop]');
     this.loopLenEl = root.querySelector('.looplen');
     this.loopOn = false;
     this._loopIn = null;
@@ -762,6 +763,7 @@ class Deck {
         this._prevLoopMem = { slot: 1, mem: this._loopMem };
         this._loopMem = [this.loopStart, this.loopEnd];
         this.status('loop saved to memory');
+        this._memTitle();
         this.tagLib({ mem1: this._loopMem });   // same prep doctrine as cues/loop
         return;
       }
@@ -772,6 +774,7 @@ class Deck {
           this._prevLoopMem = { slot: 2, mem: this._loopMem2 };
           this._loopMem2 = [this.loopStart, this.loopEnd];
           this.status('loop saved to memory 2');
+          this._memTitle();
           this.tagLib({ mem2: this._loopMem2 });
         } else {
           this.reloop(this._loopMem2);
@@ -1831,6 +1834,7 @@ class Deck {
     this._loopMem = null;
     this._loopMem2 = null;
     this._prevLoopMem = undefined;
+    this._memTitle();
     this._loopIn = null;
     this._loopT = null;
     this._loopEnterPos = 0;
@@ -2634,6 +2638,15 @@ class Deck {
   // LOOP MOVE: slide the armed loop by its own length — the CDJ move
   // for adjusting a loop across phrase boundaries without re-arming.
   // Reloop: re-enter the last loop that was exited — bounds survive
+  // Reloop button title carries the saved slots' regions — a recall
+  // you can't see is a recall into the dark.
+  _memTitle() {
+    const r = m => m ? ' [' + fmt(m[0]) + '–' + fmt(m[1]) + ']' : '';
+    this.reloopBtn.title = 'Reloop — re-enter the last loop you exited' +
+      ' (shift = save to memory 1' + r(this._loopMem) +
+      ', alt = slot 2' + r(this._loopMem2) + ': armed loop saves / disarmed recalls)';
+  }
+
   // disarm so exit/reloop works like the hardware EXIT/RELOOP button.
   reloop(mem = this._loopMem || this._loopMem2 || this._prevLoop) {
     if (this.loopOn || !mem || !this.buffer) return;
