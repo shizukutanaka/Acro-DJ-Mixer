@@ -3640,7 +3640,9 @@ autoBtn.addEventListener('click', e => {
 // recording is open; playing decks need no guard (the mixer surface
 // restores itself, and the library/setlist already saved).
 window.addEventListener('beforeunload', e => {
-  if (recorder && recorder.state === 'recording') e.preventDefault();
+  // Non-null covers every state with unsaved chunks: 'recording',
+  // 'paused', and the flush window between stop() and onstop's save.
+  if (recorder) e.preventDefault();
 });
 // Flush the pending session snapshot on the way out — the 400 ms
 // debounce would otherwise drop the last adjustments. pagehide, not
