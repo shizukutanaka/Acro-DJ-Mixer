@@ -2885,6 +2885,13 @@ autoBtn.addEventListener('click', e => {
     f.from.setFilter(parseFloat(f.from.filterEl.value));  // restore knob position
     if (f.echoed) f.from.setEcho(parseFloat(f.from.echoEl.value));   // delay send back to the knob
     if (f.to && f.to.eq) f.to.setBand('low', parseFloat(f.to.eqEls.low.value));    // restore bass swap
+    // Rollback: the fader rode toward the incoming side — put it
+    // back so the cancel sounds like the transition never started,
+    // and pause the incoming deck rather than leave it running
+    // inaudible under the restored fader.
+    xfader.value = f.fromX;
+    applyCrossfade();
+    if (f.to) f.to.pause();
     autoBtn.textContent = 'Auto';
     return;
   }
