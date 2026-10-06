@@ -371,7 +371,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   deck B `B N M ,` `H J K L` `I` `U` (see ADR-0031, ADR-0101,
   ADR-0157). `?` (or `/`) toggles a gesture-legend overlay listing the
   modifier grammar — click/hold/double-click/wheel/shift/alt/
-  right-click — and the key map (see ADR-0231).
+  right-click — and the key map (see ADR-0231). While a slider is
+  focused, arrow keys belong to it — no double-drive of fader +
+  crossfader (see ADR-0251).
 - **Web MIDI** — connected controllers drive the surface: notes
   60–75 = deck A/B pads, 36–39 = sampler pads (velocity-sensitive,
   ADR-0168; held ≥250 ms gates the shot like a held mouse pad,
