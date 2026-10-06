@@ -216,12 +216,12 @@
     <div class="row"><label>A</label><input type="range" id="xfader" min="0" max="1" step="0.005" value="0.5" title="Crossfader — double-click resets to centre; pushing fully into a stopped deck starts it"><label>B</label><select id="xfcurve" title="Crossfader curve — Smooth fades gradually, Cut reaches full in the first/last 10% for scratching"><option value="smooth">Smooth</option><option value="cut">Cut</option></select><button id="xfrev" title="HAMSTER — swap which side of the crossfader feeds A and B, for scratching">Rev</button><button id="qtz" class="on" title="Quantize — hot cues and loops snap to the beat grid; click to place them freehand">Qtz</button></div>
     <div class="row"><label>Master</label><input type="range" id="master" min="0" max="1" step="0.01" value="0.9" title="Master level — double-click resets to 90%"><output id="master-out">90%</output></div>
     <div class="row"><label>Cue&nbsp;out</label><select id="cueout" title="Output device for the headphone cue bus"><option value="">System output</option></select></div>
-    <div class="row"><label>Cue&nbsp;mix</label><input type="range" id="cuemix" min="0" max="1" step="0.01" value="0" title="Cue mix — left is cue (PFL) only, right blends the master output into the phones"><output>cue</output></div>
-    <div class="row"><label>Phones</label><input type="range" id="cuevol" min="0" max="1" step="0.01" value="1" title="Headphone volume — level of the whole cue bus (cue + PGM blend)"><output>100%</output></div>
+    <div class="row"><label>Cue&nbsp;mix</label><input type="range" id="cuemix" min="0" max="1" step="0.01" value="0" title="Cue mix — left is cue (PFL) only, right blends the master output into the phones. Double-click resets to cue only"><output>cue</output></div>
+    <div class="row"><label>Phones</label><input type="range" id="cuevol" min="0" max="1" step="0.01" value="1" title="Headphone volume — level of the whole cue bus (cue + PGM blend). Double-click resets to 100%"><output>100%</output></div>
     <div class="row"><label>Phones</label><button id="mono" title="Mono — fold the master down to one channel to check mono compatibility (club PAs are often mono); hold = momentary">Mono</button><button id="splitcue" title="Split cue — headphone cue (PFL) in the left ear, master PGM in the right">Split</button><button id="cut" title="Cut — hold to mute the master, release restores (transformer scratch technique)">Cut</button></div>
     <div class="meter cuem" title="Cue bus level (tick = peak hold)"><i id="cuemeter-fill"></i><b id="cuemeter-peak"></b></div>
     <div class="phase" id="phase" title="Beat-phase offset between decks — click to sync the non-playing deck to the playing one"></div>
-    <div class="row"><label>Smpl</label><span id="smp-pads"></span><input type="range" id="smp-gain" min="0" max="1" step="0.01" value="0.8" title="Sampler level — all pads"><label title="Loop pads — fired shots repeat until stopped (alt-click / choke)" style="font-size:10px;display:flex;align-items:center;gap:2px"><input type="checkbox" id="smp-loop">Loop</label><input type="range" id="smp-pitch" min="0.5" max="2" step="0.01" value="1" title="Sampler pitch — playback rate at fire time, 0.5–2×; double-click resets"><input id="smp-file" type="file" accept="audio/*" hidden></div>
+    <div class="row"><label>Smpl</label><span id="smp-pads"></span><input type="range" id="smp-gain" min="0" max="1" step="0.01" value="0.8" title="Sampler level — all pads. Double-click resets to 80%"><label title="Loop pads — fired shots repeat until stopped (alt-click / choke)" style="font-size:10px;display:flex;align-items:center;gap:2px"><input type="checkbox" id="smp-loop">Loop</label><input type="range" id="smp-pitch" min="0.5" max="2" step="0.01" value="1" title="Sampler pitch — playback rate at fire time, 0.5–2×; double-click resets"><input id="smp-file" type="file" accept="audio/*" hidden></div>
     <div class="row"><button id="automix" title="Auto mix — near the end of the playing track the other deck starts synced and the crossfader rides over (8 beats; shift = long 32-beat fade). Keeps going: the empty deck auto-loads the next library track">Auto</button><button id="recbtn" title="Record the master output — click again to stop and download a .webm; shift = pause/resume the take">Rec</button><button id="mic" title="Microphone — live input summed into the master pre-limiter (use headphones — open speakers will feed back)">Mic</button><input type="range" id="mic-gain" min="0" max="1.5" step="0.01" value="0.9" title="Mic level — trim the mic in the master; double-click resets to 0.9. Range goes past unity for quiet mics"><input type="range" id="mic-low" min="-1" max="1" step="0.01" value="0" title="Mic LOW — 200 Hz low shelf ±12 dB, double-click resets"><input type="range" id="mic-high" min="-1" max="1" step="0.01" value="0" title="Mic HI — 4 kHz high shelf ±12 dB, double-click resets"></div>
     <div class="kbd-hint">Equal-power crossfade.<br>Auto BPM is an estimate — trust your ears.</div>
   </section>
@@ -273,7 +273,7 @@
     <p><b>wheel</b> — fine-trim any knob or fader; on a loaded pad it trims that pad's level</p>
     <p><b>shift</b> — the alternate: clear hot cue, free-size loop in/out marks, phase-only sync, bar jump, half-beat roll, jog scrub, loop-edge trim, save loop memory, solo phones, resample an armed loop to an empty pad, clear a pad</p>
     <p><b>alt</b> — the expert layer: sync leader, stop a sampler voice, second loop-memory slot, trim the loop out-point</p>
-    <p><b>right-click</b> — cue-bus preview on hot-cue and sampler pads</p>
+    <p><b>right-click</b> — cue-bus preview on hot-cue and sampler pads · one-level undo on the thing that was just broken: cleared hot cue or sample (empty pad), cue set (Cue button), grid write (Tap/‹›), loop-memory overwrite (↺), eject (empty deck)</p>
     <p><b>library</b> — type to filter · ▶ previews on the cue bus · × deletes (two-click confirm) · ‹ › step a track into the deck</p>
     <h3>Keys</h3>
     <p><b>q / p</b> play decks · <b>g / '</b> slip · <b>w / o</b> headphone cue · <b>1–4</b> sampler pads · <b>Z X C V / B N M ,</b> hot cues 1–4 · <b>.</b> auto-mix · <b>A S D F / H J K L</b> hot cues 5–8 · <b>shift+key</b> clears a cue · <b>← →</b> crossfader · <b>↑ ↓</b> master · <b>t / y</b> key sync · <b>?</b> this help</p>
@@ -626,14 +626,16 @@ class Deck {
     const dz = this.el.querySelector('.dropzone');
     const file = this.el.querySelector('input[type=file]');
     dz.addEventListener('click', () => file.click());
-    // Right-click an empty deck undoes the last eject: the library
-    // record still carries grid, key, cues and loop, so loadInto
-    // restores the deck exactly as it was.
+    // Right-click an empty deck undoes the last eject. Library
+    // tracks reload through loadInto (the record carries grid, key,
+    // cues and loop); file-loaded tracks replay the stashed File
+    // through load() with the prep snapshot taken at eject time.
     dz.addEventListener('contextmenu', e => {
       e.preventDefault();
       if (this.buffer || this._ejected == null) return;
-      const id = this._ejected; this._ejected = null;
-      Library.loadInto(this, id);
+      const ej = this._ejected; this._ejected = null;
+      if (typeof ej === 'number') Library.loadInto(this, ej);
+      else this.load(ej.file, ej.meta);
     });
     file.addEventListener('change', e => {
       const f = e.target.files[0];
@@ -1056,7 +1058,10 @@ class Deck {
     }
     this.filterEl.addEventListener('input', () => this.setFilter(parseFloat(this.filterEl.value)));
     this.filterEl.addEventListener('dblclick', () => { this.filterEl.value = 0; this.setFilter(0); });
-    this.stemSel.addEventListener('change', () => this.setStem(this.stemSel.value));
+    this.stemSel.addEventListener('change', () => {
+      this.setStem(this.stemSel.value);
+      if (this.buffer) this.tagLib({ stem: this.stemSel.value });  // same prep doctrine as cues/loop
+    });
     this.el.querySelector('[data-act=tap]').addEventListener('click', () => this.tapTempo());
     // Manual BPM entry: click the readout for an inline field —
     // the fastest fix when detection is close-but-wrong (tap handles
@@ -1102,7 +1107,7 @@ class Deck {
       this.nudgeGrid(e.shiftKey && this.grid ? 60 / this.grid.bpm : 0.01));
     // Jog scrub: press anywhere seeks, and holding the button drags
     // the playhead continuously — CDJ-style searching by feel.
-    let scrubbing = false, jog = false, cueInDrag = false, cueDrag = null;   // cueInDrag: pulling the cyan cue tick; cueDrag: pad index on a hot-cue tick
+    let scrubbing = false, jog = false, cueInDrag = false, loopDrag = null, cueDrag = null;   // cueInDrag: pulling the cyan cue tick; loopDrag: 'in'|'out' on a loop edge; cueDrag: pad index on a hot-cue tick
     const jogEnd = () => {
       if (!jog) return;
       jog = false;
@@ -1128,6 +1133,19 @@ class Deck {
           this.setRate(this.rate);
         }, 40);
         return;
+      }
+      // Loop edge drag: grabbing the armed loop's in/out marker pulls
+      // it along the waveform — the rekordbox loop-adjust gesture.
+      // Qtz snaps the edge to the grid; a plain drag elsewhere still
+      // scrubs the playhead.
+      if (this.loopOn && this.buffer) {
+        const rect = this.wave.getBoundingClientRect();
+        const px = e.clientX - rect.left;
+        const [v0, v1] = this._viewSpan();
+        const x = t => (t - v0) / (v1 - v0) * rect.width;
+        if (Math.abs(px - x(this.loopStart)) <= 8) loopDrag = 'in';
+        else if (Math.abs(px - x(this.loopEnd)) <= 8) loopDrag = 'out';
+        if (loopDrag) { this.wave.setPointerCapture(e.pointerId); return; }
       }
       // Deck cue-point drag: grab the cyan tick to move cueIn — a
       // misplaced cue point otherwise costs shift+Cue at the right
@@ -1161,6 +1179,18 @@ class Deck {
       this.seekFromEvent(e);
     });
     this.wave.addEventListener('pointermove', e => {
+      if (loopDrag) {
+        const rect = this.wave.getBoundingClientRect();
+        const frac = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
+        const [v0, v1] = this._viewSpan();
+        const t = this.quantize(v0 + frac * (v1 - v0));
+        if (loopDrag === 'in') this.loopStart = Math.min(Math.max(t, 0), this.loopEnd - 0.05);
+        else this.loopEnd = Math.min(Math.max(t, this.loopStart + 0.05), this.buffer.duration);
+        this.applyLoop();
+        this._drawnPos = undefined;
+        this.drawWave();
+        return;
+      }
       if (cueInDrag) {
         const rect = this.wave.getBoundingClientRect();
         const frac = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
@@ -1192,6 +1222,10 @@ class Deck {
     });
     for (const ev of ['pointerup', 'pointercancel']) {
       this.wave.addEventListener(ev, () => {
+        if (loopDrag) {   // persist the adjusted bounds like every other loop edit
+          this.tagLib({ loop: [this.loopStart, this.loopEnd] });
+          loopDrag = null;
+        }
         if (cueInDrag) {   // persist like a shift+Cue set
           this.tagLib({ cueIn: this.cueIn });
           cueInDrag = false;
@@ -1367,6 +1401,8 @@ class Deck {
       this._savedLoop = meta && meta.loop ? meta.loop : null;
       this._loopMem = meta && meta.mem1 ? meta.mem1 : null;
       this._loopMem2 = meta && meta.mem2 ? meta.mem2 : null;
+      this.stemSel.value = meta && meta.stem ? meta.stem : 'off';
+      this.setStem(this.stemSel.value);   // the select alone doesn't move the matrix
       this._prevLoopMem = undefined;   // memory-undo belongs to the previous track
       this.peaks = computePeaks(buf, this.wave.width);
       this.drawWave();
@@ -1720,9 +1756,24 @@ class Deck {
     // the track would land on a deck the user just cleared.
     this._loadSeq = (this._loadSeq || 0) + 1;
     if (!this.buffer) { this.status(''); return; }
-    // Stash for right-click-on-dropzone undo — file-loaded tracks
-    // (no libId) can't be restored, so don't promise them.
-    this._ejected = this.libId != null ? this.libId : null;
+    // Stash for right-click-on-dropzone undo. Library tracks keep
+    // just the record id; file-loaded tracks keep the File itself
+    // plus the prep that lived on the deck (cue point, hot cues,
+    // saved loop + memory slots, grid, key) — load() restores them
+    // from meta exactly like a library record would.
+    this._ejected = this.libId != null ? this.libId
+      : this._fileObj && {
+          file: this._fileObj,
+          meta: {
+            cueIn: this.cueIn,
+            cues: this.cues.slice(),
+            loop: this._savedLoop,
+            mem1: this._loopMem, mem2: this._loopMem2,
+            bpm: this.grid && this.grid.bpm,
+            beatOff: this.grid && this.grid.beatOff,
+            key: this.key,
+          },
+        } || null;
     this.leading = false;
     this.syncBtn.classList.remove('on');
     // Bail out of an in-flight auto-mix fade touching this deck first.
@@ -1785,6 +1836,11 @@ class Deck {
     // call this, and the timer would keep posting 'rate' and fire its
     // done() callback on a dead deck.
     if (this._spinTimer) { clearInterval(this._spinTimer); this._spinTimer = null; this.spinMul = 1; }
+    // Same rule for a held pitch bend: a window blur can steal the
+    // pointerup, leaving bendMul latched and the next play ±5% off.
+    // The multiplier is transient finger state, not deck state.
+    this.bendMul = 1;
+    for (const b of this.el.querySelectorAll('[data-act=benddn],[data-act=bendup]')) b.classList.remove('on');
     if (this.engine === 'worklet') {
       this.node.port.postMessage({ type: 'pause' });
     } else if (this.source) {
@@ -3313,11 +3369,30 @@ const autoBtn = document.getElementById('automix');
 // ----- Set recording -----
 // MediaStream tap on the master (same pattern as the cue bus) ->
 // MediaRecorder -> .webm download on stop.
-let recDest = null, recorder = null, recChunks = [], recStart = 0, recTick = null, recPausedAt = 0;
+let recDest = null, recorder = null, recChunks = [], recStart = 0, recTick = null, recPausedAt = 0, recWav = false;
+
+// Interleave an AudioBuffer into a 16-bit PCM WAV — the post-step for
+// alt+Rec lossless takes (browsers don't give MediaRecorder PCM).
+function bufToWav(ab) {
+  const ch = ab.numberOfChannels, n = ab.length, sr = ab.sampleRate;
+  const dv = new DataView(new ArrayBuffer(44 + n * ch * 2));
+  const ws = (o, t) => { for (let i = 0; i < t.length; i++) dv.setUint8(o + i, t.charCodeAt(i)); };
+  ws(0, 'RIFF'); dv.setUint32(4, 36 + n * ch * 2, true); ws(8, 'WAVEfmt ');
+  dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, ch, true);
+  dv.setUint32(24, sr, true); dv.setUint32(28, sr * ch * 2, true);
+  dv.setUint16(32, ch * 2, true); dv.setUint16(34, 16, true);
+  ws(36, 'data'); dv.setUint32(40, n * ch * 2, true);
+  const chans = []; for (let c = 0; c < ch; c++) chans.push(ab.getChannelData(c));
+  for (let i = 0; i < n; i++)
+    for (let c = 0; c < ch; c++)
+      dv.setInt16(44 + (i * ch + c) * 2, Math.max(-1, Math.min(1, chans[c][i])) * 32767, true);
+  return dv.buffer;
+}
+
 const recBtn = document.getElementById('recbtn');
 const recPaint = () => {
   const t = Math.floor((performance.now() - recStart) / 1000);
-  recBtn.textContent = `Rec ${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
+  recBtn.textContent = (recWav ? 'Rec WAV ' : 'Rec ') + `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
 };
 recBtn.addEventListener('click', e => {
   audio();  // the click is a gesture — safe to create/resume the ctx
@@ -3337,16 +3412,24 @@ recBtn.addEventListener('click', e => {
     return;
   }
   if (!recorder) {
+    recWav = e.altKey;   // alt+Rec = lossless take: the webm gets decoded and re-saved as WAV
     if (!recDest) { recDest = ctx.createMediaStreamDestination(); limiter.connect(recDest); }
     recChunks = [];
     recorder = new MediaRecorder(recDest.stream);
     recorder.ondataavailable = e => recChunks.push(e.data);
-    recorder.onstop = () => {
+    recorder.onstop = async () => {
       // Honour the recorder's real container — Safari MediaRecorder
       // emits mp4, and a .webm filename lies about what's inside.
       const mime = recorder.mimeType || 'audio/webm';
-      const ext = mime.includes('mp4') ? '.m4a' : '.webm';
-      const blob = new Blob(recChunks, { type: mime });
+      let ext = mime.includes('mp4') ? '.m4a' : '.webm';
+      let blob = new Blob(recChunks, { type: mime });
+      if (recWav) {   // alt+Rec = lossless take: decode and re-save as WAV
+        try {
+          blob = new Blob([bufToWav(await ctx.decodeAudioData(await blob.arrayBuffer()))], { type: 'audio/wav' });
+          ext = '.wav';
+        } catch (_) { /* decode hiccup — fall back to the recorded container */ }
+      }
+
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       const fname = 'acro-set-' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + ext;
@@ -3355,7 +3438,7 @@ recBtn.addEventListener('click', e => {
       setTimeout(() => URL.revokeObjectURL(a.href), 10000);
       // The set itself becomes a library row: replay it, arm a loop
       // on it, resample it — same material as any loaded track.
-      Library.addFromFile(new File([blob], fname, { type: mime }),
+      Library.addFromFile(new File([blob], fname, { type: blob.type }),
         (performance.now() - recStart) / 1000)
         .catch(err => console.warn('library save failed:', err));
       stat('recs');
@@ -3367,6 +3450,7 @@ recBtn.addEventListener('click', e => {
     };
     recorder.start(1000);
     recBtn.classList.add('on');
+    if (recWav) recBtn.textContent = 'Rec WAV';
     // Running timer on the button — the "is it actually recording?"
     // glance, and the catch for a forgotten still-running take.
     recStart = performance.now();
@@ -3789,6 +3873,7 @@ function fireSmpPad(i, vel) {
   if (!smpSlots[i] || !smpSlots[i].buf) { pad.click(); return; }
   pad.__fire(vel);
 }
+document.getElementById('smp-gain').addEventListener('dblclick', e => { e.target.value = 0.8; e.target.dispatchEvent(new Event('input')); });
 document.getElementById('smp-gain').addEventListener('input', e => {
   if (smpGain) smpGain.gain.setTargetAtTime(parseFloat(e.target.value), ctx.currentTime, 0.01);
 });
@@ -3890,6 +3975,8 @@ document.getElementById('cuevol').addEventListener('input', e => {
   e.target.nextElementSibling.textContent = Math.round(v * 100) + '%';
   if (phonesOut && ctx) phonesOut.gain.setTargetAtTime(v, ctx.currentTime, 0.02);
 });
+document.getElementById('cuevol').addEventListener('dblclick', e => { e.target.value = 1; e.target.dispatchEvent(new Event('input')); });
+document.getElementById('cuemix').addEventListener('dblclick', e => { e.target.value = 0; e.target.dispatchEvent(new Event('input')); });
 document.getElementById('cuemix').addEventListener('input', e => {
   const m = parseFloat(e.target.value);
   e.target.nextElementSibling.textContent = m <= 0.01 ? 'cue' : Math.round(m * 100) + '%';
@@ -3919,7 +4006,7 @@ document.getElementById('lib-search').addEventListener('keydown', e => {
 // Library metadata export/import: the analysis + prep (BPM, grid,
 // key, hot cues, loop) is the valuable part — audio blobs stay put,
 // so entries match by name+size on the other side.
-const LIB_META_KEYS = ['name', 'size', 'type', 'duration', 'bpm', 'beatOff', 'key', 'cues', 'cueIn', 'loop', 'mem1', 'mem2'];
+const LIB_META_KEYS = ['name', 'size', 'type', 'duration', 'bpm', 'beatOff', 'key', 'cues', 'cueIn', 'loop', 'stem', 'mem1', 'mem2'];
 document.getElementById('lib-exp').addEventListener('click', async () => {
   const rows = (await Library.all()).filter(t => !t.deleted_at);
   const data = rows.map(t => Object.fromEntries(LIB_META_KEYS.filter(k => t[k] !== undefined).map(k => [k, t[k]])));
@@ -3953,7 +4040,7 @@ libImpFile.addEventListener('change', async () => {
     const rec = rows.find(t => t.name === e.name && t.size === e.size);
     if (!rec) continue;   // audio not loaded here — nothing to tag
     const patch = {};
-    for (const k of ['duration', 'bpm', 'beatOff', 'key', 'cues', 'cueIn', 'loop', 'mem1', 'mem2']) if (e[k] !== undefined) patch[k] = e[k];
+    for (const k of ['duration', 'bpm', 'beatOff', 'key', 'cues', 'cueIn', 'loop', 'stem', 'mem1', 'mem2']) if (e[k] !== undefined) patch[k] = e[k];
     await Library.tag(rec.id, patch);
     n++;
   }
