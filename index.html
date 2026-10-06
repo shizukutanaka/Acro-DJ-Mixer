@@ -881,12 +881,9 @@ class Deck {
     // DJM BEAT FX ON/OFF: punch the selected effect in and out
     // without touching the level knob — the knob position is kept.
     this.fxOn = true;
-    const fxBtn = this.el.querySelector('[data-act=fxon]');
-    const setFxOn = on => {
-      this.fxOn = on;
-      fxBtn.classList.toggle('on', on);
-      this.setEcho(parseFloat(this.echoEl.value));
-    };
+    this.fxBtn = this.el.querySelector('[data-act=fxon]');
+    const fxBtn = this.fxBtn;
+    const setFxOn = on => this.setFxOn(on);
     fxBtn.addEventListener('click', () => {
       if (fxBtn._suppress) { fxBtn._suppress = false; return; }  // click after a momentary hold
       setFxOn(!this.fxOn);
@@ -944,11 +941,7 @@ class Deck {
       el.addEventListener('input', () => this.setBand(band, parseFloat(el.value)));
       el.addEventListener('dblclick', () => { el.value = 0; this.setBand(band, 0); });
       const kb = this.killEls[band];
-      const setKill = on => {
-        this.kills[band] = on;
-        kb.classList.toggle('on', on);
-        this.setBand(band, parseFloat(el.value));
-      };
+      const setKill = on => this.setKill(band, on);
       kb.addEventListener('click', () => {
         if (kb._suppress) { kb._suppress = false; return; }   // click after a momentary hold
         setKill(!this.kills[band]);
@@ -1910,6 +1903,20 @@ class Deck {
   }
 
   // EQ band slider -1..+1 -> dB. -26 dB at full cut approximates the
+  // Same on/off the FX button runs — MIDI reachable.
+  setFxOn(on) {
+    this.fxOn = on;
+    this.fxBtn.classList.toggle('on', on);
+    this.setEcho(parseFloat(this.echoEl.value));
+  }
+
+  // Same toggle the kill letters run — reachable from MIDI too.
+  setKill(band, on) {
+    this.kills[band] = on;
+    this.killEls[band].classList.toggle('on', on);
+    this.setBand(band, parseFloat(this.eqEls[band].value));
+  }
+
   // "kill" travel of DJ isolators; +26 dB of headroom for boosts. A
   // killed band is pinned at the floor regardless of slider position
   // (the slider keeps its value for restore-on-unkill).
@@ -3679,6 +3686,12 @@ function midiMsg(e) {
     else if (n === 49) deckB.toggleLoop();
     else if (n === 50) deckA.cue();
     else if (n === 51) deckB.cue();
+    // Performance block: EQ kills and the FX on/off — a controller's
+    // kill/effect buttons reach the same methods as the letters.
+    else if (n >= 52 && n < 55) deckA.setKill(['high', 'mid', 'low'][n - 52], !deckA.kills[['high', 'mid', 'low'][n - 52]]);
+    else if (n >= 55 && n < 58) deckB.setKill(['high', 'mid', 'low'][n - 55], !deckB.kills[['high', 'mid', 'low'][n - 55]]);
+    else if (n === 58) deckA.setFxOn(!deckA.fxOn);
+    else if (n === 59) deckB.setFxOn(!deckB.fxOn);
   } else if ((kind === 0x80 || (kind === 0x90 && v === 0)) && n >= 36 && n < 40) {
     // Note-off on a pad held >=250 ms = gate release, same as a held
     // mouse press. A quick tap's off arrives well under that and the
