@@ -199,7 +199,7 @@
       <select data-act="assign" title="Channel assign — which crossfader side feeds this channel (Thru ignores the fader)"><option value="a">A</option><option value="thru">Thru</option><option value="b">B</option></select>
       <span class="time">0:00 / 0:00</span>
     </div>
-    <div class="hotcues"><button class="pad" data-pad="0" title="Hot cue — click sets a marker · right-click restores the last cleared cue">1</button><button class="pad" data-pad="1" title="Hot cue — click sets a marker · right-click restores the last cleared cue">2</button><button class="pad" data-pad="2" title="Hot cue — click sets a marker · right-click restores the last cleared cue">3</button><button class="pad" data-pad="3" title="Hot cue — click sets a marker · right-click restores the last cleared cue">4</button><button class="pad" data-pad="4" title="Hot cue — click sets a marker · right-click restores the last cleared cue">5</button><button class="pad" data-pad="5" title="Hot cue — click sets a marker · right-click restores the last cleared cue">6</button><button class="pad" data-pad="6" title="Hot cue — click sets a marker · right-click restores the last cleared cue">7</button><button class="pad" data-pad="7" title="Hot cue — click sets a marker · right-click restores the last cleared cue">8</button><span class="jump"><button data-act="jumpback" title="Jump back one beat (shift = one bar; 1 s without BPM)">−1b</button><button data-act="jumpfwd" title="Jump forward one beat (shift = one bar; 1 s without BPM)">+1b</button><button data-act="nextbar" title="Jump to the next bar downbeat — drop on the one">▸bar</button></span></div>
+    <div class="hotcues"><button class="pad" data-pad="0" title="Hot cue — click sets a marker · right-click restores the last cleared cue">1</button><button class="pad" data-pad="1" title="Hot cue — click sets a marker · right-click restores the last cleared cue">2</button><button class="pad" data-pad="2" title="Hot cue — click sets a marker · right-click restores the last cleared cue">3</button><button class="pad" data-pad="3" title="Hot cue — click sets a marker · right-click restores the last cleared cue">4</button><button class="pad" data-pad="4" title="Hot cue — click sets a marker · right-click restores the last cleared cue">5</button><button class="pad" data-pad="5" title="Hot cue — click sets a marker · right-click restores the last cleared cue">6</button><button class="pad" data-pad="6" title="Hot cue — click sets a marker · right-click restores the last cleared cue">7</button><button class="pad" data-pad="7" title="Hot cue — click sets a marker · right-click restores the last cleared cue">8</button><span class="jump"><button data-act="jumpback" title="Jump back one beat (shift = one bar; 1 s without BPM)">−1b</button><button data-act="jumpfwd" title="Jump forward one beat (shift = one bar; 1 s without BPM)">+1b</button><button data-act="nextbar" title="Jump to the next bar downbeat — drop on the one (shift = previous bar)">▸bar</button></span></div>
     <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1" title="Tempo — double-click resets to ±0%, scroll = fine trim ±0.1%"><output>+0.0%</output><span class="bend"><button data-act="benddn" title="Pitch bend — hold to slow the deck 5%">−</button><button data-act="bendup" title="Pitch bend — hold to speed the deck 5%">+</button></span><select data-act="range" title="Tempo range — ±8% fine, ±16% standard, ±50% wide"><option value="0.08">±8</option><option value="0.16" selected>±16</option><option value="0.50">±50</option></select></div>
     <div class="row eq"><label>EQ</label><span class="band"><button class="kill" data-kill="high" title="Kill high — instant −26 dB cut, click again to restore (hold = momentary)">H</button><input type="range" data-eq="high" min="-1" max="1" step="0.01" value="0" title="High shelf 4 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="mid" title="Kill mid — instant −26 dB cut, click again to restore (hold = momentary)">M</button><input type="range" data-eq="mid" min="-1" max="1" step="0.01" value="0" title="Mid 1 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="low" title="Kill low — instant −26 dB cut, click again to restore (hold = momentary)">L</button><input type="range" data-eq="low" min="-1" max="1" step="0.01" value="0" title="Low shelf 250 Hz, ±26 dB — double-click resets"></span></div>
     <div class="row"><label>Filter</label><input type="range" data-act="filter" min="-1" max="1" step="0.01" value="0" title="Color filter — left sweeps low-pass, right sweeps high-pass, center is open. Double-click resets"><output>open</output></div>
@@ -224,7 +224,7 @@
     <div class="meter cuem" title="Cue bus level (tick = peak hold)"><i id="cuemeter-fill"></i><b id="cuemeter-peak"></b></div>
     <div class="phase" id="phase" title="Beat-phase offset between decks — click to sync the non-playing deck to the playing one"></div>
     <div class="row"><label>Smpl</label><span id="smp-pads"></span><input type="range" id="smp-gain" min="0" max="1" step="0.01" value="0.8" title="Sampler level — all pads. Double-click resets to 80%"><label title="Loop pads — fired shots repeat until stopped (alt-click / choke)" style="font-size:10px;display:flex;align-items:center;gap:2px"><input type="checkbox" id="smp-loop">Loop</label><input type="range" id="smp-pitch" min="0.5" max="2" step="0.01" value="1" title="Sampler pitch — playback rate at fire time, 0.5–2×; double-click resets"><input id="smp-file" type="file" accept="audio/*" hidden></div>
-    <div class="row"><button id="automix" title="Auto mix — near the end of the playing track the other deck starts synced and the crossfader rides over (8 beats; shift = long 32-beat fade). Keeps going: the empty deck auto-loads the next library track">Auto</button><button id="recbtn" title="Record the master output — click again to stop and download a .webm; shift = pause/resume the take">Rec</button><button id="mic" title="Microphone — live input summed into the master pre-limiter (use headphones — open speakers will feed back)">Mic</button><input type="range" id="mic-gain" min="0" max="1.5" step="0.01" value="0.9" title="Mic level — trim the mic in the master; double-click resets to 0.9. Range goes past unity for quiet mics"><input type="range" id="mic-low" min="-1" max="1" step="0.01" value="0" title="Mic LOW — 200 Hz low shelf ±12 dB, double-click resets"><input type="range" id="mic-high" min="-1" max="1" step="0.01" value="0" title="Mic HI — 4 kHz high shelf ±12 dB, double-click resets"></div>
+    <div class="row"><button id="automix" title="Auto mix — near the end of the playing track the other deck starts synced and the crossfader rides over (8 beats; shift = long 32-beat fade). Keeps going: the empty deck auto-loads the next library track">Auto</button><button id="recbtn" title="Record the master output — click again to stop; the take downloads and lands in the library; shift = pause/resume the take">Rec</button><button id="mic" title="Microphone — live input summed into the master pre-limiter (use headphones — open speakers will feed back)">Mic</button><input type="range" id="mic-gain" min="0" max="1.5" step="0.01" value="0.9" title="Mic level — trim the mic in the master; double-click resets to 0.9. Range goes past unity for quiet mics"><input type="range" id="mic-low" min="-1" max="1" step="0.01" value="0" title="Mic LOW — 200 Hz low shelf ±12 dB, double-click resets"><input type="range" id="mic-high" min="-1" max="1" step="0.01" value="0" title="Mic HI — 4 kHz high shelf ±12 dB, double-click resets"></div>
     <div class="kbd-hint">Equal-power crossfade.<br>Auto BPM is an estimate — trust your ears.</div>
   </section>
 
@@ -247,7 +247,7 @@
       <select data-act="assign" title="Channel assign — which crossfader side feeds this channel (Thru ignores the fader)"><option value="a">A</option><option value="thru">Thru</option><option value="b">B</option></select>
       <span class="time">0:00 / 0:00</span>
     </div>
-    <div class="hotcues"><button class="pad" data-pad="0" title="Hot cue — click sets a marker · right-click restores the last cleared cue">1</button><button class="pad" data-pad="1" title="Hot cue — click sets a marker · right-click restores the last cleared cue">2</button><button class="pad" data-pad="2" title="Hot cue — click sets a marker · right-click restores the last cleared cue">3</button><button class="pad" data-pad="3" title="Hot cue — click sets a marker · right-click restores the last cleared cue">4</button><button class="pad" data-pad="4" title="Hot cue — click sets a marker · right-click restores the last cleared cue">5</button><button class="pad" data-pad="5" title="Hot cue — click sets a marker · right-click restores the last cleared cue">6</button><button class="pad" data-pad="6" title="Hot cue — click sets a marker · right-click restores the last cleared cue">7</button><button class="pad" data-pad="7" title="Hot cue — click sets a marker · right-click restores the last cleared cue">8</button><span class="jump"><button data-act="jumpback" title="Jump back one beat (shift = one bar; 1 s without BPM)">−1b</button><button data-act="jumpfwd" title="Jump forward one beat (shift = one bar; 1 s without BPM)">+1b</button><button data-act="nextbar" title="Jump to the next bar downbeat — drop on the one">▸bar</button></span></div>
+    <div class="hotcues"><button class="pad" data-pad="0" title="Hot cue — click sets a marker · right-click restores the last cleared cue">1</button><button class="pad" data-pad="1" title="Hot cue — click sets a marker · right-click restores the last cleared cue">2</button><button class="pad" data-pad="2" title="Hot cue — click sets a marker · right-click restores the last cleared cue">3</button><button class="pad" data-pad="3" title="Hot cue — click sets a marker · right-click restores the last cleared cue">4</button><button class="pad" data-pad="4" title="Hot cue — click sets a marker · right-click restores the last cleared cue">5</button><button class="pad" data-pad="5" title="Hot cue — click sets a marker · right-click restores the last cleared cue">6</button><button class="pad" data-pad="6" title="Hot cue — click sets a marker · right-click restores the last cleared cue">7</button><button class="pad" data-pad="7" title="Hot cue — click sets a marker · right-click restores the last cleared cue">8</button><span class="jump"><button data-act="jumpback" title="Jump back one beat (shift = one bar; 1 s without BPM)">−1b</button><button data-act="jumpfwd" title="Jump forward one beat (shift = one bar; 1 s without BPM)">+1b</button><button data-act="nextbar" title="Jump to the next bar downbeat — drop on the one (shift = previous bar)">▸bar</button></span></div>
     <div class="row"><label>Tempo</label><input type="range" data-act="tempo" min="0.84" max="1.16" step="0.001" value="1" title="Tempo — double-click resets to ±0%, scroll = fine trim ±0.1%"><output>+0.0%</output><span class="bend"><button data-act="benddn" title="Pitch bend — hold to slow the deck 5%">−</button><button data-act="bendup" title="Pitch bend — hold to speed the deck 5%">+</button></span><select data-act="range" title="Tempo range — ±8% fine, ±16% standard, ±50% wide"><option value="0.08">±8</option><option value="0.16" selected>±16</option><option value="0.50">±50</option></select></div>
     <div class="row eq"><label>EQ</label><span class="band"><button class="kill" data-kill="high" title="Kill high — instant −26 dB cut, click again to restore (hold = momentary)">H</button><input type="range" data-eq="high" min="-1" max="1" step="0.01" value="0" title="High shelf 4 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="mid" title="Kill mid — instant −26 dB cut, click again to restore (hold = momentary)">M</button><input type="range" data-eq="mid" min="-1" max="1" step="0.01" value="0" title="Mid 1 kHz, ±26 dB — double-click resets"></span><span class="band"><button class="kill" data-kill="low" title="Kill low — instant −26 dB cut, click again to restore (hold = momentary)">L</button><input type="range" data-eq="low" min="-1" max="1" step="0.01" value="0" title="Low shelf 250 Hz, ±26 dB — double-click resets"></span></div>
     <div class="row"><label>Filter</label><input type="range" data-act="filter" min="-1" max="1" step="0.01" value="0" title="Color filter — left sweeps low-pass, right sweeps high-pass, center is open. Double-click resets"><output>open</output></div>
@@ -896,7 +896,7 @@ class Deck {
     this.slipBtn.addEventListener('pointercancel', slipMomEnd);
     this.el.querySelector('[data-act=jumpback]').addEventListener('click', e => this.beatJump(e.shiftKey ? -4 : -1));
     this.el.querySelector('[data-act=jumpfwd]').addEventListener('click', e => this.beatJump(e.shiftKey ? 4 : 1));
-    this.el.querySelector('[data-act=nextbar]').addEventListener('click', () => this.jumpBar());
+    this.el.querySelector('[data-act=nextbar]').addEventListener('click', e => this.jumpBar(e.shiftKey ? -1 : 1));
     this.keylockBtn.addEventListener('click', () => this.toggleKeylock());
     this.el.querySelector('[data-act=eject]').addEventListener('click', e => {
       // Same accident class as load: eject on a playing deck silences
@@ -975,8 +975,34 @@ class Deck {
     this.fxBtn = this.el.querySelector('[data-act=fxon]');
     const fxBtn = this.fxBtn;
     const setFxOn = on => this.setFxOn(on);
-    fxBtn.addEventListener('click', () => {
+    this._fxPreset = null;   // shift+FX stores the strip, alt+FX recalls it
+    fxBtn.addEventListener('click', e => {
       if (fxBtn._suppress) { fxBtn._suppress = false; return; }  // click after a momentary hold
+      if (e.shiftKey) {
+        this._fxPreset = {
+          sel: this.fxSel.value, beat: this.fxBeat.value,
+          lvl: this.echoEl.value, tap: this.el.querySelector('[data-act=fxtap]').value,
+          on: this.fxOn,
+        };
+        this.status('fx strip stored — alt+FX recalls');
+        return;
+      }
+      if (e.altKey) {
+        const p = this._fxPreset;
+        if (!p) { this.status('no fx strip stored'); return; }
+        this.fxSel.value = p.sel;
+        this.fxSel.dispatchEvent(new Event('change'));
+        this.fxBeat.value = p.beat;
+        this.fxBeat.dispatchEvent(new Event('change'));
+        const tapEl = this.el.querySelector('[data-act=fxtap]');
+        tapEl.value = p.tap;
+        tapEl.dispatchEvent(new Event('change'));
+        this.echoEl.value = p.lvl;
+        this.echoEl.dispatchEvent(new Event('input'));
+        setFxOn(p.on);
+        this.status('fx strip recalled');
+        return;
+      }
       setFxOn(!this.fxOn);
     });
     // Momentary FX punch (same idiom as momentary EQ kills): when the
@@ -992,7 +1018,7 @@ class Deck {
     };
     fxBtn.addEventListener('pointerup', fxMomEnd);
     fxBtn.addEventListener('pointercancel', fxMomEnd);
-    fxBtn.title = 'Beat FX on/off — click toggles, hold = momentary punch (knob position kept)';
+    fxBtn.title = 'Beat FX on/off — click toggles, hold = momentary punch (knob position kept), shift = store strip, alt = recall';
     this.el.querySelector('[data-act=fxtap]').addEventListener('change', e => {
       this.setFxTap(e.target.value === 'post');
     });
@@ -2448,11 +2474,13 @@ class Deck {
   // Jump to the next bar downbeat — dropping or cueing on "the one" is
   // how transitions phrase. floor+1 so a pos already on a downbeat
   // still advances one bar; no grid → no-op.
-  jumpBar() {
+  jumpBar(dir = 1) {
     if (!this.grid || !this.buffer) return;
     const barLen = 4 * 60 / this.grid.bpm;
-    const n = Math.floor((this.pos() - this.grid.beatOff) / barLen) + 1;
-    const next = this.grid.beatOff + n * barLen;
+    const n = Math.floor((this.pos() - this.grid.beatOff) / barLen) + dir;
+    // dir -1 (shift+▸bar) jumps back to the previous bar's downbeat —
+    // re-drop a section you just overshot, symmetric with forward.
+    const next = Math.max(0, this.grid.beatOff + n * barLen);
     if (next < this.buffer.duration) this.seekTo(next);
   }
 
@@ -3302,14 +3330,20 @@ function setLogPush(e) {
   if (setLog.length > 2000) setLog.splice(0, setLog.length - 2000);
   try { localStorage.setItem(SETLOG_KEY, JSON.stringify(setLog)); } catch (_) {}
 }
+// Which row is ringing on the cue bus? The auditioning row's ▶
+// lights up — a crate full of identical ▶s is useless mid-audition.
+function prevMark() {
+  document.querySelectorAll('#lib-rows [data-prev]').forEach(el =>
+    el.classList.toggle('on', previewId != null && el.closest('.lib-row').dataset.id == previewId));
+}
 async function previewTrack(id) {
   const wasPlaying = previewId === id;
   const tok = ++previewToken;
   if (previewSrc) { try { previewSrc.stop(); } catch (_) {} previewSrc.disconnect(); previewSrc = previewId = null; if (previewGain) { previewGain.disconnect(); previewGain = null; } }
-  if (wasPlaying) return;   // second click on the same row = stop
+  if (wasPlaying) { prevMark(); return; }   // second click on the same row = stop
   let rec;
-  try { rec = await Library.get(id); } catch (_) { Library.fail(); return; }
-  if (!rec || !rec.blob || tok !== previewToken) return;
+  try { rec = await Library.get(id); } catch (_) { Library.fail(); prevMark(); return; }
+  if (!rec || !rec.blob || tok !== previewToken) { prevMark(); return; }
   const ac = audio(); cueBus();
   let buf;
   try { buf = await ac.decodeAudioData(await rec.blob.arrayBuffer()); }
@@ -3329,11 +3363,12 @@ async function previewTrack(id) {
   previewGain.connect(cueIn);
   previewSrc.connect(previewGain);
   const src = previewSrc;
-  src.onended = () => { if (previewSrc === src) { src.disconnect(); previewSrc = null; previewId = null; if (previewGain) { previewGain.disconnect(); previewGain = null; } } };
+  src.onended = () => { if (previewSrc === src) { src.disconnect(); previewSrc = null; previewId = null; if (previewGain) { previewGain.disconnect(); previewGain = null; } prevMark(); } };
   // Audition from the cue point like a deck's auto-cue — the lead-in
   // silence isn't what you're previewing.
   previewSrc.start(0, rec.cueIn || 0);
   previewId = id;
+  prevMark();
 }
 
 // Background analysis — crate digging shouldn't require loading every
@@ -3418,7 +3453,7 @@ async function renderLibrary() {
     <span>${t.bpm ? Math.round(t.bpm) : '—'} BPM</span>
     <span>${t.key ? esc(t.key.num + t.key.letter + ' ' + t.key.name) : '—'}</span>
     <span>${fmt(t.duration || 0)}</span>
-    <span><button data-prev title="Preview — audition the track on the headphone cue bus without loading a deck">▶</button><button data-to="a" title="Load into Deck A">→A</button><button data-to="b" title="Load into Deck B">→B</button><button class="lib-del" data-del title="Remove from library">×</button></span>
+    <span><button data-prev class="${previewId === t.id ? 'on' : ''}" title="Preview — audition the track on the headphone cue bus without loading a deck">▶</button><button data-to="a" title="Load into Deck A">→A</button><button data-to="b" title="Load into Deck B">→B</button><button class="lib-del" data-del title="Remove from library">×</button></span>
   </div>`; }).join('');
 }
 
@@ -3631,7 +3666,9 @@ autoBtn.addEventListener('click', e => {
 // recording is open; playing decks need no guard (the mixer surface
 // restores itself, and the library/setlist already saved).
 window.addEventListener('beforeunload', e => {
-  if (recorder && recorder.state === 'recording') e.preventDefault();
+  // Non-null covers every state with unsaved chunks: 'recording',
+  // 'paused', and the flush window between stop() and onstop's save.
+  if (recorder) e.preventDefault();
 });
 // Flush the pending session snapshot on the way out — the 400 ms
 // debounce would otherwise drop the last adjustments. pagehide, not
@@ -3728,13 +3765,17 @@ function autoMixTick() {
 async function autoNext(vacated, playing) {
   try {
     const rows = (await Library.all()).filter(t => !t.deleted_at && t.pad == null).sort((a, b) => b.updated_at - a.updated_at);
-    if (!rows.length) return false;
+    if (!rows.length) { vacated.status('Library empty — auto-mix stops.'); return false; }
     const { pick, reason } = autoMixPick(rows, playing, vacated.libId);
-    if (!pick) return false;
+    if (!pick) { vacated.status('No next track available.'); return false; }
     await Library.loadInto(vacated, pick.id);
     vacated.status('Auto-load: ' + (pick.name || 'track') + ' — ' + reason);
     return true;
-  } catch (_) { return false; }
+  } catch (err) {
+    console.warn('autoNext failed:', err);
+    vacated.status('Auto-load failed.');
+    return false;
+  }
 }
 
 // Mic input: summed into the master at monoNode — pre-limiter and
@@ -4060,7 +4101,17 @@ const smpPitchEl = document.getElementById('smp-pitch');
 smpPitchEl.addEventListener('dblclick', () => { smpPitchEl.value = 1; });
 
 async function loadSmpFile(i, f) {
-  const buf = await audio().decodeAudioData(await f.arrayBuffer());
+  let buf;
+  try { buf = await audio().decodeAudioData(await f.arrayBuffer()); }
+  catch (err) {
+    // Loud fail: a pad that swallows the error looks armed but
+    // never loads — say so on the pad itself.
+    console.warn('sampler decode failed:', err);
+    const b = smpPadsEl.children[i];
+    b.textContent = '!';
+    b.title = 'Could not decode ' + f.name;
+    return;
+  }
   // A voice or cue-bus audition playing the old sample can't outlive
   // the slot it was fired from — silence both before the buffer swaps
   // out (same ghost class as pad clearing, ADR-0250).
@@ -4469,6 +4520,10 @@ function midiMsg(e) {
     else if (n >= 36 && n < 40) fireSmpPad(n - 36, v / 127);
     else if (n === 44) deckA.toggle();
     else if (n === 45) deckB.toggle();
+    // Instant doubles — a controller's "load to deck" keys:
+    // 40 clones A into B, 41 clones B into A (same method ×2 calls).
+    else if (n === 40) deckA.instantDouble();
+    else if (n === 41) deckB.instantDouble();
     // Transport block, same methods the buttons call:
     // 46/47 sync, 48/49 loop arm, 50/51 cue — a controller's
     // transport keys reach every core verb, not just play.
@@ -4824,9 +4879,11 @@ function sessSave() {
         assign: q('[data-act=assign]').value, range: q('[data-act=range]').value,
         loopbeats: q('[data-act=loopbeats]').value,
         tempo: q('[data-act=tempo]').value,
+        stem: q('[data-act=stem]').value,
         slip: q('[data-act=slip]').classList.contains('on'),
         brake: q('[data-act=brake]').classList.contains('on'),
         keylock: q('[data-act=keylock]').classList.contains('on'),
+        remain: d.remain,
       };
     }
     localStorage.setItem(sessKey, JSON.stringify({ v, t, decks }));
@@ -4878,6 +4935,7 @@ try {
       // Tempo restores after range — widening/narrowing the range
       // re-clamps the slider, so a stale order would eat the value.
       setV('[data-act=tempo]', s2.tempo);
+      setV('[data-act=stem]', s2.stem);   // setStem re-reads the select when the graph builds
       const fxBtn = q('[data-act=fxon]');
       if (s2.fxon != null && fxBtn.classList.contains('on') !== !!s2.fxon) fxBtn.click();
       const slipB = q('[data-act=slip]');
@@ -4888,6 +4946,7 @@ try {
       // Not a click: toggleKeylock refuses before the engine exists;
       // ensureNodes forwards the armed state once the worklet is up.
       if (s2.keylock != null) { d.keylock = !!s2.keylock; klB.classList.toggle('on', d.keylock); }
+      if (s2.remain != null) d.remain = !!s2.remain;   // TIME mode is a preference, not a state
     }
   }
 } catch {}
