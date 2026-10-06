@@ -903,7 +903,7 @@ class Deck {
     // leaving the deck. Same order as the library (updated_at desc);
     // playing decks route through the two-click load guard.
     const stepLib = async (dir, btn, freshOnly = false) => {
-      let rows = (await Library.all()).filter(t => !t.deleted_at && !t.pad).sort((a, b) => b.updated_at - a.updated_at);
+      let rows = (await Library.all()).filter(t => !t.deleted_at && t.pad == null).sort((a, b) => b.updated_at - a.updated_at);
       if (freshOnly) rows = rows.filter(t => !t.plays);   // shift = unplayed tracks only, matching the dimmed-row / auto-mix freshness rule
       if (!rows.length) { if (freshOnly) this.status('no unplayed tracks'); return; }
       const cur = rows.findIndex(t => t.id === this.libId);
@@ -3105,7 +3105,7 @@ const Library = {
   async addFromFile(fileObj, duration) {
     // Dedupe by name+size: re-loading the same track refreshes its record.
     const rows = await this.all();
-    const ex = rows.find(t => t.name === fileObj.name && t.size === fileObj.size && !t.deleted_at && !t.pad);
+    const ex = rows.find(t => t.name === fileObj.name && t.size === fileObj.size && !t.deleted_at && t.pad == null);
     const now = Date.now();
     const rec = ex || { created_at: now, deleted_at: null, version: 0 };
     rec.name = fileObj.name;
@@ -3275,7 +3275,7 @@ async function renderLibrary() {
   const seq = ++libSeq;
   const rowsEl = document.getElementById('lib-rows');
   let rows;
-  try { rows = (await Library.all()).filter(t => !t.deleted_at && !t.pad).sort((a, b) => b.updated_at - a.updated_at); }
+  try { rows = (await Library.all()).filter(t => !t.deleted_at && t.pad == null).sort((a, b) => b.updated_at - a.updated_at); }
   catch (_) { Library.fail(); return; }
   if (seq !== libSeq) return;   // a newer render superseded this one
   // Up-next under auto-mix: the row continuous auto-mix will load
@@ -3623,7 +3623,7 @@ function autoMixTick() {
 // IS the playing track (library of one) or nothing's left.
 async function autoNext(vacated, playing) {
   try {
-    const rows = (await Library.all()).filter(t => !t.deleted_at && !t.pad).sort((a, b) => b.updated_at - a.updated_at);
+    const rows = (await Library.all()).filter(t => !t.deleted_at && t.pad == null).sort((a, b) => b.updated_at - a.updated_at);
     if (!rows.length) return false;
     const { pick, reason } = autoMixPick(rows, playing, vacated.libId);
     if (!pick) return false;
@@ -4067,7 +4067,7 @@ document.getElementById('lib-search').addEventListener('keydown', e => {
 // so entries match by name+size on the other side.
 const LIB_META_KEYS = ['name', 'size', 'type', 'duration', 'bpm', 'beatOff', 'key', 'cues', 'cueIn', 'loop', 'stem', 'mem1', 'mem2'];
 document.getElementById('lib-exp').addEventListener('click', async () => {
-  const rows = (await Library.all()).filter(t => !t.deleted_at && !t.pad);
+  const rows = (await Library.all()).filter(t => !t.deleted_at && t.pad == null);
   const data = rows.map(t => Object.fromEntries(LIB_META_KEYS.filter(k => t[k] !== undefined).map(k => [k, t[k]])));
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' }));
@@ -4093,7 +4093,7 @@ libImpFile.addEventListener('change', async () => {
   let data;
   try { data = JSON.parse(await f.text()); } catch { deckA.status('import: not a library file'); return; }
   if (!Array.isArray(data)) { deckA.status('import: not a library file'); return; }
-  const rows = (await Library.all()).filter(t => !t.deleted_at && !t.pad);
+  const rows = (await Library.all()).filter(t => !t.deleted_at && t.pad == null);
   let n = 0;
   for (const e of data) {
     const rec = rows.find(t => t.name === e.name && t.size === e.size);
