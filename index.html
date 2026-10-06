@@ -3912,6 +3912,16 @@ document.addEventListener('wheel', e => {
 const helpEl = document.getElementById('help');
 const toggleHelp = () => { helpEl.hidden = !helpEl.hidden; };
 helpEl.addEventListener('click', () => { helpEl.hidden = true; });
+// Mouse-clicked buttons keep DOM focus — a later Space/Enter press then
+// natively re-clicks them. On a two-stage guard that's the confirm: click
+// Delete ('sure?' armed), press Enter for the filter, and the track is
+// gone. Blur on pointer-originated clicks only (e.detail > 0); keyboard
+// activation reports detail 0, so Tab+Enter accessibility is untouched.
+document.addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (b && e.detail > 0) b.blur();
+});
+
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' && e.target.type === 'text') return;
   if (e.target.tagName === 'SELECT') return;
