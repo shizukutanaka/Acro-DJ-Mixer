@@ -381,7 +381,8 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   own level (see ADR-0167). Pads auto-gain on load through the same
   K-weighted pipeline as the decks, so shots start level (see ADR-0197);
   resampled loops normalize the same way (see ADR-0202).
-  Pads are single-voice: firing one chokes the others (see ADR-0121);
+  Pads form two choke groups — 1+2 and 3+4: firing one chokes only its
+  groupmate, so layers across groups keep ringing (see ADR-0121, ADR-0239);
   clearing a pad stops its cue audition (see ADR-0250). Right-click on an
   empty pad restores the last shift-cleared sample (see ADR-0240).
 - **Wheel nudge** — scrolling over any fader or knob steps it one
