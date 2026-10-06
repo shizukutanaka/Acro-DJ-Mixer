@@ -179,6 +179,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Quantize toggle** — `Qtz` beside `Rev` switches beat-grid snapping
   for hot cues and loop in-points on/off (on by default)
   (see ADR-0055).
+- **Effective BPM** — once the tempo fader moves, the readout
+  adds `→N` for what's actually playing, next to the detected
+  tempo (see ADR-0219).
 - **Decimal BPM** — the readout shows the fractional estimate
   (`120.2`), so matched decks are visibly matched (see ADR-0056).
 - **Manual loop** — tracks with no detected grid can still loop:
@@ -303,6 +306,7 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   the deck through the library in list order — crate-dig without
   leaving the deck; playing decks still confirm (see ADR-0124). Hold
   `Shift` to step through unplayed tracks only (see ADR-0225).
+  Library rows are also draggable onto a deck's dropzone (ADR-0194).
 - **Channel assign** — `A/Thru/B` select routes each deck to a
   crossfader side or bypasses it; fader-start follows the assign
   (see ADR-0085).
@@ -480,6 +484,12 @@ Ordered by value per the ADR's automation layer:
 Lifetime counters (loads / plays / loops / auto transitions /
 recordings) live in `localStorage` — hover the footer to read them.
 Local-only; nothing is sent anywhere (see ADR-0237).
+
+## Accessibility
+
+Every control's tooltip is mirrored into `aria-label` at boot, so
+icon buttons announce verbs to assistive tech, and deck status
+lines are `aria-live` (see ADR-0236).
 
 ## Security
 

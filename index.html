@@ -108,6 +108,7 @@
   .deck.a .beatlamp.bar { background: var(--accent-a); }
   .deck.b .beatlamp.bar { background: var(--accent-b); }
   .bpm b { color: var(--text); font-size: 14px; }
+  .bpm i { font-style: normal; font-size: 11px; color: var(--muted); }
   .mixer { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 14px; align-items: center; justify-content: center; }
   .mixer h2 { margin: 0; font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
   .mixer .row { width: 100%; }
@@ -154,6 +155,7 @@
   .bend button.on { border-color: var(--acc); color: var(--acc); }
   .eq .kill.on { border-color: #ff5a5a; color: #ff5a5a; }
   .lib-row.played:not(.onA):not(.onB) { opacity: .55; }
+  .lib-row.dragging { opacity: .4; }
   .lib-row.fit .name { color: #3ddc84; }
   .lib-row.fit .name::before { content: '● '; font-size: 9px; vertical-align: 1px; }
   .lib-row.onA .name::after { content: ' A'; color: #4aa3ff; font-size: 9px; font-weight: 700; }
@@ -202,7 +204,7 @@
     <div class="row"><label>Stem</label><select data-act="stem" title="Mid/side split — Vocal keeps the centre channel (acapella), Inst keeps the sides (vocal-removed)"><option value="off">Full</option><option value="voc">Vocal</option><option value="inst">Inst</option></select></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1" title="Channel gain — double-click resets to unity"><output>100%</output><button data-act="mute" title="Deck mute — hold to silence the channel; playback keeps running underneath so release lands back on beat (channel on/off)">Mut</button></div>
     <div class="row"><label>Fader</label><input type="range" data-act="fader" min="0" max="1" step="0.01" value="1" title="Channel fader — the upfader: post-EQ, pre-crossfader channel level. Double-click resets to unity"><output>100%</output></div>
-    <div class="row"><span class="bpm">BPM <b>—</b></span><span class="barcount" title="Bar.beat position on the beat grid — where the phrase is">—</span><span class="beatlamp" title="Beat indicator — pulses each beat, accent on the downbeat"></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients (shift = one beat earlier)">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients (shift = one beat later)">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="stctl" title="Transpose — shift the deck's key in semitones (needs key lock / http); double-click ±N to reset"><button data-act="pitchdn">−</button><b class="st">±0</b><button data-act="pitchup">+</button></span><button data-act="keysync" title="Key sync — transpose to a key that mixes harmonically with the other deck">Key</button><span class="status"></span></div>
+    <div class="row"><span class="bpm">BPM <b>—</b><i></i></span><span class="barcount" title="Bar.beat position on the beat grid — where the phrase is">—</span><span class="beatlamp" title="Beat indicator — pulses each beat, accent on the downbeat"></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients (shift = one beat earlier)">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients (shift = one beat later)">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="stctl" title="Transpose — shift the deck's key in semitones (needs key lock / http); double-click ±N to reset"><button data-act="pitchdn">−</button><b class="st">±0</b><button data-act="pitchup">+</button></span><button data-act="keysync" title="Key sync — transpose to a key that mixes harmonically with the other deck">Key</button><span class="status"></span></div>
   </section>
 
   <section class="mixer">
@@ -250,7 +252,7 @@
     <div class="row"><label>Stem</label><select data-act="stem" title="Mid/side split — Vocal keeps the centre channel (acapella), Inst keeps the sides (vocal-removed)"><option value="off">Full</option><option value="voc">Vocal</option><option value="inst">Inst</option></select></div>
     <div class="row"><label>Gain</label><input type="range" data-act="gain" min="0" max="1" step="0.01" value="1" title="Channel gain — double-click resets to unity"><output>100%</output><button data-act="mute" title="Deck mute — hold to silence the channel; playback keeps running underneath so release lands back on beat (channel on/off)">Mut</button></div>
     <div class="row"><label>Fader</label><input type="range" data-act="fader" min="0" max="1" step="0.01" value="1" title="Channel fader — the upfader: post-EQ, pre-crossfader channel level. Double-click resets to unity"><output>100%</output></div>
-    <div class="row"><span class="bpm">BPM <b>—</b></span><span class="barcount" title="Bar.beat position on the beat grid — where the phrase is">—</span><span class="beatlamp" title="Beat indicator — pulses each beat, accent on the downbeat"></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients (shift = one beat earlier)">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients (shift = one beat later)">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="stctl" title="Transpose — shift the deck's key in semitones (needs key lock / http); double-click ±N to reset"><button data-act="pitchdn">−</button><b class="st">±0</b><button data-act="pitchup">+</button></span><button data-act="keysync" title="Key sync — transpose to a key that mixes harmonically with the other deck">Key</button><span class="status"></span></div>
+    <div class="row"><span class="bpm">BPM <b>—</b><i></i></span><span class="barcount" title="Bar.beat position on the beat grid — where the phrase is">—</span><span class="beatlamp" title="Beat indicator — pulses each beat, accent on the downbeat"></span><span class="bpmctl"><button data-act="tap" title="Tap tempo — click on the beat to set tempo and phase">Tap</button><button data-act="nudgeback" title="Nudge the beat grid 10 ms earlier — align ticks to transients (shift = one beat earlier)">‹</button><button data-act="nudgefwd" title="Nudge the beat grid 10 ms later — align ticks to transients (shift = one beat later)">›</button></span><span class="key" title="Detected key (Camelot wheel) — green = mixes harmonically with the other deck">—</span><span class="stctl" title="Transpose — shift the deck's key in semitones (needs key lock / http); double-click ±N to reset"><button data-act="pitchdn">−</button><b class="st">±0</b><button data-act="pitchup">+</button></span><button data-act="keysync" title="Key sync — transpose to a key that mixes harmonically with the other deck">Key</button><span class="status"></span></div>
   </section>
 </main>
 <section class="library">
@@ -273,7 +275,7 @@
     <p><b>right-click</b> — cue-bus preview on hot-cue and sampler pads</p>
     <p><b>library</b> — type to filter · ▶ previews on the cue bus · × deletes (two-click confirm) · ‹ › step a track into the deck</p>
     <h3>Keys</h3>
-    <p><b>q / p</b> play decks · <b>w / o</b> headphone cue · <b>1–4</b> sampler pads · <b>A S D F / H J K L</b> hot cues 5–8 · <b>[ ] / - =</b> beat jump ±1 (shift ±4) · <b>← →</b> crossfader · <b>↑ ↓</b> master · <b>?</b> this help</p>
+    <p><b>q / p</b> play decks · <b>g / '</b> slip · <b>w / o</b> headphone cue · <b>1–4</b> sampler pads · <b>.</b> auto-mix · <b>A S D F / H J K L</b> hot cues 5–8 · <b>[ ] / - =</b> beat jump ±1 (shift ±4) · <b>← →</b> crossfader · <b>↑ ↓</b> master · <b>?</b> this help</p>
   </div>
 </div>
 <script>
@@ -588,6 +590,7 @@ class Deck {
     this.grid = null;      // {bpm, beatOff} in track-time seconds, from estimateBpm
     this.key = null;       // {num, letter, name} from estimateKey (Camelot + name)
     this.bpmEl = root.querySelector('.bpm b');
+    this.effEl = root.querySelector('.bpm i');
     this.barEl = root.querySelector('.barcount');
     this.lampEl = root.querySelector('.beatlamp');
     this.keyEl = root.querySelector('.key');
@@ -636,13 +639,17 @@ class Deck {
     dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
     dz.addEventListener('drop', e => {
       e.preventDefault(); dz.classList.remove('drag');
+      const libId = e.dataTransfer.getData('text/x-lib-id');
       const f = e.dataTransfer.files && e.dataTransfer.files[0];
-      if (!f) return;
+      if (!f && !libId) return;
+      // A library row carries its saved prep (cues/loop/grid/key)
+      // through loadInto — same load as the ->A/->B buttons.
+      const doLoad = () => libId ? Library.loadInto(this, Number(libId)) : this.load(f);
       // Same accident class as ->A/->B: a drop on a playing deck
       // silences the floor — arm the two-gesture confirm here too
       // (first drop asks 'sure?', a second drop inside 2 s loads).
-      if (this.playing) armConfirm(dz, () => this.load(f));
-      else this.load(f);
+      if (this.playing) armConfirm(dz, doLoad);
+      else doLoad();
     });
     this.playBtn.addEventListener('click', e => {
       // Shift = drop on the one: snap to the next bar downbeat before
@@ -707,7 +714,14 @@ class Deck {
       e.preventDefault();
       this.syncTo(this.partner, false, true);
     });
-    this.el.querySelector('[data-act=dbl]').addEventListener('click', () => this.instantDouble());
+    this.el.querySelector('[data-act=dbl]').addEventListener('click', e => {
+      // Doubling onto a PLAYING partner replaces its track — the same
+      // footgun the load guard (ADR-0104) exists for. Arm-confirm it
+      // like every other load path; stopped partners double free.
+      const p = this.partner;
+      if (p && p.playing) armConfirm(e.target, () => this.instantDouble());
+      else this.instantDouble();
+    });
     this.loopBtn.addEventListener('click', e => this.toggleLoop(e.shiftKey, e.altKey));
     this.el.querySelector('[data-act=reloop]').addEventListener('click', e => {
       // Shift = loop memory: store the armed loop for later re-entry
@@ -1637,6 +1651,7 @@ class Deck {
     this.loopBtn.textContent = 'Loop';
     this.el.querySelector('.dropzone').textContent = 'Drop track or click to load';
     this.bpmEl.textContent = '—';
+    this.effEl.textContent = '';
     this.el.querySelector('.barcount').textContent = '—';
     this.el.querySelector('.key').textContent = '—';
     this.el.querySelector('.key').className = 'key';   // refreshKey's classes are ok/clash, not 'good'
@@ -1845,6 +1860,10 @@ class Deck {
     if (this.engine === 'worklet') this.node.port.postMessage({ type: 'rate', rate: eff });
     else if (this.source) this.source.playbackRate.value = eff;
     this.tempoOut.textContent = (r >= 1 ? '+' : '') + ((r - 1) * 100).toFixed(1) + '%';
+    // Effective BPM beside the detected tempo — the value a DJ
+    // actually beat-matches to once the fader has moved.
+    this.effEl.textContent = (this.grid && Math.abs(r - 1) > 0.005)
+      ? ' →' + (this.grid.bpm * r).toFixed(1) : '';
     this._syncDelay();
   }
 
@@ -2127,6 +2146,8 @@ class Deck {
       if (buf !== this.buffer) return;
       this.grid = grid;
       this.bpmEl.textContent = grid ? grid.bpm.toFixed(1) : '—';
+      this.effEl.textContent = (grid && Math.abs(this.rate - 1) > 0.005)
+        ? ' →' + (grid.bpm * this.rate).toFixed(1) : '';
       if (grid) this.tagLib({ bpm: grid.bpm, beatOff: grid.beatOff });
       this._syncDelay();
       this._drawnPos = undefined;
@@ -2978,7 +2999,7 @@ async function renderLibrary() {
     const nC = (t.cues || []).filter(c => c != null).length;
     const prep = nC || t.loop || t.plays ? ` <span class="prep" title="Saved prep / plays">${nC ? '⚑' + nC : ''}${t.loop ? ' ∞' : ''}${t.plays ? ' ×' + t.plays : ''}</span>` : '';
     const onDeck = t.id === deckA.libId ? ' onA' : t.id === deckB.libId ? ' onB' : '';
-    return `<div class="lib-row${f.length ? ' fit' : ''}${onDeck}${t.plays ? ' played' : ''}" data-id="${t.id}">
+    return `<div class="lib-row${f.length ? ' fit' : ''}${onDeck}${t.plays ? ' played' : ''}" data-id="${t.id}" draggable="true">
     <span class="name" title="${esc(t.name)}${f.length ? ' — fits deck ' + f.join('/') + ' (key + tempo)' : ''}">${esc(t.name)}${prep}</span>
     <span>${t.bpm ? Math.round(t.bpm) : '—'} BPM</span>
     <span>${t.key ? esc(t.key.num + t.key.letter + ' ' + t.key.name) : '—'}</span>
@@ -3706,6 +3727,18 @@ const armConfirm = (b, fn) => {
   setTimeout(() => { if (b._arm === now) { b.textContent = lbl; b._arm = 0; } }, 2000);
 };
 
+// Rows are draggable onto a deck — the rekordbox/Serato gesture.
+document.getElementById('lib-rows').addEventListener('dragstart', e => {
+  const row = e.target.closest('.lib-row');
+  if (!row) return;
+  e.dataTransfer.setData('text/x-lib-id', row.dataset.id);
+  e.dataTransfer.effectAllowed = 'copy';
+  row.classList.add('dragging');
+});
+document.getElementById('lib-rows').addEventListener('dragend', e => {
+  const row = e.target.closest('.lib-row');
+  if (row) row.classList.remove('dragging');
+});
 document.getElementById('lib-rows').addEventListener('click', e => {
   const row = e.target.closest('.lib-row');
   if (!row) return;
@@ -3802,6 +3835,12 @@ document.addEventListener('keydown', e => {
     case 'l': case 'L': deckB.padCue(7); break;
     case 'i': case 'I': deckB.syncTo(deckA); break;
     case 'u': case 'U': deckB.toggleLoop(); break;
+    // Slip beside the cue keys (g under the left hand, ' under the
+    // right) — the last deck-latch a keyboard mix couldn't reach.
+    case 'g': case 'G': deckA.slipBtn.click(); break;
+    case "'": deckB.slipBtn.click(); break;
+    // Auto on the period key — one press arms/disarms the whole rig.
+    case '.': autoBtn.click(); break;
     // Beat jump: [ ] for A, - = for B — the ‹ › button pair ported
     // to keys; shift rides the same ×4 bar jump the buttons take
     // (the shifted glyphs { } _ + get their own cases).
@@ -4243,6 +4282,14 @@ try {
     }
   }
 } catch {}
+
+// Accessibility: every control already carries a descriptive title —
+// mirror it into aria-label so icon-only buttons announce a verb
+// instead of their glyph, and let deck status lines announce updates.
+document.querySelectorAll('button[title], select[title], input[title]').forEach(el => {
+  if (!el.getAttribute('aria-label')) el.setAttribute('aria-label', el.title);
+});
+document.querySelectorAll('.status').forEach(el => el.setAttribute('aria-live', 'polite'));
 </script>
 </body>
 </html>
