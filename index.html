@@ -3304,14 +3304,20 @@ function setLogPush(e) {
   if (setLog.length > 2000) setLog.splice(0, setLog.length - 2000);
   try { localStorage.setItem(SETLOG_KEY, JSON.stringify(setLog)); } catch (_) {}
 }
+// Which row is ringing on the cue bus? The auditioning row's ▶
+// lights up — a crate full of identical ▶s is useless mid-audition.
+function prevMark() {
+  document.querySelectorAll('#lib-rows [data-prev]').forEach(el =>
+    el.classList.toggle('on', previewId != null && el.closest('.lib-row').dataset.id == previewId));
+}
 async function previewTrack(id) {
   const wasPlaying = previewId === id;
   const tok = ++previewToken;
   if (previewSrc) { try { previewSrc.stop(); } catch (_) {} previewSrc.disconnect(); previewSrc = previewId = null; if (previewGain) { previewGain.disconnect(); previewGain = null; } }
-  if (wasPlaying) return;   // second click on the same row = stop
+  if (wasPlaying) { prevMark(); return; }   // second click on the same row = stop
   let rec;
-  try { rec = await Library.get(id); } catch (_) { Library.fail(); return; }
-  if (!rec || !rec.blob || tok !== previewToken) return;
+  try { rec = await Library.get(id); } catch (_) { Library.fail(); prevMark(); return; }
+  if (!rec || !rec.blob || tok !== previewToken) { prevMark(); return; }
   const ac = audio(); cueBus();
   let buf;
   try { buf = await ac.decodeAudioData(await rec.blob.arrayBuffer()); }
@@ -3331,11 +3337,12 @@ async function previewTrack(id) {
   previewGain.connect(cueIn);
   previewSrc.connect(previewGain);
   const src = previewSrc;
-  src.onended = () => { if (previewSrc === src) { src.disconnect(); previewSrc = null; previewId = null; if (previewGain) { previewGain.disconnect(); previewGain = null; } } };
+  src.onended = () => { if (previewSrc === src) { src.disconnect(); previewSrc = null; previewId = null; if (previewGain) { previewGain.disconnect(); previewGain = null; } prevMark(); } };
   // Audition from the cue point like a deck's auto-cue — the lead-in
   // silence isn't what you're previewing.
   previewSrc.start(0, rec.cueIn || 0);
   previewId = id;
+  prevMark();
 }
 
 // Background analysis — crate digging shouldn't require loading every
@@ -3420,7 +3427,7 @@ async function renderLibrary() {
     <span>${t.bpm ? Math.round(t.bpm) : '—'} BPM</span>
     <span>${t.key ? esc(t.key.num + t.key.letter + ' ' + t.key.name) : '—'}</span>
     <span>${fmt(t.duration || 0)}</span>
-    <span><button data-prev title="Preview — audition the track on the headphone cue bus without loading a deck">▶</button><button data-to="a" title="Load into Deck A">→A</button><button data-to="b" title="Load into Deck B">→B</button><button class="lib-del" data-del title="Remove from library">×</button></span>
+    <span><button data-prev class="${previewId === t.id ? 'on' : ''}" title="Preview — audition the track on the headphone cue bus without loading a deck">▶</button><button data-to="a" title="Load into Deck A">→A</button><button data-to="b" title="Load into Deck B">→B</button><button class="lib-del" data-del title="Remove from library">×</button></span>
   </div>`; }).join('');
 }
 
