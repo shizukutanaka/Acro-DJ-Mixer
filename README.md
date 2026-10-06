@@ -420,9 +420,10 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   (see ADR-0118/ADR-0132/ADR-0145/ADR-0147). Keys `1`–`4` fire the pads (see ADR-0119);
   the slider beside them trims the shared sample level
   (see ADR-0120), and scrolling over a loaded pad trims that pad's
-  own level (see ADR-0167). Pads auto-gain on load through the same
-  K-weighted pipeline as the decks, so shots start level (see ADR-0197);
-  resampled loops normalize the same way (see ADR-0202).
+  own level (see ADR-0167); shift+scroll trims the pad's start offset so
+  lead-in silence can be dropped (see ADR-0226). Pads auto-gain on load
+  through the same K-weighted pipeline as the decks, so shots start level
+  (see ADR-0197); resampled loops normalize the same way (see ADR-0202).
   Pads form two choke groups — 1+2 and 3+4: firing one chokes only its
   groupmate, so layers across groups keep ringing (see ADR-0121, ADR-0239);
   clearing a pad stops its cue audition (see ADR-0250). Right-click on an

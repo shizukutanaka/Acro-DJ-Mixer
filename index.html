@@ -3759,7 +3759,7 @@ smpSlots.forEach((_, i) => {
     g.connect(smpGain);
     slot.g = g;
     src.onended = () => { if (slot.src === src) { b.classList.remove('on'); slot.src = null; } };
-    src.start();
+    src.start(0, slot.start || 0);
     slot.src = src;
     b.classList.add('on');
   };
@@ -3847,7 +3847,7 @@ smpSlots.forEach((_, i) => {
     src.buffer = slot.buf;
     src.connect(cueBus());
     src.onended = () => { if (smpPrev === src) { src.disconnect(); smpPrev = null; } };
-    src.start();
+    src.start(0, slot.start || 0);
     smpPrev = src;
   });
   // Drop a file straight onto a pad — the deck dropzone's grammar
@@ -3866,9 +3866,17 @@ smpSlots.forEach((_, i) => {
     const slot = smpSlots[i];
     if (!slot || !slot.buf) return;
     e.preventDefault();
+    if (e.shiftKey) {
+      // Shift+wheel trims the start offset — drop lead-in silence or
+      // a pickup before the hit, like trimming an SP pad's start.
+      slot.start = Math.min(Math.max(0, (slot.start || 0) - Math.sign(e.deltaY) * 0.05),
+        Math.max(0, slot.buf.duration - 0.05));
+      b.title = slot.name + ' — starts ' + slot.start.toFixed(2) + 's in (shift+wheel trims)';
+      return;
+    }
     slot.gain = Math.min(1.5, Math.max(0.1, (slot.gain != null ? slot.gain : 1) - Math.sign(e.deltaY) * 0.05));
     if (slot.g) slot.g.gain.setTargetAtTime(slot.gain, ctx.currentTime, 0.01);
-    b.title = slot.name + ' — level ' + slot.gain.toFixed(2) + 'x (wheel trims)';
+    b.title = slot.name + ' — level ' + slot.gain.toFixed(2) + 'x (wheel trims; shift+wheel trims start)';
   }, { passive: false });
   smpPadsEl.appendChild(b);
   // Shared entry for MIDI notes: click the pad to load, fire if loaded.
