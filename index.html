@@ -2968,6 +2968,12 @@ const Library = {
       rec.blob = null; // free the audio bytes; the metadata row stays for soft-delete history
       rec.version++;
       await this.put(rec);
+      // A deck holding this track keeps playing (its buffer is decoded),
+      // but it must stop *claiming* the record: eject's right-click undo
+      // would promise a loadInto that deleted_at silently refuses, and
+      // tagLib would keep writing prep into a dead row. Same posture as
+      // a file-loaded deck — which carries no library link at all.
+      for (const d of [deckA, deckB]) if (d.libId === id) d.libId = null;
       renderLibrary();
     });
   },
