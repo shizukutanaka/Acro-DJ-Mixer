@@ -4357,6 +4357,7 @@ function sessSave() {
         fxon: q('[data-act=fxon]').classList.contains('on'),
         assign: q('[data-act=assign]').value, range: q('[data-act=range]').value,
         slip: q('[data-act=slip]').classList.contains('on'),
+        remain: d.remain,
       };
     }
     localStorage.setItem(sessKey, JSON.stringify({ v, t, decks }));
@@ -4408,6 +4409,7 @@ try {
       if (s2.fxon != null && fxBtn.classList.contains('on') !== !!s2.fxon) fxBtn.click();
       const slipB = q('[data-act=slip]');
       if (s2.slip != null && slipB.classList.contains('on') !== !!s2.slip) slipB.click();
+      if (s2.remain != null) d.remain = !!s2.remain;   // TIME mode is a preference, not a state
     }
   }
 } catch {}
