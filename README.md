@@ -61,7 +61,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Loop** — one click captures a beat-grid-quantized 4-beat (one bar)
   loop on either engine; the region highlights on the waveform and
   seeking outside it exits the loop (see ADR-0006); `½`/`2×` halve or
-  double the armed loop in place (see ADR-0009).
+  double the armed loop in place (see ADR-0009). A gridded track
+  reaching its last 4 beats while still playing auto-arms a 4-beat
+  tail loop — emergency loop, never dead air (see ADR-0195).
 - **Hot cues** — eight pads per deck (ADR-0140; keys still fire the first
   four): click records a marker (amber tick
   on the waveform), click jumps, right-click previews the cue on the

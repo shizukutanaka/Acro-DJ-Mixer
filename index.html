@@ -3618,7 +3618,22 @@ function tick() {
     // Track-end warning: flash the readout in the last 30 s — the
     // "bring the next track in" signal every CDJ gives you.
     d.timeEl.classList.toggle('urgent', rem > 0 && rem < 30);
-    if (d.playing && d.pos() >= d.buffer.duration - 0.02) {
+    // Emergency loop (rekordbox): if a gridded track is about to run
+    // out while still playing, arm a 4-beat loop over its tail so the
+    // floor never hits dead air — Loop toggles off as usual to exit.
+    if (d.playing && !d.loopOn && d.grid && d.buffer) {
+      const beatLen = 60 / d.grid.bpm, dEnd = d._endAt || d.buffer.duration;
+      if (d.pos() > dEnd - 4 * beatLen && d.pos() < dEnd - 0.01) {
+        d.loopStart = Math.max(0, dEnd - 4 * beatLen);
+        d.loopEnd = dEnd;
+        d.loopOn = true;
+        d.applyLoop();
+        d._drawnPos = undefined;
+        d.status('Emergency loop');
+      }
+    }
+    // A looped deck can't end — including the emergency loop above.
+    if (d.playing && !d.loopOn && d.pos() >= d.buffer.duration - 0.02) {
       d.playing = false;
       d.playBtn.textContent = 'Play';
     }
