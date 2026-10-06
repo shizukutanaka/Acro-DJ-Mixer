@@ -57,9 +57,12 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   drift the grid ~2 beats over a 4-min track (see ADR-0027). `Tap` sets
   tempo + phase by hand for tracks the detector can't read (see ADR-0029);
   `‹`/`›` nudge the grid phase ±10 ms to trim ticks onto transients
-  (see ADR-0030).y detection** — chromagram + Krumhansl–Schmuckler profiles → Camelot
+  (see ADR-0030).
+- **Key detection** — chromagram + Krumhansl–Schmuckler profiles → Camelot
   code shown next to BPM; green = mixes harmonically with the other deck,
-  amber = clash (see ADR-0004).
+  amber = clash (see ADR-0004). The readout shows the effective key —
+  detection plus any transpose — and matching compares both decks'
+  effective keys (see ADR-0198).
 - **Sync** — one click matches a deck's tempo and beat phase to the other deck
   (tempo limited to the ±16% slider range, like hardware).
 - **Loop** — one click captures a beat-grid-quantized 4-beat (one bar)
@@ -137,8 +140,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Track-end warning** — the time readout flashes red during the
   last 30 s of a track, CDJ-style (see ADR-0045).
 - **Key sync** — `Key` button transposes the deck to the smallest
-  shift that mixes harmonically with the other deck; the key readout
-  colours by the effective (transposed) key (see ADR-0046).
+  shift that mixes harmonically with the other deck's effective key;
+  the key readout shows and colours by the effective (transposed)
+  key (see ADR-0046, ADR-0198).
 - **Elapsed / remaining** — click the time readout to flip between
   `pos / dur` and `-remaining / dur`, CDJ TIME-mode style (see
   ADR-0047).

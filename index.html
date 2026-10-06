@@ -1776,7 +1776,7 @@ class Deck {
   // Camelot wheel per semitone and never changes the letter.
   keySync() {
     if (!this.key || !this.partner || !this.partner.key) return this.status('need keys on both decks');
-    const t = this.partner.key;
+    const t = this.partner.effKey ? this.partner.effKey() : this.partner.key;
     let goal = null;
     for (let s = 0; s <= 6 && goal === null; s++) {
       for (const d of (s === 0 ? [0] : [s, -s])) {
@@ -2197,16 +2197,31 @@ class Deck {
     if (next < this.buffer.duration) this.seekTo(next);
   }
 
+  // The key actually sounding: detected key shifted by the current
+  // transpose. +7 Camelot hours per semitone, letter unchanged,
+  // name root moves st up the chromatic row.
+  effKey() {
+    if (!this.key) return null;
+    const st = this.st || 0;
+    if (!st) return this.key;
+    const pc = (NOTE_NAMES.indexOf(this.key.name.replace(/m$/, '')) + st) % 12;
+    return {
+      num: ((this.key.num - 1 + 7 * st) % 12 + 12) % 12 + 1,
+      letter: this.key.letter,
+      name: NOTE_NAMES[pc < 0 ? pc + 12 : pc] + (this.key.letter === 'A' ? 'm' : ''),
+    };
+  }
+
   // Camelot code + harmonic-compatibility color vs the partner deck.
   refreshKey() {
     renderLibrary();  // harmonic-fit highlighting re-scores on key changes
     const el = this.keyEl;
     if (!this.key) { el.textContent = '—'; el.className = 'key'; return; }
-    el.textContent = `${this.key.num}${this.key.letter} ${this.key.name}`;
-    const other = this.partner && this.partner.key;
-    // Colour by the EFFECTIVE key — the detected key shifted by the
-    // current transpose (st), +7 Camelot hours per semitone.
-    const eff = { num: ((this.key.num - 1 + 7 * (this.st || 0)) % 12 + 12) % 12 + 1, letter: this.key.letter };
+    // Show and compare the EFFECTIVE key (detection + transpose) —
+    // the display names what's actually sounding, not the source file.
+    const eff = this.effKey();
+    el.textContent = `${eff.num}${eff.letter} ${eff.name}`;
+    const other = this.partner && this.partner.effKey ? this.partner.effKey() : this.partner && this.partner.key;
     el.className = 'key' + (other ? (harmonic(eff, other) ? ' ok' : ' clash') : '');
   }
 
@@ -2929,7 +2944,7 @@ async function renderLibrary() {
   const fit = t => [['A', deckA], ['B', deckB]]
     .filter(([, d]) => d.grid && d.key && t.bpm && t.key
       && t.bpm / d.grid.bpm >= 1 - d.tempoRange && t.bpm / d.grid.bpm <= 1 + d.tempoRange
-      && harmonic(d.key, t.key))
+      && harmonic(d.effKey ? d.effKey() : d.key, t.key))
     .map(([name]) => name);
   rowsEl.innerHTML = rows.map(t => { const f = fit(t);
     const nC = (t.cues || []).filter(c => c != null).length;
