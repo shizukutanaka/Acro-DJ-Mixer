@@ -1316,7 +1316,10 @@ class Deck {
       const frac = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
       const [v0, v1] = this._viewSpan();
       this._prevCueIn = this.cueIn;
-      this.cueIn = Math.min(Math.max(v0 + frac * (v1 - v0), 0), this.buffer.duration);
+      // Same write as shift+Cue and the cue-tick drag — Qtz on snaps
+      // the landing to the grid, off means freehand (ADR-0021/0176).
+      const t = this.quantize(v0 + frac * (v1 - v0));
+      this.cueIn = Math.min(Math.max(t, 0), this.buffer.duration);
       if (!this.playing) this.offset = this.cueIn;   // playing: offset anchors pos(), moving it would jump the playhead
       this.tagLib({ cueIn: this.cueIn });
       this._drawnPos = undefined;
