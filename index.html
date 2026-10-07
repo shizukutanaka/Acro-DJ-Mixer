@@ -224,7 +224,7 @@
     <div class="meter cuem" title="Cue bus level (tick = peak hold)"><i id="cuemeter-fill"></i><b id="cuemeter-peak"></b></div>
     <div class="phase" id="phase" title="Beat-phase offset between decks — click to sync the non-playing deck to the playing one"></div>
     <div class="row"><label>Smpl</label><span id="smp-pads"></span><input type="range" id="smp-gain" min="0" max="1" step="0.01" value="0.8" title="Sampler level — all pads. Double-click resets to 80%"><label title="Loop pads — fired shots repeat until stopped (alt-click / choke)" style="font-size:10px;display:flex;align-items:center;gap:2px"><input type="checkbox" id="smp-loop">Loop</label><input type="range" id="smp-pitch" min="0.5" max="2" step="0.01" value="1" title="Sampler pitch — playback rate at fire time, 0.5–2×; double-click resets"><input id="smp-file" type="file" accept="audio/*" hidden></div>
-    <div class="row"><button id="automix" title="Auto mix — near the end of the playing track the other deck starts synced and the crossfader rides over (8 beats; shift = long 32-beat fade; alt = fire the transition now). Keeps going: the empty deck auto-loads the next library track">Auto</button><button id="recbtn" title="Record the master output — click again to stop; the take downloads and lands in the library; shift = pause/resume the take">Rec</button><button id="mic" title="Microphone — live input summed into the master pre-limiter (use headphones — open speakers will feed back)">Mic</button><input type="range" id="mic-gain" min="0" max="1.5" step="0.01" value="0.9" title="Mic level — trim the mic in the master; double-click resets to 0.9. Range goes past unity for quiet mics"><input type="range" id="mic-low" min="-1" max="1" step="0.01" value="0" title="Mic LOW — 200 Hz low shelf ±12 dB, double-click resets"><input type="range" id="mic-high" min="-1" max="1" step="0.01" value="0" title="Mic HI — 4 kHz high shelf ±12 dB, double-click resets"></div>
+    <div class="row"><button id="automix" title="Auto mix — near the end of the playing track the other deck starts synced and the crossfader rides over (8 beats; shift = long 32-beat fade; alt = fire the transition now). Keeps going: the empty deck auto-loads the next library track">Auto</button><button id="recbtn" title="Record the master output — click again to stop; the take downloads and lands in the library; shift = pause/resume the take · alt = lossless WAV take">Rec</button><button id="mic" title="Microphone — live input summed into the master pre-limiter (use headphones — open speakers will feed back)">Mic</button><input type="range" id="mic-gain" min="0" max="1.5" step="0.01" value="0.9" title="Mic level — trim the mic in the master; double-click resets to 0.9. Range goes past unity for quiet mics"><input type="range" id="mic-low" min="-1" max="1" step="0.01" value="0" title="Mic LOW — 200 Hz low shelf ±12 dB, double-click resets"><input type="range" id="mic-high" min="-1" max="1" step="0.01" value="0" title="Mic HI — 4 kHz high shelf ±12 dB, double-click resets"></div>
     <div class="kbd-hint">Equal-power crossfade.<br>Auto BPM is an estimate — trust your ears.</div>
   </section>
 
@@ -274,7 +274,7 @@
     <p><b>double-click</b> — reset a knob/fader/readout to centre</p>
     <p><b>wheel</b> — fine-trim any knob or fader; on a loaded pad it trims that pad's level</p>
     <p><b>shift</b> — the alternate: clear hot cue, free-size loop in/out marks, phase-only sync, bar jump, half-beat roll, jog scrub, loop-edge trim, save loop memory, solo phones, resample an armed loop to an empty pad, clear a pad</p>
-    <p><b>alt</b> — the expert layer: sync leader, stop a sampler voice, second loop-memory slot, trim the loop out-point</p>
+    <p><b>alt</b> — the expert layer: sync leader, stop a sampler voice, second loop-memory slot, trim the loop out-point, beat-slice audition on a pad (alt+hold), lossless WAV take (alt+Rec)</p>
     <p><b>right-click</b> — cue-bus preview on hot-cue and sampler pads · one-level undo on the thing that was just broken: cleared hot cue or sample (empty pad), cue set (Cue button), grid write (Tap/‹›), loop-memory overwrite (↺), eject (empty deck)</p>
     <p><b>library</b> — type to filter · ▶ previews on the cue bus · × deletes (two-click confirm) · ‹ › step a track into the deck</p>
     <h3>Keys</h3>
@@ -864,7 +864,7 @@ class Deck {
             const lc = this._lastClear; this._lastClear = null;
             this.cues[lc.i] = lc.t;
             this.pads[lc.i].classList.add('set');
-            this.pads[lc.i].title = 'Hot cue ' + fmt(lc.t) + ' — click jumps, shift-click clears, right-click previews';
+            this.pads[lc.i].title = 'Hot cue ' + fmt(lc.t) + ' — click jumps, shift-click clears, right-click previews, alt-hold = slice audition';
             this.tagLib({ cues: this.cues });
             this._drawnPos = undefined;
             this.drawWave();
@@ -1343,7 +1343,7 @@ class Deck {
         const [v0, v1] = this._viewSpan();
         const t = this.quantize(v0 + frac * (v1 - v0));
         this.cues[cueDrag] = Math.min(Math.max(t, 0), this.buffer.duration);
-        this.pads[cueDrag].title = 'Hot cue ' + fmt(this.cues[cueDrag]) + ' — click jumps, shift-click clears, right-click previews';
+        this.pads[cueDrag].title = 'Hot cue ' + fmt(this.cues[cueDrag]) + ' — click jumps, shift-click clears, right-click previews, alt-hold = slice audition';
         this._drawnPos = undefined;
         this.drawWave();
         return;
@@ -1553,7 +1553,7 @@ class Deck {
       // hint would lie about an occupied pad — ADR-0253 pattern).
       this.cues.forEach((c, i) => {
         this.pads[i].classList.toggle('set', c != null);
-        if (c != null) this.pads[i].title = 'Hot cue ' + fmt(c) + ' — click jumps, shift-click clears, right-click previews';
+        if (c != null) this.pads[i].title = 'Hot cue ' + fmt(c) + ' — click jumps, shift-click clears, right-click previews, alt-hold = slice audition';
       });
       this._savedLoop = meta && meta.loop ? meta.loop : null;
       this._loopMem = meta && meta.mem1 ? meta.mem1 : null;
@@ -1976,7 +1976,7 @@ class Deck {
     this._cueTitle();
     this.offset = 0;
     this.cues = [null, null, null, null, null, null, null, null];
-    this.pads.forEach(p => { p.classList.remove('set'); p.title = 'Hot cue — click sets a marker · right-click restores the last cleared cue'; });
+    this.pads.forEach(p => { p.classList.remove('set'); p.title = 'Hot cue — click sets a marker · right-click restores the last cleared cue · alt-hold auditions a beat slice'; });
     this._lastClear = null;
     this.loopOn = false;
     this._prevLoop = null;
@@ -2652,7 +2652,7 @@ class Deck {
     if (this.cues[i] == null) {
       this.cues[i] = this.quantize(this.pos());
       this.pads[i].classList.add('set');
-      this.pads[i].title = 'Hot cue ' + fmt(this.cues[i]) + ' — click jumps, shift-click clears, right-click previews';
+      this.pads[i].title = 'Hot cue ' + fmt(this.cues[i]) + ' — click jumps, shift-click clears, right-click previews, alt-hold = slice audition';
       this.tagLib({ cues: this.cues });
       this._drawnPos = undefined;
       this.drawWave();
@@ -2668,7 +2668,7 @@ class Deck {
     this._lastClear = { i, t: this.cues[i] };
     this.cues[i] = null;
     this.pads[i].classList.remove('set');
-    this.pads[i].title = 'Hot cue — click sets a marker · right-click restores the last cleared cue';
+    this.pads[i].title = 'Hot cue — click sets a marker · right-click restores the last cleared cue · alt-hold auditions a beat slice';
     this.tagLib({ cues: this.cues });
     this._drawnPos = undefined;
     this.drawWave();
@@ -5399,8 +5399,14 @@ try {
 // Accessibility: every control already carries a descriptive title —
 // mirror it into aria-label so icon-only buttons announce a verb
 // instead of their glyph, and let deck status lines announce updates.
+// Elements whose title mutates at runtime (pads, Reloop/Cue buttons,
+// keylock) skip the copy: the title attribute is itself the
+// accessible-name fallback, so a boot-time snapshot would freeze a
+// stale label over the live title.
 document.querySelectorAll('button[title], select[title], input[title]').forEach(el => {
-  if (!el.getAttribute('aria-label')) el.setAttribute('aria-label', el.title);
+  if (!el.getAttribute('aria-label') &&
+      !el.matches('.pad, .smp, [data-act=reloop], [data-act=cue], [data-act=keylock]'))
+    el.setAttribute('aria-label', el.title);
 });
 document.querySelectorAll('.status').forEach(el => el.setAttribute('aria-live', 'polite'));
 </script>
