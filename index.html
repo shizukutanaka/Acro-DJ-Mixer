@@ -1506,6 +1506,7 @@ class Deck {
       this._roll = null;
       this._loopT = null;
       this._loopEnterPos = 0;
+      this._loopEnterRate = 0;
       if (this._slice) { this._slice.pad.classList.remove('on'); this._slice = null; }
       this.rollBtn.classList.remove('on');
       this.loopLenEl.hidden = true;
@@ -1939,6 +1940,7 @@ class Deck {
     this._loopIn = null;
     this._loopT = null;
     this._loopEnterPos = 0;
+    this._loopEnterRate = 0;
     this._slip = null;
     this._roll = null;
     if (this._slice) { this._slice.pad.classList.remove('on'); this._slice = null; }
@@ -2414,7 +2416,7 @@ class Deck {
         let ghost = null;
         if (this._slip) ghost = this._slip.pos + (ctx.currentTime - this._slip.t) * this.rate;
         else if (this._roll) ghost = this._roll.pos + (ctx.currentTime - this._roll.t) * this.rate;
-        else if (this.loopOn && this._loopT != null) ghost = this._loopEnterPos + (ctx.currentTime - this._loopT) * this.rate;
+        else if (this.loopOn && this._loopT != null) ghost = this._loopEnterPos + (ctx.currentTime - this._loopT) * (this._loopEnterRate || this.rate);
         if (ghost != null && ghost >= v0 && ghost <= v1) {
           c.fillStyle = 'rgba(255,255,255,0.45)';
           c.fillRect(Math.floor(xOf(ghost)) - 1, 0, 2, h);
@@ -2651,6 +2653,7 @@ class Deck {
       this.loopOn = true;
       stat('loops');
       this._loopT = ctx.currentTime; this._loopEnterPos = this.pos();
+      this._loopEnterRate = this.rate * this.bendMul * this.spinMul;
     } else if (!this.loopOn) {
       // Compute bounds BEFORE loopOn flips: pos() reads loopEnd for wrapping.
       const beatLen = this.grid ? 60 / this.grid.bpm : 1;
@@ -2674,6 +2677,7 @@ class Deck {
       this.loopOn = true;
       stat('loops');
       this._loopT = ctx.currentTime; this._loopEnterPos = this.pos();
+      this._loopEnterRate = this.rate * this.bendMul * this.spinMul;
     } else {
       this.loopOn = false;
       this._prevLoop = [this.loopStart, this.loopEnd];
@@ -2681,7 +2685,7 @@ class Deck {
       // lands where the track would have been without the loop —
       // same doctrine as roll release and slip cues.
       if (this.slip && this.playing && this._loopT != null) {
-        const wouldBe = this._loopEnterPos + (ctx.currentTime - this._loopT) * this.rate;
+        const wouldBe = this._loopEnterPos + (ctx.currentTime - this._loopT) * (this._loopEnterRate || this.rate);
         if (wouldBe < this.loopStart || wouldBe > this.loopEnd)
           this.seekTo(Math.min(wouldBe, this.buffer.duration - 0.01));
       }
@@ -2704,11 +2708,13 @@ class Deck {
     const n = Math.floor((this.pos() - this.grid.beatOff) / beatLen);
     const start = Math.max(0, this.grid.beatOff + n * beatLen);
     if (start + beatLen > this.buffer.duration) return;
-    this._roll = { pos: this.pos(), t: ctx.currentTime, saved: this.loopOn ? [this.loopStart, this.loopEnd] : null };
+    this._roll = { pos: this.pos(), t: ctx.currentTime, saved: this.loopOn ? [this.loopStart, this.loopEnd] : null,
+      rate: this.rate * this.bendMul * this.spinMul };
     this.loopStart = start;
     this.loopEnd = start + beatLen;
     this.loopOn = true;
     this._loopT = null;   // rolls own their slip bookkeeping; no stale arm time
+    this._loopEnterRate = 0;
     this.applyLoop();
     this.rollBtn.classList.add('on');
     this._drawnPos = undefined;
@@ -2719,7 +2725,7 @@ class Deck {
     const r = this._roll;
     if (!r) return;
     this._roll = null;
-    const slip = r.pos + (ctx.currentTime - r.t) * this.rate;
+    const slip = r.pos + (ctx.currentTime - r.t) * r.rate;
     if (r.saved) { [this.loopStart, this.loopEnd] = r.saved; this.loopOn = true; }
     else this.loopOn = false;
     this.applyLoop();
@@ -2737,7 +2743,7 @@ class Deck {
   // same dead-reckoning as stopRoll.
   slipCueStart(i) {
     if (!this.slip || !this.playing || !this.buffer || this.cues[i] == null || this._slip) return;
-    this._slip = { pos: this.pos(), t: ctx.currentTime };
+    this._slip = { pos: this.pos(), t: ctx.currentTime, rate: this.rate * this.bendMul * this.spinMul };
     this.seekTo(this.cues[i]);
   }
 
@@ -2745,7 +2751,7 @@ class Deck {
     const s = this._slip;
     if (!s) return;
     this._slip = null;
-    const back = s.pos + (ctx.currentTime - s.t) * this.rate;
+    const back = s.pos + (ctx.currentTime - s.t) * s.rate;
     if (this.playing) this.seekTo(Math.min(back, this.buffer.duration - 0.01));
   }
 
