@@ -1959,6 +1959,9 @@ class Deck {
     this.setRate(1);
     this.gainEl.value = 1;
     this.setGain(1);
+    this.faderEl.value = 1;
+    this.setFader(1);
+    this._faderPrev = 1;   // fader-start watches the previous value
     for (const [band, el] of Object.entries(this.eqEls)) {
       el.value = 0;
       if (this.kills[band]) { this.kills[band] = false; this.killEls[band].classList.remove('on'); }
@@ -1967,6 +1970,24 @@ class Deck {
     this.filterEl.value = 0;
     this.setFilter(0);
     this.transpose(-this.st);
+    // Latches and selects added after ADR-0199: key lock, slip, brake,
+    // stem, the whole beat-FX strip, and the channel assign — a "full
+    // channel reset" must return these too or the next track inherits
+    // the old deck's mode stack.
+    if (this.keylock) this.toggleKeylock();
+    if (this.slip) { this.slip = false; this.slipBtn.classList.remove('on'); }
+    if (this.brake) { this.brake = false; this.brakeBtn.classList.remove('on'); }
+    this.stemSel.value = 'off';
+    this.setStem('off');
+    this.fxSel.value = 'echo';
+    this.fxBeat.value = '0.75';
+    this._syncDelay();
+    this.el.querySelector('[data-act=fxtap]').value = 'pre';
+    this.setFxTap(false);
+    this.echoEl.value = 0;
+    this.setFxOn(true);   // factory state is armed-and-dry, not punched out
+    this.assignSel.value = this.side;
+    applyCrossfade();
     this.status('Channel reset.');
   }
 
