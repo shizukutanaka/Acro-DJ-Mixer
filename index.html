@@ -4657,6 +4657,11 @@ document.addEventListener('keydown', e => {
   // (here). While a slider owns focus, arrows belong to the slider.
   if (e.target.tagName === 'INPUT' && e.target.type === 'range' &&
       /^Arrow(Left|Right|Up|Down)$/.test(e.key)) return;
+  // Browser/OS chords must not also drive the mixer: without this,
+  // Cmd+R reloads the page AND arms a loop, Cmd+1-4 switches tabs AND
+  // fires sampler pads, Cmd+W closes the tab AND toggles headphone
+  // cue. Shift stays — shift+key is the clear-pad grammar.
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
   // Held keys auto-repeat: fine for the arrow-key fader ride, but a
   // held q machine-guns play/pause and a held 1 spams the sampler's
   // file picker. Only the arrows keep repeat; everything else is
