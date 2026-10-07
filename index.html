@@ -1504,6 +1504,7 @@ class Deck {
       // loop bounds (and tagLib them) on the new one.
       this._slip = null;
       this._roll = null;
+      this._emLoop = false;    // the emergency-loop latch belongs to the old track's tail
       this._loopT = null;
       this._loopEnterPos = 0;
       if (this._slice) { this._slice.pad.classList.remove('on'); this._slice = null; }
@@ -1941,6 +1942,7 @@ class Deck {
     this._loopEnterPos = 0;
     this._slip = null;
     this._roll = null;
+    this._emLoop = false;
     if (this._slice) { this._slice.pad.classList.remove('on'); this._slice = null; }
     this.rollBtn.classList.remove('on');
     this.loopLenEl.hidden = true;
@@ -4949,10 +4951,15 @@ function tick() {
     // floor never hits dead air — Loop toggles off as usual to exit.
     if (d.playing && !d.loopOn && d.grid && d.buffer) {
       const beatLen = 60 / d.grid.bpm, dEnd = d._endAt || d.buffer.duration;
-      if (d.pos() > dEnd - 4 * beatLen && d.pos() < dEnd - 0.01) {
+      // One-shot per pass through the tail: once armed, a user exit is
+      // an informed choice — don't re-arm until the playhead has left
+      // the window and approaches it again.
+      if (d._emLoop && d.pos() < dEnd - 4 * beatLen - 0.5) d._emLoop = false;
+      if (!d._emLoop && d.pos() > dEnd - 4 * beatLen && d.pos() < dEnd - 0.01) {
         d.loopStart = Math.max(0, dEnd - 4 * beatLen);
         d.loopEnd = dEnd;
         d.loopOn = true;
+        d._emLoop = true;
         d.applyLoop();
         d._drawnPos = undefined;
         d.status('Emergency loop');
