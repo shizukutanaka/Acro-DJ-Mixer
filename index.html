@@ -341,7 +341,9 @@ class WsolaProcessor extends AudioWorkletProcessor {
       case 'keylock':
         this.keylock = m.on;
         // Hand the live position to the other engine, drop stale synthesis.
-        if (m.on) this.inPos = this.rPos; else this.rPos = this.inPos;
+        // Off-direction must discount the synthesized-but-unplayed queue
+        // (posSamples()'s formula) — bare inPos skips ~15 ms forward.
+        if (m.on) this.inPos = this.rPos; else this.rPos = this.inPos - this.qLen * this.rate;
         this.qHead = 0; this.qLen = 0;
         if (this.syn) for (const s of this.syn) s.fill(0);
         break;
@@ -1784,6 +1786,11 @@ class Deck {
       this.offset = m.pos;
       this.startedAt = ctx.currentTime;
     } else if (m.type === 'ended') {
+      // The engine only posts 'ended' from a playing state — one that
+      // arrives while we're already stopped is a stale tail of the
+      // pre-pause/pre-load era; applying it would stamp this track's
+      // offset to its end.
+      if (!this.playing) return;
       this.playing = false;
       if (this.buffer) this.offset = this.buffer.duration;
       this.playBtn.textContent = 'Play';
