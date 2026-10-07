@@ -856,8 +856,12 @@ class Deck {
         // Right-click on the pad whose audition is ringing stops it —
         // the same second-click-stops idiom the library ▶ uses,
         // and the only off switch a hot-cue preview had.
-        if (padPrevPad === pad) { killPadPrev(this); return; }
-        killPadPrev(this);
+        if (padPrev && padPrevPad === pad) { killPadPrev(this); return; }
+        // Whatever else is auditioning — a library row, a sampler pad,
+        // or the other deck's cue — must go first: the phones channel
+        // checks one thing at a time, and a preview whose handle is
+        // overwritten becomes an unstoppable voice.
+        killAllPreviews();
         const src = audio().createBufferSource();
         src.buffer = this.buffer;
         src.connect(cueBus());
@@ -3408,8 +3412,8 @@ function prevMark() {
 }
 async function previewTrack(id) {
   const wasPlaying = previewId === id;
+  killAllPreviews();   // one audition at a time — also aborts any decode still in flight
   const tok = ++previewToken;
-  if (previewSrc) { try { previewSrc.stop(); } catch (_) {} previewSrc.disconnect(); previewSrc = previewId = null; if (previewGain) { previewGain.disconnect(); previewGain = null; } }
   if (wasPlaying) { prevMark(); return; }   // second click on the same row = stop
   let rec;
   try { rec = await Library.get(id); } catch (_) { Library.fail(); prevMark(); return; }
@@ -4029,6 +4033,18 @@ let padPrev = null, padPrevOwner = null, padPrevPad = null;   // deck hot-cue pr
 const killPadPrev = deck => {
   if (padPrev && padPrevOwner === deck) { try { padPrev.stop(); } catch (_) {} padPrev.disconnect(); padPrev = padPrevOwner = padPrevPad = null; }
 };
+// One audition at a time on the cue bus: a library row, a hot cue,
+// and a sampler pad all check material on the same phones channel, so
+// starting any one stops the others. Bumping previewToken also aborts
+// a library preview whose decode is still in flight.
+const killAllPreviews = () => {
+  if (padPrev) { try { padPrev.stop(); } catch (_) {} padPrev.disconnect(); padPrev = padPrevOwner = padPrevPad = null; }
+  if (smpPrev) { try { smpPrev.stop(); } catch (_) {} smpPrev.disconnect(); smpPrev = null; smpPrevPad = -1; }
+  if (previewSrc) { try { previewSrc.stop(); } catch (_) {} previewSrc.disconnect(); previewSrc = previewId = null; }
+  if (previewGain) { previewGain.disconnect(); previewGain = null; }
+  previewToken++;
+  prevMark();
+};
 const smpPadsEl = document.getElementById('smp-pads');
 const smpFile = document.getElementById('smp-file');
 let smpPending = -1;
@@ -4163,7 +4179,7 @@ smpSlots.forEach((_, i) => {
       return;
     }
     if (!slot.buf) return;
-    if (smpPrev) { try { smpPrev.stop(); } catch (_) {} smpPrev.disconnect(); smpPrev = null; smpPrevPad = -1; }
+    killAllPreviews();   // one audition at a time on the cue bus
     const src = audio().createBufferSource();
     src.buffer = slot.buf;
     src.connect(cueBus());
