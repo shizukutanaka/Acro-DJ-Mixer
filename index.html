@@ -3662,15 +3662,25 @@ xfader.addEventListener('input', applyCrossfade);
 // track or a scratch sample. Edge-triggered so nudging an already
 // parked fader doesn't keep retriggering; a deck parked past its
 // end stays put.
+// Whatever deck is ASSIGNED to the side the fader just swept into
+// starts — deck A can live on the B side and vice versa; a Thru
+// deck ignores the fader entirely. Edge-triggered on xfPrev so
+// nudging an already parked fader doesn't retrigger. Called on the
+// input event and after programmatic sweeps (arrows, MIDI) so a
+// driven fader behaves like a dragged one.
 let xfPrev = xfPos();
-xfader.addEventListener('input', () => {
+function xfEdgeCheck() {
   const x = xfPos();
-  // Only a deck assigned to that side hears the edge — a Thru deck
-  // ignores the fader entirely, on hardware and here.
-  if (xfPrev >= 0.05 && x < 0.05 && deckA.assignSel.value === 'a' && deckA.buffer && !deckA.playing && deckA.pos() < deckA.buffer.duration) deckA.play();
-  if (xfPrev <= 0.95 && x > 0.95 && deckB.assignSel.value === 'b' && deckB.buffer && !deckB.playing && deckB.pos() < deckB.buffer.duration) deckB.play();
+  for (const d of [deckA, deckB]) {
+    const side = d.assignSel.value;
+    if (side === 'thru') continue;
+    const into = side === 'a' ? (xfPrev >= 0.05 && x < 0.05)
+                              : (xfPrev <= 0.95 && x > 0.95);
+    if (into && d.buffer && !d.playing && d.pos() < d.buffer.duration) d.play();
+  }
   xfPrev = x;
-});
+}
+xfader.addEventListener('input', xfEdgeCheck);
 xfader.addEventListener('dblclick', () => { xfader.value = 0.5; applyCrossfade(); });
 xfcurve.addEventListener('change', applyCrossfade);
 
@@ -4674,11 +4684,11 @@ document.addEventListener('keydown', e => {
     // most-hit transport after play gets a key too.
     case 'w': case 'W': deckA.toggleCue(); break;
     case 'o': case 'O': deckB.toggleCue(); break;
-    case 'ArrowLeft': xfader.value = Math.max(0, parseFloat(xfader.value) - 0.05); applyCrossfade(); e.preventDefault(); break;
-    case 'ArrowRight': xfader.value = Math.min(1, parseFloat(xfader.value) + 0.05); applyCrossfade(); e.preventDefault(); break;
+    case 'ArrowLeft': xfader.value = Math.max(0, parseFloat(xfader.value) - 0.05); applyCrossfade(); xfEdgeCheck(); e.preventDefault(); break;
+    case 'ArrowRight': xfader.value = Math.min(1, parseFloat(xfader.value) + 0.05); applyCrossfade(); xfEdgeCheck(); e.preventDefault(); break;
     case 'ArrowDown': master.value = Math.max(0, parseFloat(master.value) - 0.05); master.dispatchEvent(new Event('input')); e.preventDefault(); break;
     case 'ArrowUp': master.value = Math.min(1, parseFloat(master.value) + 0.05); master.dispatchEvent(new Event('input')); e.preventDefault(); break;
-    case '0': xfader.value = 0.5; applyCrossfade(); break;
+    case '0': xfader.value = 0.5; applyCrossfade(); xfEdgeCheck(); break;
     // Sampler pads on digits — 1-4 fires pads 1-4 (empty pad opens its
     // file picker, same as clicking it).
     case '1': case '2': case '3': case '4': {
@@ -4796,7 +4806,7 @@ function midiMsg(e) {
     else if (n === 81) deckB.stopRoll();
   } else if (kind === 0xb0) {                 // control change
     const f = v / 127;
-    if (n === 1) { xfader.value = f; applyCrossfade(); }
+    if (n === 1) { xfader.value = f; applyCrossfade(); xfEdgeCheck(); }
     else if (n === 7) { master.value = f; master.dispatchEvent(new Event('input')); }
     else if (n === 20) { deckA.gainEl.value = f; deckA.setGain(f); }
     else if (n === 21) { deckB.gainEl.value = f; deckB.setGain(f); }
