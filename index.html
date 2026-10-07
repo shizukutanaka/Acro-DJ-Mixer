@@ -2799,6 +2799,9 @@ class Deck {
     const [st, en] = mem;
     if (en > this.buffer.duration) return;
     this.loopStart = st; this.loopEnd = en; this.loopOn = true;
+    // Same slip bookkeeping as a fresh arm — exit dead-reckons from
+    // THIS entry, not the stale _loopT the previous loop left behind.
+    this._loopT = ctx.currentTime; this._loopEnterPos = this.pos();
     this.applyLoop();
     this.loopBtn.classList.add('on');
     this.loopLenEl.hidden = false;
