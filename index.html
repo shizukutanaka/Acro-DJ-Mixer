@@ -1170,6 +1170,10 @@ class Deck {
       inp.value = this.grid ? this.grid.bpm.toFixed(1) : '';
       inp.style.cssText = 'width:4.5em;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;color:var(--text);font:inherit';
       const done = commit => {
+        // A track swap abandons the edit: load/eject resets _bpmEdit
+        // before overwriting bpmEl, so the removal blur lands here
+        // and must not commit the half-typed value to the NEW track.
+        if (!this._bpmEdit) return;
         if (commit) {
           const v = parseFloat(inp.value);
           if (v > 30 && v < 400) {
@@ -1504,6 +1508,7 @@ class Deck {
       // loop bounds (and tagLib them) on the new one.
       this._slip = null;
       this._roll = null;
+      this._bpmEdit = false;   // abandon a BPM edit mid-typing — the removal blur must not commit it to this track
       this._loopT = null;
       this._loopEnterPos = 0;
       if (this._slice) { this._slice.pad.classList.remove('on'); this._slice = null; }
@@ -1941,6 +1946,7 @@ class Deck {
     this._loopEnterPos = 0;
     this._slip = null;
     this._roll = null;
+    this._bpmEdit = false;   // same abandonment as load() — an open editor belongs to the ejected track
     if (this._slice) { this._slice.pad.classList.remove('on'); this._slice = null; }
     this.rollBtn.classList.remove('on');
     this.loopLenEl.hidden = true;
