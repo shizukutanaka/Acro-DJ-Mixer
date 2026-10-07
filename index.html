@@ -1890,6 +1890,7 @@ class Deck {
             cues: this.cues.slice(),
             loop: this._savedLoop,
             mem1: this._loopMem, mem2: this._loopMem2,
+            stem: this.stemSel.value,   // stem mode is prep too (tagLib writes it to the record)
             bpm: this.grid && this.grid.bpm,
             beatOff: this.grid && this.grid.beatOff,
             key: this.key,
