@@ -2861,17 +2861,7 @@ class Deck {
   // cached meta path, so every restored field lands exactly as it was.
   async swapWith(other) {
     if (autoMix.fade) { this.status('Finish or cancel the fade first.'); return; }
-    const snap = d => ({ file: d._fileObj, pos: d.pos(), rate: d.rate,
-      playing: d.playing, meta: {
-        cues: d.cues.slice(),
-        loop: d.loopOn ? [d.loopStart, d.loopEnd] : null,
-        cueIn: d.cueIn,
-        mem1: d._loopMem, mem2: d._loopMem2,
-        stem: d.stemSel.value,
-        bpm: d.grid ? d.grid.bpm : null,
-        beatOff: d.grid ? d.grid.beatOff : 0,
-        key: d.key, libId: d.libId } });
-    const me = snap(this), them = snap(other);
+    const me = deckSnap(this), them = deckSnap(other);
     if (!me.file && !them.file) { this.status('Nothing on either deck.'); return; }
     if (them.file) await this.load(them.file, them.meta);
     else this.eject();
@@ -2893,7 +2883,10 @@ class Deck {
     const pos = this.pos();
     const rate = this.rate;
     const wasPlaying = this.playing;
-    await p.load(this._fileObj);
+    // Same snapshot swapWith takes: a double carries the live prep —
+    // unsaved hot cues, the armed loop, cue-in, loop memory, stem —
+    // and the grid/key meta so the clone doesn't re-analyze.
+    await p.load(this._fileObj, deckSnap(this).meta);
     p.tempoEl.value = rate;
     p.setRate(rate);
     p.seekTo(pos);
@@ -2931,6 +2924,21 @@ class Deck {
     }
   }
 }
+
+// One deck-state snapshot for every "clone this deck's prep" verb —
+// swap takes it whole, instant doubles forwards its meta into load().
+// Anything load() restores must be named here: cues, loop, cue-in,
+// loop memory, stem, grid, key, library link.
+const deckSnap = d => ({ file: d._fileObj, pos: d.pos(), rate: d.rate,
+  playing: d.playing, meta: {
+    cues: d.cues.slice(),
+    loop: d.loopOn ? [d.loopStart, d.loopEnd] : null,
+    cueIn: d.cueIn,
+    mem1: d._loopMem, mem2: d._loopMem2,
+    stem: d.stemSel.value,
+    bpm: d.grid ? d.grid.bpm : null,
+    beatOff: d.grid ? d.grid.beatOff : 0,
+    key: d.key, libId: d.libId } });
 
 // ----- Analysis helpers (run off the audio thread; chunked to keep UI alive) -----
 
