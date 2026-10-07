@@ -2009,8 +2009,12 @@ class Deck {
       if (f.to && f.to.eq) f.to.setBand('low', parseFloat(f.to.eqEls.low.value));
       // Fader rollback: park the fader on whichever deck survives
       // the eject so it doesn't stay silent mid-fade (ADR-0193).
+      // xfEdgeCheck too — a park lands on an extreme without an input
+      // event; a stale xfPrev would ghost-fire a start on the next
+      // physical move away from the parked side.
       xfader.value = f.to === this ? f.fromX : f.toX;
       applyCrossfade();
+      xfEdgeCheck();
     }
     this.stopPlayback();
     if (this.engine === 'worklet' && this.node)
@@ -4060,6 +4064,7 @@ autoBtn.addEventListener('click', e => {
     // inaudible under the restored fader.
     xfader.value = f.fromX;
     applyCrossfade();
+    xfEdgeCheck();   // rollback parks an extreme too — keep xfPrev true
     if (f.to) f.to.pause();
     // Disarm too: the outgoing deck is still playing past its fire
     // point with a stopped, buffered partner — leave autoMix.on set
@@ -4107,6 +4112,8 @@ function autoMixTick() {
     const k = Math.min((ctx.currentTime - f.t0) / f.dur, 1);
     xfader.value = f.fromX + (f.toX - f.fromX) * k;
     applyCrossfade();
+    xfEdgeCheck();   // the sweep owns the edge bookkeeping like any writer
+
     // Filter-out the outgoing deck alongside the fade: LP sweep 20 kHz
     // -> ~400 Hz. The knob stays put; the node returns to it on
     // completion or cancel.
