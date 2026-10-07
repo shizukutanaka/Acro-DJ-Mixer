@@ -2860,6 +2860,8 @@ class Deck {
         cues: d.cues.slice(),
         loop: d.loopOn ? [d.loopStart, d.loopEnd] : null,
         cueIn: d.cueIn,
+        mem1: d._loopMem, mem2: d._loopMem2,
+        stem: d.stemSel.value,
         bpm: d.grid ? d.grid.bpm : null,
         beatOff: d.grid ? d.grid.beatOff : 0,
         key: d.key, libId: d.libId } });
