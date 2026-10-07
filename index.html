@@ -1906,6 +1906,7 @@ class Deck {
     if (autoMix.fade && (autoMix.fade.from === this || autoMix.fade.to === this)) {
       const f = autoMix.fade; autoMix.fade = null;
       f.from.setFilter(parseFloat(f.from.filterEl.value));
+      if (f.echoed) f.from.setEcho(parseFloat(f.from.echoEl.value));   // echo-out must not outlive the fade (same as the button-cancel path)
       if (f.to && f.to.eq) f.to.setBand('low', parseFloat(f.to.eqEls.low.value));
       // Fader rollback: park the fader on whichever deck survives
       // the eject so it doesn't stay silent mid-fade (ADR-0193).
