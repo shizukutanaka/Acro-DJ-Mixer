@@ -19,6 +19,10 @@ const page = await browser.contexts()[0].newPage();
 const errs = [];
 page.on('pageerror', e => errs.push(e.message));
 
+// The app persists mixer state to localStorage — a prior run's
+// leftovers (channel assign, xf curve, fader position) would seed
+// this run's assertions. Reset before the app's own scripts read it.
+await page.addInitScript(() => localStorage.clear());
 await page.goto(URL_ + '?v=' + Date.now());
 await page.waitForTimeout(800);
 
