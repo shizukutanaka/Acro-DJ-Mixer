@@ -3946,7 +3946,12 @@ function xfEdgeCheck() {
   xfPrev = x;
 }
 xfader.addEventListener('input', xfEdgeCheck);
-xfader.addEventListener('dblclick', () => { xfader.value = 0.5; applyCrossfade(); });
+xfader.addEventListener('dblclick', () => {
+  // Same write as the '0' key — the centre reset owns the edge
+  // bookkeeping too, or a stale xfPrev at a parked edge swallows the
+  // next genuine re-entry (ADR-0358/0381 class, reset direction).
+  xfader.value = 0.5; applyCrossfade(); xfEdgeCheck();
+});
 xfcurve.addEventListener('change', applyCrossfade);
 
 // ----- Auto mix -----
