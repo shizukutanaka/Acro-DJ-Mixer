@@ -4074,15 +4074,28 @@ const micClose = () => {
   if (micDuck) micDuck.gain.setTargetAtTime(1, ctx.currentTime, 0.15);
   micBtn2.classList.remove('on');
 };
-const micOpen = async () => {
+let micOpening = false;
+const micOpen = async (ptt = false) => {
+  // Re-entrant guard: a second tap while getUserMedia is still
+  // pending would build a second chain and leak the first.
+  if (micSrc || micOpening) return;
+  micOpening = true;
   try {
-    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  } catch {
-    // Permission denied is a silent no-op otherwise — the button just
-    // doesn't light and the user can't tell why. Say it on the deck.
-    deckA.status('mic denied');
-    return;
-  }
+    try {
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      // Permission denied is a silent no-op otherwise — the button just
+      // doesn't light and the user can't tell why. Say it on the deck.
+      deckA.status('mic denied');
+      return;
+    }
+    // A press-to-talk hold that ended before permission resolved must
+    // not latch the mic open — drop the stream instead.
+    if (ptt && !micBtn2._mom) {
+      micStream.getTracks().forEach(t => t.stop());
+      micStream = null;
+      return;
+    }
   audio();
   micSrc = ctx.createMediaStreamSource(micStream);
   micGain = ctx.createGain(); micGain.gain.value = parseFloat(document.getElementById('mic-gain').value);
@@ -4111,6 +4124,7 @@ const micOpen = async () => {
   micGain.connect(micAn);
   if (micDuck) micDuck.gain.setTargetAtTime(0.25, ctx.currentTime, 0.15);   // ~−12 dB talkover duck
   micBtn2.classList.add('on');
+  } finally { micOpening = false; }
 };
 micBtn2.addEventListener('click', async () => {
   if (micBtn2._suppress) { micBtn2._suppress = false; return; }  // click after a PTT hold
@@ -4121,7 +4135,7 @@ micBtn2.addEventListener('click', async () => {
 // radio-style talkback. Tap = latch as before.
 micBtn2.addEventListener('pointerdown', () => {
   if (micSrc) return;
-  micBtn2._momTimer = setTimeout(() => { micBtn2._mom = true; micOpen(); }, 250);
+  micBtn2._momTimer = setTimeout(() => { micBtn2._mom = true; micOpen(true); }, 250);
 });
 const micMomEnd = () => {
   clearTimeout(micBtn2._momTimer);
