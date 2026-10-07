@@ -139,3 +139,27 @@ Supersedes the v1 audit (PR #210). Method: first-principles
 - P1 (core gaps): real stem separation path (spectral subtraction or bundled ONNX-style model — biggest mission gap), first-run onboarding (drop-anywhere → auto-analyze → guided cue), gesture legend overlay (? key), blob GC for soft-deleted records, analysis in a Worker.
 - P2 (quality): FX macro presets, Camelot wheel readout, undo ring (cue/loop/grid ops), ARIA + focus model, per-PR CI on the smoke gate.
 - P3 (polish): visual diff checks on layout, telemetry-lite local counters, deck C, choke groups, split recordings.
+
+## v3 status (updated ~ADR-0376)
+The P0 structural row is now all delivered except the human-side one:
+smoke gate committed (#221), per-PR CI live and green (#379), hash
+migration done (#215). What remains there is only landing the open
+PR backlog — every other P0 has shipped.
+
+Landed since v2: per-PR smoke CI (#379), `?` gesture-legend overlay
+(#236), blob GC on delete + boot (#237), analysis in a Web Worker
+with inline fallback (#238/#321), ARIA labels + live regions (#241),
+choke groups (#244), local telemetry-lite counters (#242), ~100
+correctness fixes across tracks/persistence/gestures/audio-graph.
+
+Still open, re-ranked:
+- P0: merge the open-PR backlog — the bottleneck is now human review,
+  not implementation.
+- P1: real stem separation path (mid/side split is a partial stand-in;
+  a spectral/model-based path is the biggest mission gap), first-run
+  onboarding flow.
+- P2: multi-level undo ring (today's one-level undos cover cue/loop/
+  grid/mem/sampler/eject — the ring is the upgrade), FX macro presets,
+  undo for waveform cue-drag writes.
+- P3: deck C refactor of index.html (~5200 lines), visual-diff layout
+  checks, split recordings, Camelot wheel readout.
