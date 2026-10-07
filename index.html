@@ -2096,7 +2096,11 @@ class Deck {
   setFxTap(post) {
     if (!this.delay) return;
     const src = post ? this.xfGain : this.filter;
-    for (const send of [this.delay, this.flDelay, this.verb]) {
+    // Rewire the SEND nodes, not the effect cores: echo and verb are
+    // fed through delaySend/verbSend (the FX-on gate). Connecting to
+    // the cores directly would bypass that gate — the old edge also
+    // stays live, doubling the send.
+    for (const send of [this.delaySend, this.flDelay, this.verbSend]) {
       try { this.filter.disconnect(send); } catch (_) {}
       try { this.xfGain.disconnect(send); } catch (_) {}
       src.connect(send);
