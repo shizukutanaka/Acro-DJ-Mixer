@@ -1511,6 +1511,10 @@ class Deck {
       this.loopLenEl.hidden = true;
       this.keyEl.textContent = '—';
       this.keyEl.className = 'key';
+      // The analysis cache dedupes estimateBpm+estimateKey for ONE
+      // track; a new track must not inherit the last one's result —
+      // it would write the old grid/key over this buffer and tagLib.
+      this.__anP = null;
       this.cues = meta && meta.cues ? meta.cues.slice(0, 8) : [null, null, null, null, null, null, null, null];
       while (this.cues.length < 8) this.cues.push(null);
       // Restored cues keep the same pad contract as freshly set ones:
