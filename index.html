@@ -1153,6 +1153,7 @@ class Deck {
       this.tagLib(this.grid ? { bpm: this.grid.bpm, beatOff: this.grid.beatOff } : { bpm: null, beatOff: null });
       this._syncDelay();
       this.bpmEl.textContent = this.grid ? this.grid.bpm.toFixed(1) : '—';
+      this._effBpm();
       this._drawnPos = undefined;
       this.drawWave();
       this.status(this.grid ? 'grid restored ' + this.grid.bpm.toFixed(1) + ' BPM' : 'grid cleared');
@@ -1184,6 +1185,7 @@ class Deck {
         }
         this._bpmEdit = false;
         this.bpmEl.textContent = this.grid ? this.grid.bpm.toFixed(1) : '—';
+        this._effBpm();
       };
       inp.addEventListener('keydown', e => {
         e.stopPropagation();   // deck keys must not fire while typing
@@ -1405,6 +1407,7 @@ class Deck {
     this.grid.beatOff = this._taps[this._taps.length - 1].pos;
     this._syncDelay();
     this.bpmEl.textContent = bpm.toFixed(1);
+    this._effBpm();
     this.tagLib({ bpm, beatOff: this.grid.beatOff });
     this._drawnPos = undefined;
     this.drawWave();
@@ -1490,6 +1493,7 @@ class Deck {
       this.status(this.cueIn > 0.05 ? 'auto-cue +' + this.cueIn.toFixed(1) + 's' : '');
       this.grid = null;
       this._prevGrid = undefined;
+      this._effBpm();   // the old track's effective BPM must not linger
       this.key = null;
       // Partner's harmonic tint referenced our key — recompute it
       // now that there's nothing to match against.
@@ -1541,6 +1545,7 @@ class Deck {
         // Cached analysis from the library — instant, no recompute.
         this.grid = { bpm: meta.bpm, beatOff: meta.beatOff || 0 };
         this.bpmEl.textContent = this.grid.bpm.toFixed(1);
+        this._effBpm();
         this._syncDelay();
         this.key = meta.key || null;
         this.refreshKey();
@@ -2208,11 +2213,17 @@ class Deck {
     if (this.engine === 'worklet') this.node.port.postMessage({ type: 'rate', rate: eff });
     else if (this.source) this.source.playbackRate.value = eff;
     this.tempoOut.textContent = (r >= 1 ? '+' : '') + ((r - 1) * 100).toFixed(1) + '%';
-    // Effective BPM beside the detected tempo — the value a DJ
-    // actually beat-matches to once the fader has moved.
-    this.effEl.textContent = (this.grid && Math.abs(r - 1) > 0.005)
-      ? ' →' + (this.grid.bpm * r).toFixed(1) : '';
+    this._effBpm();
     this._syncDelay();
+  }
+
+  // Effective BPM beside the detected tempo — the value a DJ
+  // actually beat-matches to once the fader has moved. Every writer
+  // of grid.bpm refreshes it: the readout belongs to the CURRENT grid,
+  // not to whichever writer last happened to touch the element.
+  _effBpm() {
+    this.effEl.textContent = (this.grid && Math.abs(this.rate - 1) > 0.005)
+      ? ' →' + (this.grid.bpm * this.rate).toFixed(1) : '';
   }
 
   toggleKeylock() {
@@ -2498,8 +2509,7 @@ class Deck {
       if (buf !== this.buffer) return;
       this.grid = grid;
       this.bpmEl.textContent = grid ? grid.bpm.toFixed(1) : '—';
-      this.effEl.textContent = (grid && Math.abs(this.rate - 1) > 0.005)
-        ? ' →' + (grid.bpm * this.rate).toFixed(1) : '';
+      this._effBpm();
       if (grid) this.tagLib({ bpm: grid.bpm, beatOff: grid.beatOff });
       this._syncDelay();
       this._drawnPos = undefined;
