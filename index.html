@@ -2496,6 +2496,12 @@ class Deck {
     try {
       const grid = (await this._analysis(monoP)).bpm;
       if (buf !== this.buffer) return;
+      // The estimate is a grid writer like any other: if the DJ typed a
+      // manual BPM while analysis was in flight, this write destroys
+      // it — stash what we're replacing or right-click undo restores a
+      // stale _prevGrid (the grid before the manual write) and the
+      // manual entry is unrecoverable.
+      this._prevGrid = this.grid ? { bpm: this.grid.bpm, beatOff: this.grid.beatOff } : null;
       this.grid = grid;
       this.bpmEl.textContent = grid ? grid.bpm.toFixed(1) : '—';
       this.effEl.textContent = (grid && Math.abs(this.rate - 1) > 0.005)
