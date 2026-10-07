@@ -1523,6 +1523,7 @@ class Deck {
       this._savedLoop = meta && meta.loop ? meta.loop : null;
       this._loopMem = meta && meta.mem1 ? meta.mem1 : null;
       this._loopMem2 = meta && meta.mem2 ? meta.mem2 : null;
+      this._memTitle();   // the saved slots' regions belong in the button title
       this.stemSel.value = meta && meta.stem ? meta.stem : 'off';
       this.setStem(this.stemSel.value);   // the select alone doesn't move the matrix
       this._prevLoopMem = undefined;   // memory-undo belongs to the previous track
