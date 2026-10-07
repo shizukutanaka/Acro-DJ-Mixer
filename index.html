@@ -1856,6 +1856,7 @@ class Deck {
     }
     this.startedAt = ac.currentTime;
     this.playing = true;
+    this._unfoldReckon();
     this.playBtn.textContent = 'Pause';
     if (this.brake) { this.spinMul = 1e-3; this._applySpinRate(); this._spin(1, 0.5); }
     else this.spinMul = 1;
@@ -2006,6 +2007,7 @@ class Deck {
 
   stopPlayback() {
     this.playing = false;
+    this._foldReckon();
     // An in-flight brake ramp must not outlive its owner — eject/cue
     // call this, and the timer would keep posting 'rate' and fire its
     // done() callback on a dead deck.
@@ -2023,6 +2025,28 @@ class Deck {
       this.source.disconnect();
       this.source = null;
     }
+  }
+
+  // Slip bookkeeping advances on the same clock as pos(): only while
+  // the deck actually plays. Stopping inside a hold folds the elapsed
+  // time into the anchor and parks the clock (t = null); play() unfolds
+  // it — otherwise the release/exit lands pause-length ahead of the
+  // true timeline (the parked position IS the frozen timeline).
+  _foldReckon() {
+    const now = ctx.currentTime;
+    for (const s of [this._slip, this._roll])
+      if (s && s.t != null) { s.pos += (now - s.t) * (s.rate || this.rate); s.t = null; }
+    if (this._loopT != null) {
+      this._loopEnterPos += (now - this._loopT) * (this._loopEnterRate || this.rate);
+      this._loopT = null;
+    }
+  }
+
+  _unfoldReckon() {
+    const now = ctx.currentTime;
+    for (const s of [this._slip, this._roll])
+      if (s && s.t == null) s.t = now;
+    if (this._loopT == null && this.loopOn) this._loopT = now;
   }
 
   pause() {
@@ -2412,9 +2436,10 @@ class Deck {
       // where the timeline really is, so the landing point is visible.
       if (this.slip && this.playing) {
         let ghost = null;
-        if (this._slip) ghost = this._slip.pos + (ctx.currentTime - this._slip.t) * this.rate;
-        else if (this._roll) ghost = this._roll.pos + (ctx.currentTime - this._roll.t) * this.rate;
-        else if (this.loopOn && this._loopT != null) ghost = this._loopEnterPos + (ctx.currentTime - this._loopT) * this.rate;
+        if (this._slip) ghost = this._slip.pos + (this._slip.t != null ? (ctx.currentTime - this._slip.t) * (this._slip.rate || this.rate) : 0);
+        else if (this._roll) ghost = this._roll.pos + (this._roll.t != null ? (ctx.currentTime - this._roll.t) * (this._roll.rate || this.rate) : 0);
+        else if (this.loopOn && (this._loopT != null || this._loopEnterPos))
+          ghost = this._loopEnterPos + (this._loopT != null ? (ctx.currentTime - this._loopT) * (this._loopEnterRate || this.rate) : 0);
         if (ghost != null && ghost >= v0 && ghost <= v1) {
           c.fillStyle = 'rgba(255,255,255,0.45)';
           c.fillRect(Math.floor(xOf(ghost)) - 1, 0, 2, h);
@@ -2687,7 +2712,7 @@ class Deck {
       // lands where the track would have been without the loop —
       // same doctrine as roll release and slip cues.
       if (this.slip && this.playing && this._loopT != null) {
-        const wouldBe = this._loopEnterPos + (ctx.currentTime - this._loopT) * this.rate;
+        const wouldBe = this._loopEnterPos + (ctx.currentTime - this._loopT) * (this._loopEnterRate || this.rate);
         if (wouldBe < this.loopStart || wouldBe > this.loopEnd)
           this.seekTo(Math.min(wouldBe, this.buffer.duration - 0.01));
       }
@@ -2725,7 +2750,7 @@ class Deck {
     const r = this._roll;
     if (!r) return;
     this._roll = null;
-    const slip = r.pos + (ctx.currentTime - r.t) * this.rate;
+    const slip = r.pos + (r.t != null ? (ctx.currentTime - r.t) * (r.rate || this.rate) : 0);
     if (r.saved) { [this.loopStart, this.loopEnd] = r.saved; this.loopOn = true; }
     else this.loopOn = false;
     this.applyLoop();
@@ -2733,6 +2758,7 @@ class Deck {
     this.loopLenEl.hidden = !this.loopOn;
     this.rollBtn.classList.remove('on');
     if (this.playing) this.seekTo(Math.min(slip, this.buffer.duration - 0.01));
+    else this.offset = Math.min(slip, this.buffer.duration - 0.01);
     this._drawnPos = undefined;
     this.drawWave();
     this.tagLib({ loop: this.loopOn ? [this.loopStart, this.loopEnd] : null });
@@ -2751,8 +2777,9 @@ class Deck {
     const s = this._slip;
     if (!s) return;
     this._slip = null;
-    const back = s.pos + (ctx.currentTime - s.t) * this.rate;
+    const back = s.pos + (s.t != null ? (ctx.currentTime - s.t) * (s.rate || this.rate) : 0);
     if (this.playing) this.seekTo(Math.min(back, this.buffer.duration - 0.01));
+    else this.offset = Math.min(back, this.buffer.duration - 0.01);
   }
 
   applyLoop() {
