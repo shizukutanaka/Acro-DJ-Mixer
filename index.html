@@ -2637,6 +2637,10 @@ class Deck {
       if (this._loopIn == null) {
         this._loopIn = this.pos();
         this.loopBtn.classList.add('armed');
+        // The pending tick renders in drawWave — on a stopped deck
+        // pos() never moves, so nothing else forces it on screen.
+        this._drawnPos = undefined;
+        this.drawWave();
         return;
       }
       // Quantized loops honour Qtz (ADR-0021 parity with hot cues):
@@ -3886,11 +3890,18 @@ function autoMixTick() {
     autoBtn.textContent = 'Auto ' + Math.round(k * 100) + '%';
     return;
   }
-  if (!autoMix.on || !ctx) { deckA._fadeAt = deckB._fadeAt = null; return; }
+  if (!autoMix.on || !ctx) {
+    for (const d of [deckA, deckB])
+      if (d._fadeAt != null) { d._fadeAt = null; d._drawnPos = undefined; }
+    return;
+  }
   autoBtn.textContent = 'Auto';
   for (const d of [deckA, deckB]) {
     const to = d.partner;
-    if (!fireCandidate(d, to)) { d._fadeAt = null; continue; }
+    if (!fireCandidate(d, to)) {
+      if (d._fadeAt != null) { d._fadeAt = null; d._drawnPos = undefined; }
+      continue;
+    }
     const beat = d.grid ? 60 / d.grid.bpm : 1;
     // Phrase alignment: the trigger point is 2*len beats before the
     // end, but the fade actually fires on the nearest 4-beat bar —
@@ -3909,9 +3920,10 @@ function autoMixTick() {
     }
     // Countdown on the button: beats until the fade fires.
     autoBtn.textContent = 'Auto ' + Math.max(0, Math.ceil((fadeAt - d.pos()) / beat)) + 'b';
-    d._fadeAt = fadeAt;
+    if (d._fadeAt !== fadeAt) { d._fadeAt = fadeAt; d._drawnPos = undefined; }
     if (d.pos() < fadeAt) continue;
     d._fadeAt = null;
+    d._drawnPos = undefined;   // the fired marker comes off even if pos() stalls
     fireFade(d, to, beat);
   }
 }
