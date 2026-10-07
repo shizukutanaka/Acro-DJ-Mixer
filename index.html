@@ -2894,7 +2894,7 @@ class Deck {
   // cached meta path, so every restored field lands exactly as it was.
   async swapWith(other) {
     if (autoMix.fade) { this.status('Finish or cancel the fade first.'); return; }
-    const snap = d => ({ file: d._fileObj, pos: d.pos(), rate: d.rate,
+    const snap = d => ({ file: d._fileObj, pos: d.pos(), rate: d.rate, st: d.st,
       playing: d.playing, meta: {
         cues: d.cues.slice(),
         loop: d.loopOn ? [d.loopStart, d.loopEnd] : null,
@@ -2914,6 +2914,10 @@ class Deck {
       if (!s.file) continue;
       d.tempoEl.value = s.rate;
       d.setRate(s.rate);
+      // Transpose is play state like rate: a track swapped at +N st
+      // must keep sounding at +N, not silently return to ±0. Same
+      // value only — transpose() itself refuses the fallback engine.
+      if (s.st !== d.st) d.transpose(s.st - d.st);
       d.seekTo(s.pos);
       if (s.playing) d.play();
     }
