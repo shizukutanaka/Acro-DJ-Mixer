@@ -1169,7 +1169,15 @@ class Deck {
       inp.type = 'text';
       inp.value = this.grid ? this.grid.bpm.toFixed(1) : '';
       inp.style.cssText = 'width:4.5em;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;color:var(--text);font:inherit';
+      let bpmDone = false;
       const done = commit => {
+        // Enter/Escape end by clearing bpmEl.textContent, which removes
+        // this input — and the removal itself fires blur. A second
+        // commit would overwrite _prevGrid with the just-written grid
+        // and poison the undo (or even commit after Escape), so one
+        // call latches the editor shut for every later call.
+        if (bpmDone) return;
+        bpmDone = true;
         if (commit) {
           const v = parseFloat(inp.value);
           if (v > 30 && v < 400) {
