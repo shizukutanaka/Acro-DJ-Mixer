@@ -1507,6 +1507,23 @@ class Deck {
       this._loopT = null;
       this._loopEnterPos = 0;
       if (this._slice) { this._slice.pad.classList.remove('on'); this._slice = null; }
+      // Momentary holds on this deck's buttons die with the track too
+      // (same abandonment as _slip/_roll/_slice and the Phones hold):
+      // a pending 250 ms timer must not fire into the new track, an
+      // engaged hold must not stay latched, and a stale flag must not
+      // let the next pointer event write state the gesture never owned.
+      clearTimeout(this.slipBtn._momTimer);
+      if (this.slipBtn._mom && this.slip) { this.slip = false; this.slipBtn.classList.remove('on'); }
+      this.slipBtn._mom = this.slipBtn._suppress = false;
+      clearTimeout(this.fxBtn._momTimer);
+      if (this.fxBtn._mom && this.fxOn) this.setFxOn(false);
+      this.fxBtn._mom = this.fxBtn._suppress = false;
+      for (const [band, kb] of Object.entries(this.killEls)) {
+        clearTimeout(kb._momTimer);
+        if (kb._mom && this.kills[band]) this.setKill(band, false);
+        kb._mom = kb._suppress = false;
+      }
+      this.el.querySelector('[data-act=mute]').classList.remove('on');
       this.rollBtn.classList.remove('on');
       this.loopLenEl.hidden = true;
       this.keyEl.textContent = '—';
@@ -1942,6 +1959,23 @@ class Deck {
     this._slip = null;
     this._roll = null;
     if (this._slice) { this._slice.pad.classList.remove('on'); this._slice = null; }
+    // Momentary holds on this deck's buttons die with the track too
+    // (same abandonment as _slip/_roll/_slice and the Phones hold):
+    // a pending 250 ms timer must not fire into the new track, an
+    // engaged hold must not stay latched, and a stale flag must not
+    // let the next pointer event write state the gesture never owned.
+    clearTimeout(this.slipBtn._momTimer);
+    if (this.slipBtn._mom && this.slip) { this.slip = false; this.slipBtn.classList.remove('on'); }
+    this.slipBtn._mom = this.slipBtn._suppress = false;
+    clearTimeout(this.fxBtn._momTimer);
+    if (this.fxBtn._mom && this.fxOn) this.setFxOn(false);
+    this.fxBtn._mom = this.fxBtn._suppress = false;
+    for (const [band, kb] of Object.entries(this.killEls)) {
+      clearTimeout(kb._momTimer);
+      if (kb._mom && this.kills[band]) this.setKill(band, false);
+      kb._mom = kb._suppress = false;
+    }
+    this.el.querySelector('[data-act=mute]').classList.remove('on');
     this.rollBtn.classList.remove('on');
     this.loopLenEl.hidden = true;
     this.loopBtn.classList.remove('on', 'armed');
