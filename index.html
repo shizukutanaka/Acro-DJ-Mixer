@@ -1505,7 +1505,11 @@ class Deck {
       }
       // A cue point set by hand (shift+Cue) beats the auto-detected
       // first sound — like a rekordbox memory cue.
-      if (meta && meta.cueIn != null) this.cueIn = meta.cueIn;
+      // Foreign meta (imports) is sanitized at the consumer: only a
+      // finite in-track time can become the cue point — a string or
+      // out-of-range value would poison every seek that reads it.
+      if (meta && typeof meta.cueIn === 'number' && Number.isFinite(meta.cueIn))
+        this.cueIn = Math.min(Math.max(meta.cueIn, 0), buf.duration);
       this.offset = this.cueIn;
       if (this.engine === 'worklet' && this.cueIn > 0)
         this.node.port.postMessage({ type: 'seek', pos: Math.round(this.cueIn * buf.sampleRate) });
@@ -1579,7 +1583,12 @@ class Deck {
       // track; a new track must not inherit the last one's result —
       // it would write the old grid/key over this buffer and tagLib.
       this.__anP = null;
-      this.cues = meta && meta.cues ? meta.cues.slice(0, 8) : [null, null, null, null, null, null, null, null];
+      // Element-level sanitize on the same foreign-meta rule: a cue
+      // is a finite in-track time or it is no cue — anything else
+      // becomes null instead of NaN-ing seeks and pad titles.
+      this.cues = meta && meta.cues
+        ? meta.cues.slice(0, 8).map(c => typeof c === 'number' && Number.isFinite(c) ? Math.min(Math.max(c, 0), buf.duration) : null)
+        : [null, null, null, null, null, null, null, null];
       while (this.cues.length < 8) this.cues.push(null);
       // Restored cues keep the same pad contract as freshly set ones:
       // .set styling plus the stored time in the title (the generic
@@ -1588,9 +1597,12 @@ class Deck {
         this.pads[i].classList.toggle('set', c != null);
         if (c != null) this.pads[i].title = 'Hot cue ' + fmt(c) + ' — click jumps, shift-click clears, right-click previews, alt-hold = slice audition';
       });
+      // Loop memory slots share the rule: a pair of finite times with
+      // end after start — a reversed or partial slot can't re-enter.
+      const sanePair = m => Array.isArray(m) && Number.isFinite(m[0]) && Number.isFinite(m[1]) && m[1] > m[0] ? m : null;
       this._savedLoop = meta && meta.loop ? meta.loop : null;
-      this._loopMem = meta && meta.mem1 ? meta.mem1 : null;
-      this._loopMem2 = meta && meta.mem2 ? meta.mem2 : null;
+      this._loopMem = meta && sanePair(meta.mem1) ? meta.mem1 : null;
+      this._loopMem2 = meta && sanePair(meta.mem2) ? meta.mem2 : null;
       this._memTitle();   // the saved slots' regions belong in the button title
       this.stemSel.value = meta && meta.stem ? meta.stem : 'off';
       this.setStem(this.stemSel.value);   // the select alone doesn't move the matrix
@@ -2973,7 +2985,7 @@ class Deck {
   reloop(mem = this._loopMem || this._loopMem2 || this._prevLoop) {
     if (this.loopOn || !mem || !this.buffer) return;
     const [st, en] = mem;
-    if (en > this.buffer.duration) return;
+    if (!(en > st) || en > this.buffer.duration) return;   // degenerate or past-end regions can't re-enter
     this.loopStart = st; this.loopEnd = en; this.loopOn = true;
     // Same slip bookkeeping as a fresh arm — exit dead-reckons from
     // THIS entry, not the stale _loopT the previous loop left behind.
