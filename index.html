@@ -3730,9 +3730,21 @@ recBtn.addEventListener('click', e => {
     recWav = e.altKey;   // alt+Rec = lossless take: the webm gets decoded and re-saved as WAV
     if (!recDest) { recDest = ctx.createMediaStreamDestination(); limiter.connect(recDest); }
     recChunks = [];
-    recorder = new MediaRecorder(recDest.stream);
+    try { recorder = new MediaRecorder(recDest.stream); }
+    catch (_) { deckA.status('recording not supported here'); return; }
     recorder.ondataavailable = e => recChunks.push(e.data);
+    // An encoder fault stops the recorder in place — without this the
+    // button keeps ticking a take that died. Tear down like onstop so
+    // the next click doesn't stop() an inactive recorder.
+    recorder.onerror = () => {
+      recorder = null; recChunks = [];
+      recBtn.classList.remove('on');
+      clearInterval(recTick); recTick = null;
+      recBtn.textContent = 'Rec';
+      deckA.status('recording failed — take dropped');
+    };
     recorder.onstop = async () => {
+      if (!recorder) return;   // an onerror teardown already dropped this take
       // Honour the recorder's real container — Safari MediaRecorder
       // emits mp4, and a .webm filename lies about what's inside.
       const mime = recorder.mimeType || 'audio/webm';
