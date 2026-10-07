@@ -2230,6 +2230,9 @@ class Deck {
 
   seekTo(fracSeconds) {
     // Shared by waveform clicks and beat-sync slips.
+    // Same empty-deck guard as cue()/play(): engine outlives buffer,
+    // and buffer.sampleRate below would throw on an ejected deck.
+    if (!this.buffer) return;
     // Seeking outside an armed loop exits it — the deck-standard escape.
     if (this.loopOn && (fracSeconds < this.loopStart || fracSeconds >= this.loopEnd)) this.toggleLoop();
     this.offset = fracSeconds;
