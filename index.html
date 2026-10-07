@@ -1507,6 +1507,13 @@ class Deck {
       this._loopT = null;
       this._loopEnterPos = 0;
       if (this._slice) { this._slice.pad.classList.remove('on'); this._slice = null; }
+      // A held momentary-cue press belongs to the old track: if the
+      // 250 ms hold already rang the PFL, drop it back off — release
+      // can't see this track's press, and a latched cueOn would leak
+      // the new track into the headphones.
+      clearTimeout(this.cueBtn._momTimer);
+      if (this.cueBtn._mom && this.cueOn) this.toggleCue();
+      this.cueBtn._mom = this.cueBtn._suppress = false;
       this.rollBtn.classList.remove('on');
       this.loopLenEl.hidden = true;
       this.keyEl.textContent = '—';
@@ -1942,6 +1949,11 @@ class Deck {
     this._slip = null;
     this._roll = null;
     if (this._slice) { this._slice.pad.classList.remove('on'); this._slice = null; }
+    // Same for a held momentary-cue press (see load()): un-latch the
+    // PFL ring the hold opened before abandoning the gesture.
+    clearTimeout(this.cueBtn._momTimer);
+    if (this.cueBtn._mom && this.cueOn) this.toggleCue();
+    this.cueBtn._mom = this.cueBtn._suppress = false;
     this.rollBtn.classList.remove('on');
     this.loopLenEl.hidden = true;
     this.loopBtn.classList.remove('on', 'armed');
