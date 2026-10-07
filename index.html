@@ -4707,7 +4707,9 @@ document.addEventListener('keydown', e => {
     case 'd': case 'D': e.shiftKey ? deckA.clearPad(6) : deckA.padCue(6); break;
     case 'f': case 'F': e.shiftKey ? deckA.clearPad(7) : deckA.padCue(7); break;
     case 'e': case 'E': deckA.syncTo(deckB); break;
-    case 'r': case 'R': deckA.toggleLoop(); break;
+    // Shift mirrors the Loop button's modifier: plain = beat-grid
+    // loop, shift = free-size IN/OUT arming (was unreachable by key).
+    case 'r': case 'R': deckA.toggleLoop(e.shiftKey); break;
     // Key sync beside tempo-sync (t under e) — harmonic matching gets
     // a key too; on an un-analyzed deck the button's status line says why.
     case 't': case 'T': deckA.keySync(); break;
@@ -4723,7 +4725,7 @@ document.addEventListener('keydown', e => {
     case 'k': case 'K': e.shiftKey ? deckB.clearPad(6) : deckB.padCue(6); break;
     case 'l': case 'L': e.shiftKey ? deckB.clearPad(7) : deckB.padCue(7); break;
     case 'i': case 'I': deckB.syncTo(deckA); break;
-    case 'u': case 'U': deckB.toggleLoop(); break;
+    case 'u': case 'U': deckB.toggleLoop(e.shiftKey); break;
     // Slip beside the cue keys (g under the left hand, ' under the
     // right) — the last deck-latch a keyboard mix couldn't reach.
     case 'g': case 'G': deckA.slipBtn.click(); break;
