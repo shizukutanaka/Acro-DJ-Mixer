@@ -1507,6 +1507,10 @@ class Deck {
       this._loopT = null;
       this._loopEnterPos = 0;
       if (this._slice) { this._slice.pad.classList.remove('on'); this._slice = null; }
+      // Same abandonment for a held Cue-preview: the flag must die
+      // with the old track or a later pointerleave/pointercancel on the
+      // button fires pause()+cue() on the NEW track — a phantom stop.
+      this._cuePreview = false;
       this.rollBtn.classList.remove('on');
       this.loopLenEl.hidden = true;
       this.keyEl.textContent = '—';
@@ -1942,6 +1946,7 @@ class Deck {
     this._slip = null;
     this._roll = null;
     if (this._slice) { this._slice.pad.classList.remove('on'); this._slice = null; }
+    this._cuePreview = false;   // same latch-abandonment as the load path
     this.rollBtn.classList.remove('on');
     this.loopLenEl.hidden = true;
     this.loopBtn.classList.remove('on', 'armed');
