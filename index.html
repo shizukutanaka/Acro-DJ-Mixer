@@ -1162,6 +1162,7 @@ class Deck {
       this.tagLib(this.grid ? { bpm: this.grid.bpm, beatOff: this.grid.beatOff } : { bpm: null, beatOff: null });
       this._syncDelay();
       this.bpmEl.textContent = this.grid ? this.grid.bpm.toFixed(1) : '—';
+      this._effBpm();
       this._drawnPos = undefined;
       this.drawWave();
       this.status(this.grid ? 'grid restored ' + this.grid.bpm.toFixed(1) + ' BPM' : 'grid cleared');
@@ -1187,6 +1188,10 @@ class Deck {
         // call latches the editor shut for every later call.
         if (bpmDone) return;
         bpmDone = true;
+        // A track swap abandons the edit: load/eject resets _bpmEdit
+        // before overwriting bpmEl, so the removal blur lands here
+        // and must not commit the half-typed value to the NEW track.
+        if (!this._bpmEdit) return;
         if (commit) {
           const v = parseFloat(inp.value);
           if (v > 30 && v < 400) {
@@ -1201,6 +1206,7 @@ class Deck {
         }
         this._bpmEdit = false;
         this.bpmEl.textContent = this.grid ? this.grid.bpm.toFixed(1) : '—';
+        this._effBpm();
       };
       inp.addEventListener('keydown', e => {
         e.stopPropagation();   // deck keys must not fire while typing
@@ -1430,6 +1436,7 @@ class Deck {
     this.grid.beatOff = this._taps[this._taps.length - 1].pos;
     this._syncDelay();
     this.bpmEl.textContent = bpm.toFixed(1);
+    this._effBpm();
     this.tagLib({ bpm, beatOff: this.grid.beatOff });
     this._drawnPos = undefined;
     this.drawWave();
@@ -1498,7 +1505,11 @@ class Deck {
       }
       // A cue point set by hand (shift+Cue) beats the auto-detected
       // first sound — like a rekordbox memory cue.
-      if (meta && meta.cueIn != null) this.cueIn = meta.cueIn;
+      // Foreign meta (imports) is sanitized at the consumer: only a
+      // finite in-track time can become the cue point — a string or
+      // out-of-range value would poison every seek that reads it.
+      if (meta && typeof meta.cueIn === 'number' && Number.isFinite(meta.cueIn))
+        this.cueIn = Math.min(Math.max(meta.cueIn, 0), buf.duration);
       this.offset = this.cueIn;
       if (this.engine === 'worklet' && this.cueIn > 0)
         this.node.port.postMessage({ type: 'seek', pos: Math.round(this.cueIn * buf.sampleRate) });
@@ -1515,6 +1526,7 @@ class Deck {
       this.status(this.cueIn > 0.05 ? 'auto-cue +' + this.cueIn.toFixed(1) + 's' : '');
       this.grid = null;
       this._prevGrid = undefined;
+      this._effBpm();   // the old track's effective BPM must not linger
       this._taps = null;   // tap history belongs to the old track — a
                          // straggler tap would pair with a new one and
                          // write a cross-track bpm/beatOff
@@ -1532,6 +1544,7 @@ class Deck {
       // loop bounds (and tagLib them) on the new one.
       this._slip = null;
       this._roll = null;
+      this._bpmEdit = false;   // abandon a BPM edit mid-typing — the removal blur must not commit it to this track
       this._emLoop = false;    // the emergency-loop latch belongs to the old track's tail
       this._loopT = null;
       this._loopEnterPos = 0;
@@ -1541,6 +1554,13 @@ class Deck {
       // with the old track or a later pointerleave/pointercancel on the
       // button fires pause()+cue() on the NEW track — a phantom stop.
       this._cuePreview = false;
+      // A held momentary-cue press belongs to the old track: if the
+      // 250 ms hold already rang the PFL, drop it back off — release
+      // can't see this track's press, and a latched cueOn would leak
+      // the new track into the headphones.
+      clearTimeout(this.cueBtn._momTimer);
+      if (this.cueBtn._mom && this.cueOn) this.toggleCue();
+      this.cueBtn._mom = this.cueBtn._suppress = false;
       // Momentary holds on this deck's buttons die with the track too
       // (same abandonment as _slip/_roll/_slice and the Phones hold):
       // a pending 250 ms timer must not fire into the new track, an
@@ -1567,7 +1587,12 @@ class Deck {
       // track; a new track must not inherit the last one's result —
       // it would write the old grid/key over this buffer and tagLib.
       this.__anP = null;
-      this.cues = meta && meta.cues ? meta.cues.slice(0, 8) : [null, null, null, null, null, null, null, null];
+      // Element-level sanitize on the same foreign-meta rule: a cue
+      // is a finite in-track time or it is no cue — anything else
+      // becomes null instead of NaN-ing seeks and pad titles.
+      this.cues = meta && meta.cues
+        ? meta.cues.slice(0, 8).map(c => typeof c === 'number' && Number.isFinite(c) ? Math.min(Math.max(c, 0), buf.duration) : null)
+        : [null, null, null, null, null, null, null, null];
       while (this.cues.length < 8) this.cues.push(null);
       // Restored cues keep the same pad contract as freshly set ones:
       // .set styling plus the stored time in the title (the generic
@@ -1576,9 +1601,12 @@ class Deck {
         this.pads[i].classList.toggle('set', c != null);
         if (c != null) this.pads[i].title = 'Hot cue ' + fmt(c) + ' — click jumps, shift-click clears, right-click previews, alt-hold = slice audition';
       });
+      // Loop memory slots share the rule: a pair of finite times with
+      // end after start — a reversed or partial slot can't re-enter.
+      const sanePair = m => Array.isArray(m) && Number.isFinite(m[0]) && Number.isFinite(m[1]) && m[1] > m[0] ? m : null;
       this._savedLoop = meta && meta.loop ? meta.loop : null;
-      this._loopMem = meta && meta.mem1 ? meta.mem1 : null;
-      this._loopMem2 = meta && meta.mem2 ? meta.mem2 : null;
+      this._loopMem = meta && sanePair(meta.mem1) ? meta.mem1 : null;
+      this._loopMem2 = meta && sanePair(meta.mem2) ? meta.mem2 : null;
       this._memTitle();   // the saved slots' regions belong in the button title
       this.stemSel.value = meta && meta.stem ? meta.stem : 'off';
       this.setStem(this.stemSel.value);   // the select alone doesn't move the matrix
@@ -1598,6 +1626,7 @@ class Deck {
         // Cached analysis from the library — instant, no recompute.
         this.grid = { bpm: meta.bpm, beatOff: meta.beatOff || 0 };
         this.bpmEl.textContent = this.grid.bpm.toFixed(1);
+        this._effBpm();
         this._syncDelay();
         this.key = meta.key || null;
         this.refreshKey();
@@ -1895,12 +1924,12 @@ class Deck {
     if (!this._playCounted && this.fileName) {
       this._playCounted = true;
       // Play count lives on the library record so digging shows
-      // which tracks actually got rinsed.
+      // which tracks actually got rinsed. The increment must happen
+      // inside the write chain — instant doubles (or any same-record
+      // both-decks play) would otherwise get->tag the same stale
+      // count and lose a play.
       (this.libId != null ? Promise.resolve(this.libId) : this._libP)
-        ?.then(async id => {
-          const rec = await Library.get(id);
-          if (rec) this.tagLib({ plays: (rec.plays || 0) + 1 });
-        });
+        ?.then(id => { if (id != null) Library.bump(id, 'plays'); });
     }
     const ac = audio();
     if (this.engine === 'worklet') {
@@ -2013,9 +2042,15 @@ class Deck {
     this._loopEnterRate = 0;
     this._slip = null;
     this._roll = null;
+    this._bpmEdit = false;   // same abandonment as load() — an open editor belongs to the ejected track
     this._emLoop = false;
     if (this._slice) { this._slice.pad.classList.remove('on'); this._slice = null; }
     this._cuePreview = false;   // same latch-abandonment as the load path
+    // Same for a held momentary-cue press (see load()): un-latch the
+    // PFL ring the hold opened before abandoning the gesture.
+    clearTimeout(this.cueBtn._momTimer);
+    if (this.cueBtn._mom && this.cueOn) this.toggleCue();
+    this.cueBtn._mom = this.cueBtn._suppress = false;
     // Momentary holds on this deck's buttons die with the track too
     // (same abandonment as _slip/_roll/_slice and the Phones hold):
     // a pending 250 ms timer must not fire into the new track, an
@@ -2345,11 +2380,17 @@ class Deck {
     if (this.engine === 'worklet') this.node.port.postMessage({ type: 'rate', rate: eff });
     else if (this.source) this.source.playbackRate.value = eff;
     this.tempoOut.textContent = (r >= 1 ? '+' : '') + ((r - 1) * 100).toFixed(1) + '%';
-    // Effective BPM beside the detected tempo — the value a DJ
-    // actually beat-matches to once the fader has moved.
-    this.effEl.textContent = (this.grid && Math.abs(r - 1) > 0.005)
-      ? ' →' + (this.grid.bpm * r).toFixed(1) : '';
+    this._effBpm();
     this._syncDelay();
+  }
+
+  // Effective BPM beside the detected tempo — the value a DJ
+  // actually beat-matches to once the fader has moved. Every writer
+  // of grid.bpm refreshes it: the readout belongs to the CURRENT grid,
+  // not to whichever writer last happened to touch the element.
+  _effBpm() {
+    this.effEl.textContent = (this.grid && Math.abs(this.rate - 1) > 0.005)
+      ? ' →' + (this.grid.bpm * this.rate).toFixed(1) : '';
   }
 
   toggleKeylock() {
@@ -2645,8 +2686,7 @@ class Deck {
       this._prevGrid = this.grid ? { bpm: this.grid.bpm, beatOff: this.grid.beatOff } : null;
       this.grid = grid;
       this.bpmEl.textContent = grid ? grid.bpm.toFixed(1) : '—';
-      this.effEl.textContent = (grid && Math.abs(this.rate - 1) > 0.005)
-        ? ' →' + (grid.bpm * this.rate).toFixed(1) : '';
+      this._effBpm();
       if (grid) this.tagLib({ bpm: grid.bpm, beatOff: grid.beatOff });
       this._syncDelay();
       this._drawnPos = undefined;
@@ -2950,7 +2990,7 @@ class Deck {
   reloop(mem = this._loopMem || this._loopMem2 || this._prevLoop) {
     if (this.loopOn || !mem || !this.buffer) return;
     const [st, en] = mem;
-    if (en > this.buffer.duration) return;
+    if (!(en > st) || en > this.buffer.duration) return;   // degenerate or past-end regions can't re-enter
     this.loopStart = st; this.loopEnd = en; this.loopOn = true;
     // Same slip bookkeeping as a fresh arm — exit dead-reckons from
     // THIS entry, not the stale _loopT the previous loop left behind.
@@ -3017,17 +3057,7 @@ class Deck {
   // cached meta path, so every restored field lands exactly as it was.
   async swapWith(other) {
     if (autoMix.fade) { this.status('Finish or cancel the fade first.'); return; }
-    const snap = d => ({ file: d._fileObj, pos: d.pos(), rate: d.rate, st: d.st,
-      playing: d.playing, meta: {
-        cues: d.cues.slice(),
-        loop: d.loopOn ? [d.loopStart, d.loopEnd] : null,
-        cueIn: d.cueIn,
-        mem1: d._loopMem, mem2: d._loopMem2,
-        stem: d.stemSel.value,
-        bpm: d.grid ? d.grid.bpm : null,
-        beatOff: d.grid ? d.grid.beatOff : 0,
-        key: d.key, libId: d.libId } });
-    const me = snap(this), them = snap(other);
+    const me = deckSnap(this), them = deckSnap(other);
     if (!me.file && !them.file) { this.status('Nothing on either deck.'); return; }
     if (them.file) await this.load(them.file, them.meta);
     else this.eject();
@@ -3053,7 +3083,10 @@ class Deck {
     const pos = this.pos();
     const rate = this.rate;
     const wasPlaying = this.playing;
-    await p.load(this._fileObj);
+    // Same snapshot swapWith takes: a double carries the live prep —
+    // unsaved hot cues, the armed loop, cue-in, loop memory, stem —
+    // and the grid/key meta so the clone doesn't re-analyze.
+    await p.load(this._fileObj, deckSnap(this).meta);
     p.tempoEl.value = rate;
     p.setRate(rate);
     p.seekTo(pos);
@@ -3091,6 +3124,21 @@ class Deck {
     }
   }
 }
+
+// One deck-state snapshot for every "clone this deck's prep" verb —
+// swap takes it whole, instant doubles forwards its meta into load().
+// Anything load() restores must be named here: cues, loop, cue-in,
+// loop memory, stem, grid, key, library link.
+const deckSnap = d => ({ file: d._fileObj, pos: d.pos(), rate: d.rate, st: d.st,
+  playing: d.playing, meta: {
+    cues: d.cues.slice(),
+    loop: d.loopOn ? [d.loopStart, d.loopEnd] : null,
+    cueIn: d.cueIn,
+    mem1: d._loopMem, mem2: d._loopMem2,
+    stem: d.stemSel.value,
+    bpm: d.grid ? d.grid.bpm : null,
+    beatOff: d.grid ? d.grid.beatOff : 0,
+    key: d.key, libId: d.libId } });
 
 // ----- Analysis helpers (run off the audio thread; chunked to keep UI alive) -----
 
@@ -3532,6 +3580,22 @@ const Library = {
       const rec = await this.get(id);
       if (!rec) return;
       Object.assign(rec, patch);
+      rec.updated_at = Date.now();
+      rec.version++;
+      await this.put(rec);
+      renderLibrary();
+    });
+  },
+  async bump(id, field) {
+    // Counter increment whose read lives inside the write chain —
+    // tag() takes absolute values, so a same-record increment from
+    // two decks would otherwise read one stale count and write it
+    // back twice.
+    if (!id) return;
+    return this._mutate(async () => {
+      const rec = await this.get(id);
+      if (!rec) return;
+      rec[field] = (rec[field] || 0) + 1;
       rec.updated_at = Date.now();
       rec.version++;
       await this.put(rec);
