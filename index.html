@@ -435,6 +435,21 @@ class WsolaProcessor extends AudioWorkletProcessor {
   }
 }
 registerProcessor('wsola', WsolaProcessor);
+
+// Passive PCM tap for lossless takes: copies every input frame to the
+// main thread. No outputs needed — the take runs through a zero-gain
+// sink purely so the graph pulls process().
+class RecTapProcessor extends AudioWorkletProcessor {
+  process(inputs) {
+    const inp = inputs[0];
+    if (inp && inp[0] && inp[0].length) {
+      const c1 = inp[1] || inp[0];
+      this.port.postMessage({ c0: inp[0].slice(0), c1: c1.slice(0) });
+    }
+    return true;
+  }
+}
+registerProcessor('rectap', RecTapProcessor);
 `;
 const WSOLA_URL = URL.createObjectURL(new Blob([WSOLA_SRC], { type: 'text/javascript' }));
 
@@ -3694,8 +3709,54 @@ const autoBtn = document.getElementById('automix');
 
 // ----- Set recording -----
 // MediaStream tap on the master (same pattern as the cue bus) ->
-// MediaRecorder -> .webm download on stop.
+// MediaRecorder -> .webm download on stop. alt+Rec skips the encoder
+// entirely: a rectap worklet on the limiter out hands raw PCM to the
+// main thread, so the WAV is genuinely lossless.
 let recDest = null, recorder = null, recChunks = [], recStart = 0, recTick = null, recPausedAt = 0, recWav = false;
+let recPcm = null, recTap = null, recSink = null;
+
+async function recTapStart() {
+  if (!wsolaModuleReady) { await ctx.audioWorklet.addModule(WSOLA_URL); wsolaModuleReady = true; }
+  recPcm = { c0: [], c1: [], paused: false };
+  recTap = new AudioWorkletNode(ctx, 'rectap');
+  recTap.port.onmessage = ev => {
+    if (!recPcm || recPcm.paused) return;
+    recPcm.c0.push(ev.data.c0); recPcm.c1.push(ev.data.c1);
+  };
+  if (!recSink) { recSink = ctx.createGain(); recSink.gain.value = 0; recSink.connect(ctx.destination); }
+  limiter.connect(recTap);
+  recTap.connect(recSink);
+}
+
+function recTapStop() {
+  const pcm = recPcm; recPcm = null;
+  if (recTap) { recTap.port.onmessage = null; recTap.disconnect(); recTap = null; }
+  if (!pcm) return;
+  const n = pcm.c0.reduce((a, c) => a + c.length, 0);
+  const ab = ctx.createBuffer(2, n, ctx.sampleRate);
+  let o = 0; for (const c of pcm.c0) { ab.getChannelData(0).set(c, o); o += c.length; }
+  o = 0; for (const c of pcm.c1) { ab.getChannelData(1).set(c, o); o += c.length; }
+  finishTake(new Blob([bufToWav(ab)], { type: 'audio/wav' }), '.wav');
+}
+
+// Shared tail of every take: download it, file it in the library,
+// reset the button. Used by the MediaRecorder path and the PCM tap.
+function finishTake(blob, ext) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const fname = 'acro-set-' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + ext;
+  a.download = fname;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+  Library.addFromFile(new File([blob], fname, { type: blob.type }),
+    (performance.now() - recStart) / 1000)
+    .catch(err => console.warn('library save failed:', err));
+  stat('recs');
+  recBtn.classList.remove('on');
+  clearInterval(recTick);
+  recTick = null;
+  recBtn.textContent = 'Rec';
+}
 
 // Interleave an AudioBuffer into a 16-bit PCM WAV — the post-step for
 // alt+Rec lossless takes (browsers don't give MediaRecorder PCM).
@@ -3720,69 +3781,71 @@ const recPaint = () => {
   const t = Math.floor((performance.now() - recStart) / 1000);
   recBtn.textContent = (recWav ? 'Rec WAV ' : 'Rec ') + `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
 };
-recBtn.addEventListener('click', e => {
+recBtn.addEventListener('click', async e => {
   audio();  // the click is a gesture — safe to create/resume the ctx
-  if (recorder && e.shiftKey) {
+  if ((recorder || recPcm) && e.shiftKey) {
     // Shift+Rec pauses/resumes the take — an MC break or a chat with
     // the crowd no longer costs the whole recording.
-    if (recorder.state === 'recording') {
+    if (recorder && recorder.state === 'recording') {
       recorder.pause();
       recPausedAt = performance.now();
       clearInterval(recTick); recTick = null;
       recBtn.textContent = 'Rec II';
-    } else if (recorder.state === 'paused') {
+    } else if (recorder && recorder.state === 'paused') {
       recorder.resume();
       recStart += performance.now() - recPausedAt;   // paused time doesn't count
       recTick = setInterval(recPaint, 1000);
+    } else if (recPcm) {
+      recPcm.paused = !recPcm.paused;
+      if (recPcm.paused) {
+        recPausedAt = performance.now();
+        clearInterval(recTick); recTick = null;
+        recBtn.textContent = 'Rec II';
+      } else {
+        recStart += performance.now() - recPausedAt;
+        recTick = setInterval(recPaint, 1000);
+      }
     }
     return;
   }
-  if (!recorder) {
-    recWav = e.altKey;   // alt+Rec = lossless take: the webm gets decoded and re-saved as WAV
+  if (!recorder && !recPcm) {
+    recWav = e.altKey;
+    if (recWav) {   // alt+Rec = lossless take: PCM tap straight off the limiter
+      try { await recTapStart(); }
+      catch (_) {
+        deckA.status('WAV take needs AudioWorklet — recording the encoded take instead');
+      }
+      if (recPcm) {
+        recBtn.classList.add('on');
+        recBtn.textContent = 'Rec WAV';
+        recStart = performance.now();
+        recTick = setInterval(recPaint, 1000);
+        return;
+      }
+      recWav = false;   // fell back to the encoded path
+    }
     if (!recDest) { recDest = ctx.createMediaStreamDestination(); limiter.connect(recDest); }
     recChunks = [];
     recorder = new MediaRecorder(recDest.stream);
     recorder.ondataavailable = e => recChunks.push(e.data);
-    recorder.onstop = async () => {
+    recorder.onstop = () => {
       // Honour the recorder's real container — Safari MediaRecorder
       // emits mp4, and a .webm filename lies about what's inside.
       const mime = recorder.mimeType || 'audio/webm';
-      let ext = mime.includes('mp4') ? '.m4a' : '.webm';
-      let blob = new Blob(recChunks, { type: mime });
-      if (recWav) {   // alt+Rec = lossless take: decode and re-save as WAV
-        try {
-          blob = new Blob([bufToWav(await ctx.decodeAudioData(await blob.arrayBuffer()))], { type: 'audio/wav' });
-          ext = '.wav';
-        } catch (_) { /* decode hiccup — fall back to the recorded container */ }
-      }
-
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      const fname = 'acro-set-' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + ext;
-      a.download = fname;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 10000);
-      // The set itself becomes a library row: replay it, arm a loop
-      // on it, resample it — same material as any loaded track.
-      Library.addFromFile(new File([blob], fname, { type: blob.type }),
-        (performance.now() - recStart) / 1000)
-        .catch(err => console.warn('library save failed:', err));
-      stat('recs');
+      const ext = mime.includes('mp4') ? '.m4a' : '.webm';
       recorder = null;
-      recBtn.classList.remove('on');
-      clearInterval(recTick);
-      recTick = null;
-      recBtn.textContent = 'Rec';
+      finishTake(new Blob(recChunks, { type: mime }), ext);
     };
     recorder.start(1000);
     recBtn.classList.add('on');
-    if (recWav) recBtn.textContent = 'Rec WAV';
     // Running timer on the button — the "is it actually recording?"
     // glance, and the catch for a forgotten still-running take.
     recStart = performance.now();
     recTick = setInterval(recPaint, 1000);
-  } else {
+  } else if (recorder) {
     recorder.stop();   // flushes from paused too — a paused take still saves
+  } else {
+    recTapStop();
   }
 });
 autoBtn.addEventListener('click', e => {
@@ -3831,7 +3894,7 @@ autoBtn.addEventListener('click', e => {
 window.addEventListener('beforeunload', e => {
   // Non-null covers every state with unsaved chunks: 'recording',
   // 'paused', and the flush window between stop() and onstop's save.
-  if (recorder) e.preventDefault();
+  if (recorder || recPcm) e.preventDefault();
 });
 // Flush the pending session snapshot on the way out — the 400 ms
 // debounce would otherwise drop the last adjustments. pagehide, not
