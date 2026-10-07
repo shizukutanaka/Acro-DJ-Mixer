@@ -1,0 +1,32 @@
+name: smoke
+
+# The app is zero-dependency — this job boots a real Chromium, serves
+# the repo statically, and runs the headless smoke gate in tests/ on
+# every PR and push to main. It is the only check; keep it fast.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install playwright + chromium
+        run: |
+          npm i playwright
+          npx playwright install --with-deps chromium
+      - name: Serve the app + launch Chromium
+        run: |
+          python3 -m http.server 8931 &
+          CHROME=$(find "$HOME/.cache/ms-playwright" -name chrome -type f | head -1)
+          "$CHROME" --headless=new --no-sandbox --disable-gpu \
+            --remote-debugging-port=9222 --user-data-dir=/tmp/acro-ci about:blank &
+          for i in $(seq 1 30); do curl -sf localhost:9222/json/version >/dev/null && break; sleep 1; done
+      - name: Run the smoke gate
+        run: node tests/smoke.mjs
