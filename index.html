@@ -4200,9 +4200,9 @@ smpSlots.forEach((_, i) => {
         // Same normalization as file-loaded pads (ADR-0197) — a
         // resampled loop shouldn't bypass auto-gain.
         smpAutoGain(nb).then(g => { if (smpSlots[i] && smpSlots[i].buf === nb) smpSlots[i].gain = g; });
-        smpSlots[i] = { buf: nb, name: 'loop@' + d.name, src: null, gain: 1 };
+        smpSlots[i] = { buf: nb, name: 'loop@' + d.fileName, src: null, gain: 1 };
         b.textContent = 'loop'; b.classList.add('set');
-        b.title = smpPadTitle('Resampled loop — ' + d.name + ' ' + (d.loopEnd - d.loopStart).toFixed(2) + 's');
+        b.title = smpPadTitle('Resampled loop — ' + d.fileName + ' ' + (d.loopEnd - d.loopStart).toFixed(2) + 's');
         padsSaveSoon();
         return;
       }
