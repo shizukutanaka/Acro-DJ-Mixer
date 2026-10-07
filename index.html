@@ -3993,6 +3993,7 @@ function recTapStop() {
   if (recTap) { recTap.port.onmessage = null; recTap.disconnect(); recTap = null; }
   if (!pcm) return;
   const n = pcm.c0.reduce((a, c) => a + c.length, 0);
+  if (!n) { recBtn.classList.remove('on'); recBtn.textContent = 'Rec'; return; }  // stopped before the first quantum — nothing to save
   const ab = ctx.createBuffer(2, n, ctx.sampleRate);
   let o = 0; for (const c of pcm.c0) { ab.getChannelData(0).set(c, o); o += c.length; }
   o = 0; for (const c of pcm.c1) { ab.getChannelData(1).set(c, o); o += c.length; }
@@ -4073,6 +4074,8 @@ recBtn.addEventListener('click', async e => {
     if (recWav) {   // alt+Rec = lossless take: PCM tap straight off the limiter
       try { await recTapStart(); }
       catch (_) {
+        recPcm = null;   // recTapStart may have armed it before the throw
+        if (recTap) { recTap.port.onmessage = null; recTap.disconnect(); recTap = null; }
         deckA.status('WAV take needs AudioWorklet — recording the encoded take instead');
       }
       if (recPcm) {
