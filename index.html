@@ -3491,8 +3491,10 @@ const Library = {
       const rec = await this.get(id);
       if (!rec) return;
       // A track that's auditioning on the cue bus keeps ringing after
-      // its row is gone — silence the ghost before deleting.
-      if (previewId === id && previewSrc) { try { previewSrc.stop(); } catch (_) {} }
+      // its row is gone — silence the ghost before deleting. The claim
+      // alone (previewId) matters: a still-decoding audition would
+      // otherwise start ringing after the row is deleted.
+      if (previewId === id) killAllPreviews();
       rec.deleted_at = Date.now();
       rec.blob = null; // free the audio bytes; the metadata row stays for soft-delete history
       rec.version++;
@@ -3523,8 +3525,10 @@ const Library = {
     if (!rec || rec.deleted_at) return;
     // Loading a track that is auditioning on the cue bus would double
     // it — once in the phones, once heading for the floor. The
-    // audition's job is done the moment the DJ commits to the load.
-    if (previewId === id && previewSrc) { try { previewSrc.stop(); } catch (_) {} }
+    // audition's job is done the moment the DJ commits to the load —
+    // kill even an in-flight decode (claimed via previewId), or the
+    // ghost starts after the track is already on a deck.
+    if (previewId === id) killAllPreviews();
     // stem rides along like cueIn/cues/loop: ADR-0222 saves it on the
     // record but loadInto never forwarded it, so a library-loaded deck
     // always came back Full even after splitting a track once.
@@ -3568,18 +3572,23 @@ async function previewTrack(id) {
   killAllPreviews();   // one audition at a time — also aborts any decode still in flight
   const tok = ++previewToken;
   if (wasPlaying) { prevMark(); return; }   // second click on the same row = stop
+  // Claim the id BEFORE the decode begins: remove()/loadInto() match
+  // on previewId, and without the early claim a delete/load landing
+  // mid-decode can't see the pending audition — the ghost starts
+  // ringing after its row (or its deck slot) is already gone.
+  previewId = id;
   let rec;
-  try { rec = await Library.get(id); } catch (_) { Library.fail(); prevMark(); return; }
-  if (!rec || !rec.blob || tok !== previewToken) { prevMark(); return; }
+  try { rec = await Library.get(id); } catch (_) { Library.fail(); if (previewId === id) previewId = null; prevMark(); return; }
+  if (!rec || !rec.blob || tok !== previewToken) { if (previewId === id) previewId = null; prevMark(); return; }
   const ac = audio(); cueBus();
   let buf;
   try { buf = await ac.decodeAudioData(await rec.blob.arrayBuffer()); }
-  catch (_) { deckA.status('preview: undecodable audio'); return; }
+  catch (_) { deckA.status('preview: undecodable audio'); if (previewId === id) previewId = null; prevMark(); return; }
   // A newer preview started while this decode was in flight — let it
   // win instead of layering a second source on the cue bus.
   const g = gatedGain(await monoResample(buf));
   // Re-check after the analysis await too, or two auditions can layer.
-  if (tok !== previewToken) return;
+  if (tok !== previewToken) { if (previewId === id) previewId = null; return; }
   previewSrc = ac.createBufferSource();
   previewSrc.buffer = buf;
   // Previews get the same gated gain a deck load applies — an
@@ -4239,8 +4248,9 @@ const killPadPrev = deck => {
 const killAllPreviews = () => {
   if (padPrev) { try { padPrev.stop(); } catch (_) {} padPrev.disconnect(); padPrev = padPrevOwner = padPrevPad = null; }
   if (smpPrev) { try { smpPrev.stop(); } catch (_) {} smpPrev.disconnect(); smpPrev = null; smpPrevPad = -1; }
-  if (previewSrc) { try { previewSrc.stop(); } catch (_) {} previewSrc.disconnect(); previewSrc = previewId = null; }
+  if (previewSrc) { try { previewSrc.stop(); } catch (_) {} previewSrc.disconnect(); previewSrc = null; }
   if (previewGain) { previewGain.disconnect(); previewGain = null; }
+  previewId = null;   // also drops an in-flight decode's claim
   previewToken++;
   prevMark();
 };
