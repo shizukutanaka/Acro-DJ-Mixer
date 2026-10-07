@@ -809,6 +809,7 @@ class Deck {
       this._prevLoopMem = undefined;
       if (slot === 1) { this._loopMem = mem; this.tagLib({ mem1: mem }); }
       else { this._loopMem2 = mem; this.tagLib({ mem2: mem }); }
+      this._memTitle();   // the title advertises the slots — keep it honest after the undo
       this.status('loop memory ' + slot + (mem ? ' restored' : ' cleared'));
     });
     const rollBtn = this.el.querySelector('[data-act=roll]');
