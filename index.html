@@ -1490,6 +1490,9 @@ class Deck {
       this.status(this.cueIn > 0.05 ? 'auto-cue +' + this.cueIn.toFixed(1) + 's' : '');
       this.grid = null;
       this._prevGrid = undefined;
+      this._taps = null;   // tap history belongs to the old track — a
+                         // straggler tap would pair with a new one and
+                         // write a cross-track bpm/beatOff
       this.key = null;
       // Partner's harmonic tint referenced our key — recompute it
       // now that there's nothing to match against.
@@ -1932,6 +1935,7 @@ class Deck {
     this.loopOn = false;
     this._prevLoop = null;
     this._prevGrid = undefined;   // grid-undo belongs to the ejected track
+    this._taps = null;            // so does the tap history
     this._loopMem = null;
     this._loopMem2 = null;
     this._prevLoopMem = undefined;
