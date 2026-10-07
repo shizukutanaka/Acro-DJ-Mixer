@@ -1520,7 +1520,9 @@ class Deck {
         this.pads[i].classList.toggle('set', c != null);
         if (c != null) this.pads[i].title = 'Hot cue ' + fmt(c) + ' — click jumps, shift-click clears, right-click previews';
       });
-      this._savedLoop = meta && meta.loop ? meta.loop : null;
+      // Destructured below — keep it a [start, end] pair or null so a
+      // scalar/object `meta.loop` can't throw inside load().
+      this._savedLoop = meta && Array.isArray(meta.loop) ? meta.loop : null;
       this._loopMem = meta && meta.mem1 ? meta.mem1 : null;
       this._loopMem2 = meta && meta.mem2 ? meta.mem2 : null;
       this.stemSel.value = meta && meta.stem ? meta.stem : 'off';
@@ -1537,12 +1539,15 @@ class Deck {
       const mono = monoResample(buf);   // promise — estimators await it internally
       this.applyAutoGain(await mono);
       if (!live()) return;
-      if (meta && meta.bpm) {
+      if (meta && Number.isFinite(meta.bpm) && meta.bpm > 0) {
         // Cached analysis from the library — instant, no recompute.
-        this.grid = { bpm: meta.bpm, beatOff: meta.beatOff || 0 };
+        // Foreign meta is sanitized where consumed (ADR-0367): a bad
+        // bpm would hand NaN/negative beat lengths to sync, loop math
+        // and the emergency loop — fall through to real analysis.
+        this.grid = { bpm: meta.bpm, beatOff: Number.isFinite(meta.beatOff) ? Math.min(Math.max(meta.beatOff, 0), buf.duration) : 0 };
         this.bpmEl.textContent = this.grid.bpm.toFixed(1);
         this._syncDelay();
-        this.key = meta.key || null;
+        this.key = (meta.key && typeof meta.key === 'object') ? meta.key : null;
         this.refreshKey();
         if (this.partner) this.partner.refreshKey();
       } else {
@@ -1555,7 +1560,7 @@ class Deck {
       // is needed — arm it visually and hand bounds to the engine.
       if (this._savedLoop) {
         const [ls, le] = this._savedLoop;
-        if (le - ls > 0.01 && le <= buf.duration) {
+        if (ls >= 0 && le - ls > 0.01 && le <= buf.duration) {
           this.loopStart = ls;
           this.loopEnd = le;
           this.loopOn = true;
