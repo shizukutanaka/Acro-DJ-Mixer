@@ -1187,6 +1187,10 @@ class Deck {
         // call latches the editor shut for every later call.
         if (bpmDone) return;
         bpmDone = true;
+        // A track swap abandons the edit: load/eject resets _bpmEdit
+        // before overwriting bpmEl, so the removal blur lands here
+        // and must not commit the half-typed value to the NEW track.
+        if (!this._bpmEdit) return;
         if (commit) {
           const v = parseFloat(inp.value);
           if (v > 30 && v < 400) {
@@ -1532,6 +1536,7 @@ class Deck {
       // loop bounds (and tagLib them) on the new one.
       this._slip = null;
       this._roll = null;
+      this._bpmEdit = false;   // abandon a BPM edit mid-typing — the removal blur must not commit it to this track
       this._emLoop = false;    // the emergency-loop latch belongs to the old track's tail
       this._loopT = null;
       this._loopEnterPos = 0;
@@ -2016,6 +2021,7 @@ class Deck {
     this._loopEnterRate = 0;
     this._slip = null;
     this._roll = null;
+    this._bpmEdit = false;   // same abandonment as load() — an open editor belongs to the ejected track
     this._emLoop = false;
     if (this._slice) { this._slice.pad.classList.remove('on'); this._slice = null; }
     // Same for a held momentary-cue press (see load()): un-latch the
