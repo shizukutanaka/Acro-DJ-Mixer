@@ -845,7 +845,10 @@ class Deck {
       pad.addEventListener('click', e => {
         if (e.altKey) return;                          // alt = slice audition, not a cue jump
         if (e.shiftKey) { this.clearPad(i); return; }   // shift-click clears — no right-click needed
-        if (!this.slip) this.padCue(i);
+        // Slip consumed the press on pointerdown (flag set there).
+        // If it didn't — stopped deck, unset cue, slip off — the pad
+        // is a normal hot cue, same as the keyboard pads.
+        if (!pad._slipped) this.padCue(i);
       });
       pad.addEventListener('contextmenu', e => {
         e.preventDefault();
@@ -883,7 +886,13 @@ class Deck {
         padPrev = src; padPrevOwner = this; padPrevPad = pad;
       });
       pad.addEventListener('pointerdown', e => {
-        if (e.button === 0 && !e.shiftKey && !e.altKey) this.slipCueStart(i);
+        pad._slipped = false;
+        if (e.button === 0 && !e.shiftKey && !e.altKey) {
+          this.slipCueStart(i);
+          // Slip only engaged if it actually borrowed the output —
+          // mark that so click knows whether to fall back to padCue.
+          pad._slipped = this._slip != null;
+        }
         // Alt+hold = slice audition: gate-play one beat of the grid
         // measured from cueIn (pad i = i-th beat). Release snaps back,
         // exactly like the Cue-preview idiom — transport is restored.
