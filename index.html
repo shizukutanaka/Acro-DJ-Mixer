@@ -3063,10 +3063,17 @@ class Deck {
     else this.eject();
     if (me.file) await other.load(me.file, me.meta);
     else other.eject();
+    let clamped = false;
     for (const [d, s] of [[this, them], [other, me]]) {
       if (!s.file) continue;
-      d.tempoEl.value = s.rate;
-      d.setRate(s.rate);
+      // The rate must live inside the deck's own tempo range — writing
+      // the raw value would leave the slider pinned at its end while
+      // the audio plays the out-of-range rate (same clamp syncTo and
+      // the range-select already apply).
+      const r = Math.min(Math.max(s.rate, 1 - d.tempoRange), 1 + d.tempoRange);
+      clamped = clamped || r !== s.rate;
+      d.tempoEl.value = r;
+      d.setRate(r);
       // Transpose is play state like rate: a track swapped at +N st
       // must keep sounding at +N, not silently return to ±0. Same
       // value only — transpose() itself refuses the fallback engine.
@@ -3074,14 +3081,17 @@ class Deck {
       d.seekTo(s.pos);
       if (s.playing) d.play();
     }
-    this.status('Decks swapped.');
+    this.status('Decks swapped.' + (clamped ? ' Tempo clamped to the deck\'s range.' : ''));
   }
 
   async instantDouble() {
     const p = this.partner;
     if (!this._fileObj || !p || p === this) return;
     const pos = this.pos();
-    const rate = this.rate;
+    // Clamp to the partner's tempo range — the slider can only display
+    // inside its min/max, so an out-of-range rate would play silently
+    // different from what the fader shows.
+    const rate = Math.min(Math.max(this.rate, 1 - p.tempoRange), 1 + p.tempoRange);
     const wasPlaying = this.playing;
     // Same snapshot swapWith takes: a double carries the live prep —
     // unsaved hot cues, the armed loop, cue-in, loop memory, stem —
@@ -3091,7 +3101,7 @@ class Deck {
     p.setRate(rate);
     p.seekTo(pos);
     if (wasPlaying) p.play();
-    this.status('Doubled into the other deck.');
+    this.status('Doubled into the other deck.' + (rate !== this.rate ? ' Tempo clamped to ±' + Math.round(p.tempoRange * 100) + '%.' : ''));
   }
 
   // Match this deck's tempo and beat phase to the partner deck.
