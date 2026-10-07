@@ -224,7 +224,7 @@
     <div class="meter cuem" title="Cue bus level (tick = peak hold)"><i id="cuemeter-fill"></i><b id="cuemeter-peak"></b></div>
     <div class="phase" id="phase" title="Beat-phase offset between decks — click to sync the non-playing deck to the playing one"></div>
     <div class="row"><label>Smpl</label><span id="smp-pads"></span><input type="range" id="smp-gain" min="0" max="1" step="0.01" value="0.8" title="Sampler level — all pads. Double-click resets to 80%"><label title="Loop pads — fired shots repeat until stopped (alt-click / choke)" style="font-size:10px;display:flex;align-items:center;gap:2px"><input type="checkbox" id="smp-loop">Loop</label><input type="range" id="smp-pitch" min="0.5" max="2" step="0.01" value="1" title="Sampler pitch — playback rate at fire time, 0.5–2×; double-click resets"><input id="smp-file" type="file" accept="audio/*" hidden></div>
-    <div class="row"><button id="automix" title="Auto mix — near the end of the playing track the other deck starts synced and the crossfader rides over (8 beats; shift = long 32-beat fade; alt = fire the transition now). Keeps going: the empty deck auto-loads the next library track">Auto</button><button id="recbtn" title="Record the master output — click again to stop; the take downloads and lands in the library; shift = pause/resume the take">Rec</button><button id="mic" title="Microphone — live input summed into the master pre-limiter (use headphones — open speakers will feed back)">Mic</button><input type="range" id="mic-gain" min="0" max="1.5" step="0.01" value="0.9" title="Mic level — trim the mic in the master; double-click resets to 0.9. Range goes past unity for quiet mics"><input type="range" id="mic-low" min="-1" max="1" step="0.01" value="0" title="Mic LOW — 200 Hz low shelf ±12 dB, double-click resets"><input type="range" id="mic-high" min="-1" max="1" step="0.01" value="0" title="Mic HI — 4 kHz high shelf ±12 dB, double-click resets"></div>
+    <div class="row"><button id="automix" title="Auto mix — near the end of the playing track the other deck starts synced and the crossfader rides over (8 beats; shift = long 32-beat fade; alt = fire the transition now). Keeps going: the empty deck auto-loads the next library track">Auto</button><button id="recbtn" title="Record the master output — click again to stop; the take downloads and lands in the library; shift = pause/resume the take · alt = lossless WAV take">Rec</button><button id="mic" title="Microphone — live input summed into the master pre-limiter (use headphones — open speakers will feed back)">Mic</button><input type="range" id="mic-gain" min="0" max="1.5" step="0.01" value="0.9" title="Mic level — trim the mic in the master; double-click resets to 0.9. Range goes past unity for quiet mics"><input type="range" id="mic-low" min="-1" max="1" step="0.01" value="0" title="Mic LOW — 200 Hz low shelf ±12 dB, double-click resets"><input type="range" id="mic-high" min="-1" max="1" step="0.01" value="0" title="Mic HI — 4 kHz high shelf ±12 dB, double-click resets"></div>
     <div class="kbd-hint">Equal-power crossfade.<br>Auto BPM is an estimate — trust your ears.</div>
   </section>
 
@@ -274,7 +274,7 @@
     <p><b>double-click</b> — reset a knob/fader/readout to centre</p>
     <p><b>wheel</b> — fine-trim any knob or fader; on a loaded pad it trims that pad's level</p>
     <p><b>shift</b> — the alternate: clear hot cue, free-size loop in/out marks, phase-only sync, bar jump, half-beat roll, jog scrub, loop-edge trim, save loop memory, solo phones, resample an armed loop to an empty pad, clear a pad</p>
-    <p><b>alt</b> — the expert layer: sync leader, stop a sampler voice, second loop-memory slot, trim the loop out-point</p>
+    <p><b>alt</b> — the expert layer: sync leader, stop a sampler voice, second loop-memory slot, trim the loop out-point, beat-slice audition on a pad (alt+hold), lossless WAV take (alt+Rec)</p>
     <p><b>right-click</b> — cue-bus preview on hot-cue and sampler pads · one-level undo on the thing that was just broken: cleared hot cue or sample (empty pad), cue set (Cue button), grid write (Tap/‹›), loop-memory overwrite (↺), eject (empty deck)</p>
     <p><b>library</b> — type to filter · ▶ previews on the cue bus · × deletes (two-click confirm) · ‹ › step a track into the deck</p>
     <h3>Keys</h3>
@@ -341,7 +341,9 @@ class WsolaProcessor extends AudioWorkletProcessor {
       case 'keylock':
         this.keylock = m.on;
         // Hand the live position to the other engine, drop stale synthesis.
-        if (m.on) this.inPos = this.rPos; else this.rPos = this.inPos;
+        // Off-direction must discount the synthesized-but-unplayed queue
+        // (posSamples()'s formula) — bare inPos skips ~15 ms forward.
+        if (m.on) this.inPos = this.rPos; else this.rPos = this.inPos - this.qLen * this.rate;
         this.qHead = 0; this.qLen = 0;
         if (this.syn) for (const s of this.syn) s.fill(0);
         break;
@@ -807,6 +809,7 @@ class Deck {
       this._prevLoopMem = undefined;
       if (slot === 1) { this._loopMem = mem; this.tagLib({ mem1: mem }); }
       else { this._loopMem2 = mem; this.tagLib({ mem2: mem }); }
+      this._memTitle();   // the title advertises the slots — keep it honest after the undo
       this.status('loop memory ' + slot + (mem ? ' restored' : ' cleared'));
     });
     const rollBtn = this.el.querySelector('[data-act=roll]');
@@ -845,7 +848,10 @@ class Deck {
       pad.addEventListener('click', e => {
         if (e.altKey) return;                          // alt = slice audition, not a cue jump
         if (e.shiftKey) { this.clearPad(i); return; }   // shift-click clears — no right-click needed
-        if (!this.slip) this.padCue(i);
+        // Slip consumed the press on pointerdown (flag set there).
+        // If it didn't — stopped deck, unset cue, slip off — the pad
+        // is a normal hot cue, same as the keyboard pads.
+        if (!pad._slipped) this.padCue(i);
       });
       pad.addEventListener('contextmenu', e => {
         e.preventDefault();
@@ -858,7 +864,7 @@ class Deck {
             const lc = this._lastClear; this._lastClear = null;
             this.cues[lc.i] = lc.t;
             this.pads[lc.i].classList.add('set');
-            this.pads[lc.i].title = 'Hot cue ' + fmt(lc.t) + ' — click jumps, shift-click clears, right-click previews';
+            this.pads[lc.i].title = 'Hot cue ' + fmt(lc.t) + ' — click jumps, shift-click clears, right-click previews, alt-hold = slice audition';
             this.tagLib({ cues: this.cues });
             this._drawnPos = undefined;
             this.drawWave();
@@ -883,7 +889,13 @@ class Deck {
         padPrev = src; padPrevOwner = this; padPrevPad = pad;
       });
       pad.addEventListener('pointerdown', e => {
-        if (e.button === 0 && !e.shiftKey && !e.altKey) this.slipCueStart(i);
+        pad._slipped = false;
+        if (e.button === 0 && !e.shiftKey && !e.altKey) {
+          this.slipCueStart(i);
+          // Slip only engaged if it actually borrowed the output —
+          // mark that so click knows whether to fall back to padCue.
+          pad._slipped = this._slip != null;
+        }
         // Alt+hold = slice audition: gate-play one beat of the grid
         // measured from cueIn (pad i = i-th beat). Release snaps back,
         // exactly like the Cue-preview idiom — transport is restored.
@@ -1075,15 +1087,12 @@ class Deck {
       const btn = this.el.querySelector(`[data-act=${act}]`);
       btn.addEventListener('pointerdown', e => {
         e.preventDefault();
-        this.bendMul = f;
-        this.setRate(this.rate);   // re-applies engine rate + rebases pos()
+        this._setBendMul(f);
         btn.classList.add('on');
       });
       for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) {
         btn.addEventListener(ev, () => {
-          if (this.bendMul === 1) return;
-          this.bendMul = 1;
-          this.setRate(this.rate);
+          this._setBendMul(1);
           btn.classList.remove('on');
         });
       }
@@ -1153,6 +1162,7 @@ class Deck {
       this.tagLib(this.grid ? { bpm: this.grid.bpm, beatOff: this.grid.beatOff } : { bpm: null, beatOff: null });
       this._syncDelay();
       this.bpmEl.textContent = this.grid ? this.grid.bpm.toFixed(1) : '—';
+      this._effBpm();
       this._drawnPos = undefined;
       this.drawWave();
       this.status(this.grid ? 'grid restored ' + this.grid.bpm.toFixed(1) + ' BPM' : 'grid cleared');
@@ -1169,7 +1179,19 @@ class Deck {
       inp.type = 'text';
       inp.value = this.grid ? this.grid.bpm.toFixed(1) : '';
       inp.style.cssText = 'width:4.5em;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;color:var(--text);font:inherit';
+      let bpmDone = false;
       const done = commit => {
+        // Enter/Escape end by clearing bpmEl.textContent, which removes
+        // this input — and the removal itself fires blur. A second
+        // commit would overwrite _prevGrid with the just-written grid
+        // and poison the undo (or even commit after Escape), so one
+        // call latches the editor shut for every later call.
+        if (bpmDone) return;
+        bpmDone = true;
+        // A track swap abandons the edit: load/eject resets _bpmEdit
+        // before overwriting bpmEl, so the removal blur lands here
+        // and must not commit the half-typed value to the NEW track.
+        if (!this._bpmEdit) return;
         if (commit) {
           const v = parseFloat(inp.value);
           if (v > 30 && v < 400) {
@@ -1184,6 +1206,7 @@ class Deck {
         }
         this._bpmEdit = false;
         this.bpmEl.textContent = this.grid ? this.grid.bpm.toFixed(1) : '—';
+        this._effBpm();
       };
       inp.addEventListener('keydown', e => {
         e.stopPropagation();   // deck keys must not fire while typing
@@ -1208,9 +1231,13 @@ class Deck {
       jog = false;
       clearInterval(this._jogTimer);
       this._jogTimer = null;
-      this.bendMul = 1;
-      this.setRate(this.rate);
+      this._setBendMul(1);
     };
+    // A waveform gesture belongs to the loaded track — a track swap
+    // mid-drag (auto-mix reload, a partner's load, a keyboard Enter)
+    // must abandon it: pointermove would keep mutating the new track
+    // and pointerup would tagLib phantom bounds onto its record.
+    this._waveAbort = () => { scrubbing = false; cueInDrag = false; loopDrag = null; cueDrag = null; jogEnd(); };
     this.wave.addEventListener('contextmenu', e => e.preventDefault());
     this.wave.addEventListener('pointerdown', e => {
       // Right/middle buttons must not scrub, jog or drag cues — and
@@ -1224,8 +1251,7 @@ class Deck {
         jog = true;
         this.wave.setPointerCapture(e.pointerId);
         this._jogTimer = setInterval(() => {
-          this.bendMul += (1 - this.bendMul) * 0.15;
-          this.setRate(this.rate);
+          this._setBendMul(this.bendMul + (1 - this.bendMul) * 0.15);
         }, 40);
         return;
       }
@@ -1252,6 +1278,9 @@ class Deck {
         const x = t => (t - v0) / (v1 - v0) * rect.width;
         if (Math.abs(px - x(this.cueIn)) <= 8) {
           cueInDrag = true;
+          // Same one-level undo record as shift+Cue — the drag is a
+          // cue-point overwrite and right-click must restore it.
+          this._prevCueIn = this.cueIn;
           this.wave.setPointerCapture(e.pointerId);
           return;
         }
@@ -1281,11 +1310,13 @@ class Deck {
       const rect = this.wave.getBoundingClientRect();
       const frac = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
       const [v0, v1] = this._viewSpan();
+      this._prevCueIn = this.cueIn;
       this.cueIn = Math.min(Math.max(v0 + frac * (v1 - v0), 0), this.buffer.duration);
       if (!this.playing) this.offset = this.cueIn;   // playing: offset anchors pos(), moving it would jump the playhead
       this.tagLib({ cueIn: this.cueIn });
       this._drawnPos = undefined;
       this.drawWave();
+      this._cueTitle();
       this.status('cue set ' + fmt(this.cueIn));
     });
     this.wave.addEventListener('pointermove', e => {
@@ -1318,14 +1349,13 @@ class Deck {
         const [v0, v1] = this._viewSpan();
         const t = this.quantize(v0 + frac * (v1 - v0));
         this.cues[cueDrag] = Math.min(Math.max(t, 0), this.buffer.duration);
-        this.pads[cueDrag].title = 'Hot cue ' + fmt(this.cues[cueDrag]) + ' — click jumps, shift-click clears, right-click previews';
+        this.pads[cueDrag].title = 'Hot cue ' + fmt(this.cues[cueDrag]) + ' — click jumps, shift-click clears, right-click previews, alt-hold = slice audition';
         this._drawnPos = undefined;
         this.drawWave();
         return;
       }
       if (jog) {
-        this.bendMul = Math.min(1.3, Math.max(0.7, 1 + e.movementX * 0.01));
-        this.setRate(this.rate);
+        this._setBendMul(Math.min(1.3, Math.max(0.7, 1 + e.movementX * 0.01)));
         return;
       }
       if (scrubbing) this.seekFromEvent(e);
@@ -1338,6 +1368,7 @@ class Deck {
         }
         if (cueInDrag) {   // persist like a shift+Cue set
           this.tagLib({ cueIn: this.cueIn });
+          this._cueTitle();
           cueInDrag = false;
         }
         if (cueDrag !== null) {   // persist like a shift-click cue set
@@ -1405,6 +1436,7 @@ class Deck {
     this.grid.beatOff = this._taps[this._taps.length - 1].pos;
     this._syncDelay();
     this.bpmEl.textContent = bpm.toFixed(1);
+    this._effBpm();
     this.tagLib({ bpm, beatOff: this.grid.beatOff });
     this._drawnPos = undefined;
     this.drawWave();
@@ -1473,7 +1505,11 @@ class Deck {
       }
       // A cue point set by hand (shift+Cue) beats the auto-detected
       // first sound — like a rekordbox memory cue.
-      if (meta && meta.cueIn != null) this.cueIn = meta.cueIn;
+      // Foreign meta (imports) is sanitized at the consumer: only a
+      // finite in-track time can become the cue point — a string or
+      // out-of-range value would poison every seek that reads it.
+      if (meta && typeof meta.cueIn === 'number' && Number.isFinite(meta.cueIn))
+        this.cueIn = Math.min(Math.max(meta.cueIn, 0), buf.duration);
       this.offset = this.cueIn;
       if (this.engine === 'worklet' && this.cueIn > 0)
         this.node.port.postMessage({ type: 'seek', pos: Math.round(this.cueIn * buf.sampleRate) });
@@ -1490,6 +1526,10 @@ class Deck {
       this.status(this.cueIn > 0.05 ? 'auto-cue +' + this.cueIn.toFixed(1) + 's' : '');
       this.grid = null;
       this._prevGrid = undefined;
+      this._effBpm();   // the old track's effective BPM must not linger
+      this._taps = null;   // tap history belongs to the old track — a
+                         // straggler tap would pair with a new one and
+                         // write a cross-track bpm/beatOff
       this.key = null;
       // Partner's harmonic tint referenced our key — recompute it
       // now that there's nothing to match against.
@@ -1504,25 +1544,70 @@ class Deck {
       // loop bounds (and tagLib them) on the new one.
       this._slip = null;
       this._roll = null;
+      this._bpmEdit = false;   // abandon a BPM edit mid-typing — the removal blur must not commit it to this track
+      this._emLoop = false;    // the emergency-loop latch belongs to the old track's tail
       this._loopT = null;
       this._loopEnterPos = 0;
+      this._loopEnterRate = 0;
       if (this._slice) { this._slice.pad.classList.remove('on'); this._slice = null; }
+      // Same abandonment for a held Cue-preview: the flag must die
+      // with the old track or a later pointerleave/pointercancel on the
+      // button fires pause()+cue() on the NEW track — a phantom stop.
+      this._cuePreview = false;
+      // A held momentary-cue press belongs to the old track: if the
+      // 250 ms hold already rang the PFL, drop it back off — release
+      // can't see this track's press, and a latched cueOn would leak
+      // the new track into the headphones.
+      clearTimeout(this.cueBtn._momTimer);
+      if (this.cueBtn._mom && this.cueOn) this.toggleCue();
+      this.cueBtn._mom = this.cueBtn._suppress = false;
+      // Momentary holds on this deck's buttons die with the track too
+      // (same abandonment as _slip/_roll/_slice and the Phones hold):
+      // a pending 250 ms timer must not fire into the new track, an
+      // engaged hold must not stay latched, and a stale flag must not
+      // let the next pointer event write state the gesture never owned.
+      clearTimeout(this.slipBtn._momTimer);
+      if (this.slipBtn._mom && this.slip) { this.slip = false; this.slipBtn.classList.remove('on'); }
+      this.slipBtn._mom = this.slipBtn._suppress = false;
+      clearTimeout(this.fxBtn._momTimer);
+      if (this.fxBtn._mom && this.fxOn) this.setFxOn(false);
+      this.fxBtn._mom = this.fxBtn._suppress = false;
+      for (const [band, kb] of Object.entries(this.killEls)) {
+        clearTimeout(kb._momTimer);
+        if (kb._mom && this.kills[band]) this.setKill(band, false);
+        kb._mom = kb._suppress = false;
+      }
+      this.el.querySelector('[data-act=mute]').classList.remove('on');
+      this._waveAbort();   // same held-gesture doctrine as slip/roll
       this.rollBtn.classList.remove('on');
       this.loopLenEl.hidden = true;
       this.keyEl.textContent = '—';
       this.keyEl.className = 'key';
-      this.cues = meta && meta.cues ? meta.cues.slice(0, 8) : [null, null, null, null, null, null, null, null];
+      // The analysis cache dedupes estimateBpm+estimateKey for ONE
+      // track; a new track must not inherit the last one's result —
+      // it would write the old grid/key over this buffer and tagLib.
+      this.__anP = null;
+      // Element-level sanitize on the same foreign-meta rule: a cue
+      // is a finite in-track time or it is no cue — anything else
+      // becomes null instead of NaN-ing seeks and pad titles.
+      this.cues = meta && meta.cues
+        ? meta.cues.slice(0, 8).map(c => typeof c === 'number' && Number.isFinite(c) ? Math.min(Math.max(c, 0), buf.duration) : null)
+        : [null, null, null, null, null, null, null, null];
       while (this.cues.length < 8) this.cues.push(null);
       // Restored cues keep the same pad contract as freshly set ones:
       // .set styling plus the stored time in the title (the generic
       // hint would lie about an occupied pad — ADR-0253 pattern).
       this.cues.forEach((c, i) => {
         this.pads[i].classList.toggle('set', c != null);
-        if (c != null) this.pads[i].title = 'Hot cue ' + fmt(c) + ' — click jumps, shift-click clears, right-click previews';
+        if (c != null) this.pads[i].title = 'Hot cue ' + fmt(c) + ' — click jumps, shift-click clears, right-click previews, alt-hold = slice audition';
       });
+      // Loop memory slots share the rule: a pair of finite times with
+      // end after start — a reversed or partial slot can't re-enter.
+      const sanePair = m => Array.isArray(m) && Number.isFinite(m[0]) && Number.isFinite(m[1]) && m[1] > m[0] ? m : null;
       this._savedLoop = meta && meta.loop ? meta.loop : null;
-      this._loopMem = meta && meta.mem1 ? meta.mem1 : null;
-      this._loopMem2 = meta && meta.mem2 ? meta.mem2 : null;
+      this._loopMem = meta && sanePair(meta.mem1) ? meta.mem1 : null;
+      this._loopMem2 = meta && sanePair(meta.mem2) ? meta.mem2 : null;
+      this._memTitle();   // the saved slots' regions belong in the button title
       this.stemSel.value = meta && meta.stem ? meta.stem : 'off';
       this.setStem(this.stemSel.value);   // the select alone doesn't move the matrix
       this._prevLoopMem = undefined;   // memory-undo belongs to the previous track
@@ -1541,6 +1626,7 @@ class Deck {
         // Cached analysis from the library — instant, no recompute.
         this.grid = { bpm: meta.bpm, beatOff: meta.beatOff || 0 };
         this.bpmEl.textContent = this.grid.bpm.toFixed(1);
+        this._effBpm();
         this._syncDelay();
         this.key = meta.key || null;
         this.refreshKey();
@@ -1587,8 +1673,12 @@ class Deck {
     // knob position survives the silence.
     this.muteGain = ac.createGain();
     this.muteGain.gain.value = 1;
-    const x = xfPos();
-    this.xfGain.gain.value = this.side === 'a' ? Math.cos(x * Math.PI / 2) : Math.sin(x * Math.PI / 2);
+    // Seed through the shared law, not a side-based guess: channel
+    // assign and the CUT curve both change what the fader means, and
+    // neither may move again this session (assign persists). Direct
+    // .value so a suspended AudioContext still gets the right level —
+    // setTargetAtTime doesn't tick while the context is stopped.
+    this.xfGain.gain.value = xfGainFor(this.assignSel.value);
     // DJ-style 3-band EQ (post-fader): lowshelf 250 Hz / peaking 1 kHz /
     // highshelf 4 kHz — the standard isolator split points.
     this.eq = { low: ac.createBiquadFilter(), mid: ac.createBiquadFilter(), high: ac.createBiquadFilter() };
@@ -1760,6 +1850,9 @@ class Deck {
       this.node.connect(this.cueSend);
       this.engine = 'worklet';
       if (this.keylock) this.node.port.postMessage({ type: 'keylock', on: true });   // restored before the graph existed
+      // Transpose is likewise restored before the engine exists (sess
+      // restore sets st directly) — seed the fresh worklet's shift.
+      if (this.st) this.node.port.postMessage({ type: 'pitch', rate: Math.pow(2, this.st / 12) });
     } catch (err) {
       // file:// and opaque origins block worklet module loads — fall back to
       // BufferSource varispeed; key lock (WSOLA) needs http(s).
@@ -1778,6 +1871,11 @@ class Deck {
       this.offset = m.pos;
       this.startedAt = ctx.currentTime;
     } else if (m.type === 'ended') {
+      // The engine only posts 'ended' from a playing state — one that
+      // arrives while we're already stopped is a stale tail of the
+      // pre-pause/pre-load era; applying it would stamp this track's
+      // offset to its end.
+      if (!this.playing) return;
       this.playing = false;
       if (this.buffer) this.offset = this.buffer.duration;
       this.playBtn.textContent = 'Play';
@@ -1826,12 +1924,12 @@ class Deck {
     if (!this._playCounted && this.fileName) {
       this._playCounted = true;
       // Play count lives on the library record so digging shows
-      // which tracks actually got rinsed.
+      // which tracks actually got rinsed. The increment must happen
+      // inside the write chain — instant doubles (or any same-record
+      // both-decks play) would otherwise get->tag the same stale
+      // count and lose a play.
       (this.libId != null ? Promise.resolve(this.libId) : this._libP)
-        ?.then(async id => {
-          const rec = await Library.get(id);
-          if (rec) this.tagLib({ plays: (rec.plays || 0) + 1 });
-        });
+        ?.then(id => { if (id != null) Library.bump(id, 'plays'); });
     }
     const ac = audio();
     if (this.engine === 'worklet') {
@@ -1856,6 +1954,7 @@ class Deck {
     }
     this.startedAt = ac.currentTime;
     this.playing = true;
+    this._unfoldReckon();
     this.playBtn.textContent = 'Pause';
     if (this.brake) { this.spinMul = 1e-3; this._applySpinRate(); this._spin(1, 0.5); }
     else this.spinMul = 1;
@@ -1927,11 +2026,12 @@ class Deck {
     this._cueTitle();
     this.offset = 0;
     this.cues = [null, null, null, null, null, null, null, null];
-    this.pads.forEach(p => { p.classList.remove('set'); p.title = 'Hot cue — click sets a marker · right-click restores the last cleared cue'; });
+    this.pads.forEach(p => { p.classList.remove('set'); p.title = 'Hot cue — click sets a marker · right-click restores the last cleared cue · alt-hold auditions a beat slice'; });
     this._lastClear = null;
     this.loopOn = false;
     this._prevLoop = null;
     this._prevGrid = undefined;   // grid-undo belongs to the ejected track
+    this._taps = null;            // so does the tap history
     this._loopMem = null;
     this._loopMem2 = null;
     this._prevLoopMem = undefined;
@@ -1939,9 +2039,36 @@ class Deck {
     this._loopIn = null;
     this._loopT = null;
     this._loopEnterPos = 0;
+    this._loopEnterRate = 0;
     this._slip = null;
     this._roll = null;
+    this._bpmEdit = false;   // same abandonment as load() — an open editor belongs to the ejected track
+    this._emLoop = false;
     if (this._slice) { this._slice.pad.classList.remove('on'); this._slice = null; }
+    this._cuePreview = false;   // same latch-abandonment as the load path
+    // Same for a held momentary-cue press (see load()): un-latch the
+    // PFL ring the hold opened before abandoning the gesture.
+    clearTimeout(this.cueBtn._momTimer);
+    if (this.cueBtn._mom && this.cueOn) this.toggleCue();
+    this.cueBtn._mom = this.cueBtn._suppress = false;
+    // Momentary holds on this deck's buttons die with the track too
+    // (same abandonment as _slip/_roll/_slice and the Phones hold):
+    // a pending 250 ms timer must not fire into the new track, an
+    // engaged hold must not stay latched, and a stale flag must not
+    // let the next pointer event write state the gesture never owned.
+    clearTimeout(this.slipBtn._momTimer);
+    if (this.slipBtn._mom && this.slip) { this.slip = false; this.slipBtn.classList.remove('on'); }
+    this.slipBtn._mom = this.slipBtn._suppress = false;
+    clearTimeout(this.fxBtn._momTimer);
+    if (this.fxBtn._mom && this.fxOn) this.setFxOn(false);
+    this.fxBtn._mom = this.fxBtn._suppress = false;
+    for (const [band, kb] of Object.entries(this.killEls)) {
+      clearTimeout(kb._momTimer);
+      if (kb._mom && this.kills[band]) this.setKill(band, false);
+      kb._mom = kb._suppress = false;
+    }
+    this.el.querySelector('[data-act=mute]').classList.remove('on');
+    this._waveAbort();   // same held-gesture doctrine as slip/roll
     this.rollBtn.classList.remove('on');
     this.loopLenEl.hidden = true;
     this.loopBtn.classList.remove('on', 'armed');
@@ -2006,6 +2133,7 @@ class Deck {
 
   stopPlayback() {
     this.playing = false;
+    this._foldReckon();
     // An in-flight brake ramp must not outlive its owner — eject/cue
     // call this, and the timer would keep posting 'rate' and fire its
     // done() callback on a dead deck.
@@ -2023,6 +2151,28 @@ class Deck {
       this.source.disconnect();
       this.source = null;
     }
+  }
+
+  // Slip bookkeeping advances on the same clock as pos(): only while
+  // the deck actually plays. Stopping inside a hold folds the elapsed
+  // time into the anchor and parks the clock (t = null); play() unfolds
+  // it — otherwise the release/exit lands pause-length ahead of the
+  // true timeline (the parked position IS the frozen timeline).
+  _foldReckon() {
+    const now = ctx.currentTime;
+    for (const s of [this._slip, this._roll])
+      if (s && s.t != null) { s.pos += (now - s.t) * (s.rate || this.rate); s.t = null; }
+    if (this._loopT != null) {
+      this._loopEnterPos += (now - this._loopT) * (this._loopEnterRate || this.rate);
+      this._loopT = null;
+    }
+  }
+
+  _unfoldReckon() {
+    const now = ctx.currentTime;
+    for (const s of [this._slip, this._roll])
+      if (s && s.t == null) s.t = now;
+    if (this._loopT == null && this.loopOn) this._loopT = now;
   }
 
   pause() {
@@ -2068,7 +2218,11 @@ class Deck {
   setFxTap(post) {
     if (!this.delay) return;
     const src = post ? this.xfGain : this.filter;
-    for (const send of [this.delay, this.flDelay, this.verb]) {
+    // Rewire the SEND nodes, not the effect cores: echo and verb are
+    // fed through delaySend/verbSend (the FX-on gate). Connecting to
+    // the cores directly would bypass that gate — the old edge also
+    // stays live, doubling the send.
+    for (const send of [this.delaySend, this.flDelay, this.verbSend]) {
       try { this.filter.disconnect(send); } catch (_) {}
       try { this.xfGain.disconnect(send); } catch (_) {}
       src.connect(send);
@@ -2170,6 +2324,21 @@ class Deck {
     else if (this.source) this.source.playbackRate.value = eff;
   }
 
+  // Bend changes must rebase the position clock BEFORE the multiplier
+  // swaps: pos() models elapsed*rate*bendMul*spinMul over the whole
+  // [startedAt, now] span, so mutating bendMul first would retro-apply
+  // the new multiplier to time that really ran at the old one — a held
+  // bend then release would skew bookkeeping by held-seconds*±5%.
+  // (_spin already rebases first; this is the same contract for bend.)
+  _setBendMul(mul) {
+    if (mul === this.bendMul) return;
+    if (this.playing) { this.offset = this.pos(); this.startedAt = ctx.currentTime; }
+    this.bendMul = mul;
+    const eff = this.rate * this.bendMul * this.spinMul;
+    if (this.engine === 'worklet') this.node.port.postMessage({ type: 'rate', rate: eff });
+    else if (this.source) this.source.playbackRate.value = eff;
+  }
+
   // Ramp spinMul from its current value to `target` over `dur` s,
   // rebasing the position clock at each step so pos() stays exact.
   _spin(target, dur, done) {
@@ -2192,6 +2361,9 @@ class Deck {
   cue() {
     // Cue returns to the cue-in point: track start, or the first
     // audible sample when auto-cue skipped lead-in silence.
+    // Empty deck: engine ('worklet') outlives buffer after eject —
+    // dereferencing buffer.sampleRate below would throw.
+    if (!this.buffer) return;
     const at = this.cueIn || 0;
     const wasPlaying = this.playing;
     this.stopPlayback();
@@ -2208,11 +2380,17 @@ class Deck {
     if (this.engine === 'worklet') this.node.port.postMessage({ type: 'rate', rate: eff });
     else if (this.source) this.source.playbackRate.value = eff;
     this.tempoOut.textContent = (r >= 1 ? '+' : '') + ((r - 1) * 100).toFixed(1) + '%';
-    // Effective BPM beside the detected tempo — the value a DJ
-    // actually beat-matches to once the fader has moved.
-    this.effEl.textContent = (this.grid && Math.abs(r - 1) > 0.005)
-      ? ' →' + (this.grid.bpm * r).toFixed(1) : '';
+    this._effBpm();
     this._syncDelay();
+  }
+
+  // Effective BPM beside the detected tempo — the value a DJ
+  // actually beat-matches to once the fader has moved. Every writer
+  // of grid.bpm refreshes it: the readout belongs to the CURRENT grid,
+  // not to whichever writer last happened to touch the element.
+  _effBpm() {
+    this.effEl.textContent = (this.grid && Math.abs(this.rate - 1) > 0.005)
+      ? ' →' + (this.grid.bpm * this.rate).toFixed(1) : '';
   }
 
   toggleKeylock() {
@@ -2230,6 +2408,9 @@ class Deck {
 
   seekTo(fracSeconds) {
     // Shared by waveform clicks and beat-sync slips.
+    // Same empty-deck guard as cue()/play(): engine outlives buffer,
+    // and buffer.sampleRate below would throw on an ejected deck.
+    if (!this.buffer) return;
     // Seeking outside an armed loop exits it — the deck-standard escape.
     if (this.loopOn && (fracSeconds < this.loopStart || fracSeconds >= this.loopEnd)) this.toggleLoop();
     this.offset = fracSeconds;
@@ -2412,9 +2593,10 @@ class Deck {
       // where the timeline really is, so the landing point is visible.
       if (this.slip && this.playing) {
         let ghost = null;
-        if (this._slip) ghost = this._slip.pos + (ctx.currentTime - this._slip.t) * this.rate;
-        else if (this._roll) ghost = this._roll.pos + (ctx.currentTime - this._roll.t) * this.rate;
-        else if (this.loopOn && this._loopT != null) ghost = this._loopEnterPos + (ctx.currentTime - this._loopT) * this.rate;
+        if (this._slip) ghost = this._slip.pos + (this._slip.t != null ? (ctx.currentTime - this._slip.t) * (this._slip.rate || this.rate) : 0);
+        else if (this._roll) ghost = this._roll.pos + (this._roll.t != null ? (ctx.currentTime - this._roll.t) * (this._roll.rate || this.rate) : 0);
+        else if (this.loopOn && (this._loopT != null || this._loopEnterPos))
+          ghost = this._loopEnterPos + (this._loopT != null ? (ctx.currentTime - this._loopT) * (this._loopEnterRate || this.rate) : 0);
         if (ghost != null && ghost >= v0 && ghost <= v1) {
           c.fillStyle = 'rgba(255,255,255,0.45)';
           c.fillRect(Math.floor(xOf(ghost)) - 1, 0, 2, h);
@@ -2496,10 +2678,15 @@ class Deck {
     try {
       const grid = (await this._analysis(monoP)).bpm;
       if (buf !== this.buffer) return;
+      // The estimate is a grid writer like any other: if the DJ typed a
+      // manual BPM while analysis was in flight, this write destroys
+      // it — stash what we're replacing or right-click undo restores a
+      // stale _prevGrid (the grid before the manual write) and the
+      // manual entry is unrecoverable.
+      this._prevGrid = this.grid ? { bpm: this.grid.bpm, beatOff: this.grid.beatOff } : null;
       this.grid = grid;
       this.bpmEl.textContent = grid ? grid.bpm.toFixed(1) : '—';
-      this.effEl.textContent = (grid && Math.abs(this.rate - 1) > 0.005)
-        ? ' →' + (grid.bpm * this.rate).toFixed(1) : '';
+      this._effBpm();
       if (grid) this.tagLib({ bpm: grid.bpm, beatOff: grid.beatOff });
       this._syncDelay();
       this._drawnPos = undefined;
@@ -2544,7 +2731,7 @@ class Deck {
     if (this.cues[i] == null) {
       this.cues[i] = this.quantize(this.pos());
       this.pads[i].classList.add('set');
-      this.pads[i].title = 'Hot cue ' + fmt(this.cues[i]) + ' — click jumps, shift-click clears, right-click previews';
+      this.pads[i].title = 'Hot cue ' + fmt(this.cues[i]) + ' — click jumps, shift-click clears, right-click previews, alt-hold = slice audition';
       this.tagLib({ cues: this.cues });
       this._drawnPos = undefined;
       this.drawWave();
@@ -2560,7 +2747,7 @@ class Deck {
     this._lastClear = { i, t: this.cues[i] };
     this.cues[i] = null;
     this.pads[i].classList.remove('set');
-    this.pads[i].title = 'Hot cue — click sets a marker · right-click restores the last cleared cue';
+    this.pads[i].title = 'Hot cue — click sets a marker · right-click restores the last cleared cue · alt-hold auditions a beat slice';
     this.tagLib({ cues: this.cues });
     this._drawnPos = undefined;
     this.drawWave();
@@ -2651,6 +2838,7 @@ class Deck {
       this.loopOn = true;
       stat('loops');
       this._loopT = ctx.currentTime; this._loopEnterPos = this.pos();
+      this._loopEnterRate = this.rate * this.bendMul * this.spinMul;
     } else if (!this.loopOn) {
       // Compute bounds BEFORE loopOn flips: pos() reads loopEnd for wrapping.
       const beatLen = this.grid ? 60 / this.grid.bpm : 1;
@@ -2674,6 +2862,7 @@ class Deck {
       this.loopOn = true;
       stat('loops');
       this._loopT = ctx.currentTime; this._loopEnterPos = this.pos();
+      this._loopEnterRate = this.rate * this.bendMul * this.spinMul;
     } else {
       this.loopOn = false;
       this._prevLoop = [this.loopStart, this.loopEnd];
@@ -2681,7 +2870,7 @@ class Deck {
       // lands where the track would have been without the loop —
       // same doctrine as roll release and slip cues.
       if (this.slip && this.playing && this._loopT != null) {
-        const wouldBe = this._loopEnterPos + (ctx.currentTime - this._loopT) * this.rate;
+        const wouldBe = this._loopEnterPos + (ctx.currentTime - this._loopT) * (this._loopEnterRate || this.rate);
         if (wouldBe < this.loopStart || wouldBe > this.loopEnd)
           this.seekTo(Math.min(wouldBe, this.buffer.duration - 0.01));
       }
@@ -2704,11 +2893,13 @@ class Deck {
     const n = Math.floor((this.pos() - this.grid.beatOff) / beatLen);
     const start = Math.max(0, this.grid.beatOff + n * beatLen);
     if (start + beatLen > this.buffer.duration) return;
-    this._roll = { pos: this.pos(), t: ctx.currentTime, saved: this.loopOn ? [this.loopStart, this.loopEnd] : null };
+    this._roll = { pos: this.pos(), t: ctx.currentTime, saved: this.loopOn ? [this.loopStart, this.loopEnd] : null,
+      rate: this.rate * this.bendMul * this.spinMul };
     this.loopStart = start;
     this.loopEnd = start + beatLen;
     this.loopOn = true;
     this._loopT = null;   // rolls own their slip bookkeeping; no stale arm time
+    this._loopEnterRate = 0;
     this.applyLoop();
     this.rollBtn.classList.add('on');
     this._drawnPos = undefined;
@@ -2719,7 +2910,7 @@ class Deck {
     const r = this._roll;
     if (!r) return;
     this._roll = null;
-    const slip = r.pos + (ctx.currentTime - r.t) * this.rate;
+    const slip = r.pos + (r.t != null ? (ctx.currentTime - r.t) * (r.rate || this.rate) : 0);
     if (r.saved) { [this.loopStart, this.loopEnd] = r.saved; this.loopOn = true; }
     else this.loopOn = false;
     this.applyLoop();
@@ -2727,6 +2918,7 @@ class Deck {
     this.loopLenEl.hidden = !this.loopOn;
     this.rollBtn.classList.remove('on');
     if (this.playing) this.seekTo(Math.min(slip, this.buffer.duration - 0.01));
+    else this.offset = Math.min(slip, this.buffer.duration - 0.01);
     this._drawnPos = undefined;
     this.drawWave();
     this.tagLib({ loop: this.loopOn ? [this.loopStart, this.loopEnd] : null });
@@ -2737,7 +2929,7 @@ class Deck {
   // same dead-reckoning as stopRoll.
   slipCueStart(i) {
     if (!this.slip || !this.playing || !this.buffer || this.cues[i] == null || this._slip) return;
-    this._slip = { pos: this.pos(), t: ctx.currentTime };
+    this._slip = { pos: this.pos(), t: ctx.currentTime, rate: this.rate * this.bendMul * this.spinMul };
     this.seekTo(this.cues[i]);
   }
 
@@ -2745,8 +2937,9 @@ class Deck {
     const s = this._slip;
     if (!s) return;
     this._slip = null;
-    const back = s.pos + (ctx.currentTime - s.t) * this.rate;
+    const back = s.pos + (s.t != null ? (ctx.currentTime - s.t) * (s.rate || this.rate) : 0);
     if (this.playing) this.seekTo(Math.min(back, this.buffer.duration - 0.01));
+    else this.offset = Math.min(back, this.buffer.duration - 0.01);
   }
 
   applyLoop() {
@@ -2797,8 +2990,11 @@ class Deck {
   reloop(mem = this._loopMem || this._loopMem2 || this._prevLoop) {
     if (this.loopOn || !mem || !this.buffer) return;
     const [st, en] = mem;
-    if (en > this.buffer.duration) return;
+    if (!(en > st) || en > this.buffer.duration) return;   // degenerate or past-end regions can't re-enter
     this.loopStart = st; this.loopEnd = en; this.loopOn = true;
+    // Same slip bookkeeping as a fresh arm — exit dead-reckons from
+    // THIS entry, not the stale _loopT the previous loop left behind.
+    this._loopT = ctx.currentTime; this._loopEnterPos = this.pos();
     this.applyLoop();
     this.loopBtn.classList.add('on');
     this.loopLenEl.hidden = false;
@@ -2861,17 +3057,7 @@ class Deck {
   // cached meta path, so every restored field lands exactly as it was.
   async swapWith(other) {
     if (autoMix.fade) { this.status('Finish or cancel the fade first.'); return; }
-    const snap = d => ({ file: d._fileObj, pos: d.pos(), rate: d.rate,
-      playing: d.playing, meta: {
-        cues: d.cues.slice(),
-        loop: d.loopOn ? [d.loopStart, d.loopEnd] : null,
-        cueIn: d.cueIn,
-        mem1: d._loopMem, mem2: d._loopMem2,
-        stem: d.stemSel.value,
-        bpm: d.grid ? d.grid.bpm : null,
-        beatOff: d.grid ? d.grid.beatOff : 0,
-        key: d.key, libId: d.libId } });
-    const me = snap(this), them = snap(other);
+    const me = deckSnap(this), them = deckSnap(other);
     if (!me.file && !them.file) { this.status('Nothing on either deck.'); return; }
     if (them.file) await this.load(them.file, them.meta);
     else this.eject();
@@ -2881,6 +3067,10 @@ class Deck {
       if (!s.file) continue;
       d.tempoEl.value = s.rate;
       d.setRate(s.rate);
+      // Transpose is play state like rate: a track swapped at +N st
+      // must keep sounding at +N, not silently return to ±0. Same
+      // value only — transpose() itself refuses the fallback engine.
+      if (s.st !== d.st) d.transpose(s.st - d.st);
       d.seekTo(s.pos);
       if (s.playing) d.play();
     }
@@ -2893,7 +3083,10 @@ class Deck {
     const pos = this.pos();
     const rate = this.rate;
     const wasPlaying = this.playing;
-    await p.load(this._fileObj);
+    // Same snapshot swapWith takes: a double carries the live prep —
+    // unsaved hot cues, the armed loop, cue-in, loop memory, stem —
+    // and the grid/key meta so the clone doesn't re-analyze.
+    await p.load(this._fileObj, deckSnap(this).meta);
     p.tempoEl.value = rate;
     p.setRate(rate);
     p.seekTo(pos);
@@ -2931,6 +3124,21 @@ class Deck {
     }
   }
 }
+
+// One deck-state snapshot for every "clone this deck's prep" verb —
+// swap takes it whole, instant doubles forwards its meta into load().
+// Anything load() restores must be named here: cues, loop, cue-in,
+// loop memory, stem, grid, key, library link.
+const deckSnap = d => ({ file: d._fileObj, pos: d.pos(), rate: d.rate, st: d.st,
+  playing: d.playing, meta: {
+    cues: d.cues.slice(),
+    loop: d.loopOn ? [d.loopStart, d.loopEnd] : null,
+    cueIn: d.cueIn,
+    mem1: d._loopMem, mem2: d._loopMem2,
+    stem: d.stemSel.value,
+    bpm: d.grid ? d.grid.bpm : null,
+    beatOff: d.grid ? d.grid.beatOff : 0,
+    key: d.key, libId: d.libId } });
 
 // ----- Analysis helpers (run off the audio thread; chunked to keep UI alive) -----
 
@@ -3378,13 +3586,31 @@ const Library = {
       renderLibrary();
     });
   },
+  async bump(id, field) {
+    // Counter increment whose read lives inside the write chain —
+    // tag() takes absolute values, so a same-record increment from
+    // two decks would otherwise read one stale count and write it
+    // back twice.
+    if (!id) return;
+    return this._mutate(async () => {
+      const rec = await this.get(id);
+      if (!rec) return;
+      rec[field] = (rec[field] || 0) + 1;
+      rec.updated_at = Date.now();
+      rec.version++;
+      await this.put(rec);
+      renderLibrary();
+    });
+  },
   async remove(id) {
     return this._mutate(async () => {
       const rec = await this.get(id);
       if (!rec) return;
       // A track that's auditioning on the cue bus keeps ringing after
-      // its row is gone — silence the ghost before deleting.
-      if (previewId === id && previewSrc) { try { previewSrc.stop(); } catch (_) {} }
+      // its row is gone — silence the ghost before deleting. The claim
+      // alone (previewId) matters: a still-decoding audition would
+      // otherwise start ringing after the row is deleted.
+      if (previewId === id) killAllPreviews();
       rec.deleted_at = Date.now();
       rec.blob = null; // free the audio bytes; the metadata row stays for soft-delete history
       rec.version++;
@@ -3415,8 +3641,10 @@ const Library = {
     if (!rec || rec.deleted_at) return;
     // Loading a track that is auditioning on the cue bus would double
     // it — once in the phones, once heading for the floor. The
-    // audition's job is done the moment the DJ commits to the load.
-    if (previewId === id && previewSrc) { try { previewSrc.stop(); } catch (_) {} }
+    // audition's job is done the moment the DJ commits to the load —
+    // kill even an in-flight decode (claimed via previewId), or the
+    // ghost starts after the track is already on a deck.
+    if (previewId === id) killAllPreviews();
     // stem rides along like cueIn/cues/loop: ADR-0222 saves it on the
     // record but loadInto never forwarded it, so a library-loaded deck
     // always came back Full even after splitting a track once.
@@ -3460,18 +3688,23 @@ async function previewTrack(id) {
   killAllPreviews();   // one audition at a time — also aborts any decode still in flight
   const tok = ++previewToken;
   if (wasPlaying) { prevMark(); return; }   // second click on the same row = stop
+  // Claim the id BEFORE the decode begins: remove()/loadInto() match
+  // on previewId, and without the early claim a delete/load landing
+  // mid-decode can't see the pending audition — the ghost starts
+  // ringing after its row (or its deck slot) is already gone.
+  previewId = id;
   let rec;
-  try { rec = await Library.get(id); } catch (_) { Library.fail(); prevMark(); return; }
-  if (!rec || !rec.blob || tok !== previewToken) { prevMark(); return; }
+  try { rec = await Library.get(id); } catch (_) { Library.fail(); if (previewId === id) previewId = null; prevMark(); return; }
+  if (!rec || !rec.blob || tok !== previewToken) { if (previewId === id) previewId = null; prevMark(); return; }
   const ac = audio(); cueBus();
   let buf;
   try { buf = await ac.decodeAudioData(await rec.blob.arrayBuffer()); }
-  catch (_) { deckA.status('preview: undecodable audio'); return; }
+  catch (_) { deckA.status('preview: undecodable audio'); if (previewId === id) previewId = null; prevMark(); return; }
   // A newer preview started while this decode was in flight — let it
   // win instead of layering a second source on the cue bus.
   const g = gatedGain(await monoResample(buf));
   // Re-check after the analysis await too, or two auditions can layer.
-  if (tok !== previewToken) return;
+  if (tok !== previewToken) { if (previewId === id) previewId = null; return; }
   previewSrc = ac.createBufferSource();
   previewSrc.buffer = buf;
   // Previews get the same gated gain a deck load applies — an
@@ -3637,7 +3870,11 @@ document.getElementById('xfrev').addEventListener('click', e => {
   e.target.classList.toggle('on', xfRev);
   applyCrossfade();
 });
-function applyCrossfade() {
+// The crossfade law in one place: channel assign (DJM CH ASSIGN) maps
+// a deck to the A side, the B side, or Thru — bypassing the fader
+// entirely. ensureNodes seeds xfGain from this too, so the law can't
+// drift between node creation and fader movement.
+function xfGainFor(sel) {
   const x = xfPos();
   let ga, gb;
   if (xfcurve.value === 'cut') {
@@ -3650,11 +3887,11 @@ function applyCrossfade() {
     ga = Math.cos(x * Math.PI / 2);
     gb = Math.sin(x * Math.PI / 2);
   }
-  // Channel assign (DJM CH ASSIGN): a deck may sit on the A side, the B
-  // side, or Thru — bypassing the fader entirely.
-  const pick = sel => sel === 'a' ? ga : sel === 'b' ? gb : 1;
-  deckA.setXf(pick(deckA.assignSel.value));
-  deckB.setXf(pick(deckB.assignSel.value));
+  return sel === 'a' ? ga : sel === 'b' ? gb : 1;
+}
+function applyCrossfade() {
+  deckA.setXf(xfGainFor(deckA.assignSel.value));
+  deckB.setXf(xfGainFor(deckB.assignSel.value));
 }
 xfader.addEventListener('input', applyCrossfade);
 // Fader start (CDJ FADER START): sweeping the fader fully into a
@@ -3741,9 +3978,21 @@ recBtn.addEventListener('click', e => {
     recWav = e.altKey;   // alt+Rec = lossless take: the webm gets decoded and re-saved as WAV
     if (!recDest) { recDest = ctx.createMediaStreamDestination(); limiter.connect(recDest); }
     recChunks = [];
-    recorder = new MediaRecorder(recDest.stream);
+    try { recorder = new MediaRecorder(recDest.stream); }
+    catch (_) { deckA.status('recording not supported here'); return; }
     recorder.ondataavailable = e => recChunks.push(e.data);
+    // An encoder fault stops the recorder in place — without this the
+    // button keeps ticking a take that died. Tear down like onstop so
+    // the next click doesn't stop() an inactive recorder.
+    recorder.onerror = () => {
+      recorder = null; recChunks = [];
+      recBtn.classList.remove('on');
+      clearInterval(recTick); recTick = null;
+      recBtn.textContent = 'Rec';
+      deckA.status('recording failed — take dropped');
+    };
     recorder.onstop = async () => {
+      if (!recorder) return;   // an onerror teardown already dropped this take
       // Honour the recorder's real container — Safari MediaRecorder
       // emits mp4, and a .webm filename lies about what's inside.
       const mime = recorder.mimeType || 'audio/webm';
@@ -3964,15 +4213,28 @@ const micClose = () => {
   if (micDuck) micDuck.gain.setTargetAtTime(1, ctx.currentTime, 0.15);
   micBtn2.classList.remove('on');
 };
-const micOpen = async () => {
+let micOpening = false;
+const micOpen = async (ptt = false) => {
+  // Re-entrant guard: a second tap while getUserMedia is still
+  // pending would build a second chain and leak the first.
+  if (micSrc || micOpening) return;
+  micOpening = true;
   try {
-    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  } catch {
-    // Permission denied is a silent no-op otherwise — the button just
-    // doesn't light and the user can't tell why. Say it on the deck.
-    deckA.status('mic denied');
-    return;
-  }
+    try {
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      // Permission denied is a silent no-op otherwise — the button just
+      // doesn't light and the user can't tell why. Say it on the deck.
+      deckA.status('mic denied');
+      return;
+    }
+    // A press-to-talk hold that ended before permission resolved must
+    // not latch the mic open — drop the stream instead.
+    if (ptt && !micBtn2._mom) {
+      micStream.getTracks().forEach(t => t.stop());
+      micStream = null;
+      return;
+    }
   audio();
   micSrc = ctx.createMediaStreamSource(micStream);
   micGain = ctx.createGain(); micGain.gain.value = parseFloat(document.getElementById('mic-gain').value);
@@ -4001,6 +4263,7 @@ const micOpen = async () => {
   micGain.connect(micAn);
   if (micDuck) micDuck.gain.setTargetAtTime(0.25, ctx.currentTime, 0.15);   // ~−12 dB talkover duck
   micBtn2.classList.add('on');
+  } finally { micOpening = false; }
 };
 micBtn2.addEventListener('click', async () => {
   if (micBtn2._suppress) { micBtn2._suppress = false; return; }  // click after a PTT hold
@@ -4011,7 +4274,7 @@ micBtn2.addEventListener('click', async () => {
 // radio-style talkback. Tap = latch as before.
 micBtn2.addEventListener('pointerdown', () => {
   if (micSrc) return;
-  micBtn2._momTimer = setTimeout(() => { micBtn2._mom = true; micOpen(); }, 250);
+  micBtn2._momTimer = setTimeout(() => { micBtn2._mom = true; micOpen(true); }, 250);
 });
 const micMomEnd = () => {
   clearTimeout(micBtn2._momTimer);
@@ -4101,8 +4364,9 @@ const killPadPrev = deck => {
 const killAllPreviews = () => {
   if (padPrev) { try { padPrev.stop(); } catch (_) {} padPrev.disconnect(); padPrev = padPrevOwner = padPrevPad = null; }
   if (smpPrev) { try { smpPrev.stop(); } catch (_) {} smpPrev.disconnect(); smpPrev = null; smpPrevPad = -1; }
-  if (previewSrc) { try { previewSrc.stop(); } catch (_) {} previewSrc.disconnect(); previewSrc = previewId = null; }
+  if (previewSrc) { try { previewSrc.stop(); } catch (_) {} previewSrc.disconnect(); previewSrc = null; }
   if (previewGain) { previewGain.disconnect(); previewGain = null; }
+  previewId = null;   // also drops an in-flight decode's claim
   previewToken++;
   prevMark();
 };
@@ -4200,9 +4464,9 @@ smpSlots.forEach((_, i) => {
         // Same normalization as file-loaded pads (ADR-0197) — a
         // resampled loop shouldn't bypass auto-gain.
         smpAutoGain(nb).then(g => { if (smpSlots[i] && smpSlots[i].buf === nb) smpSlots[i].gain = g; });
-        smpSlots[i] = { buf: nb, name: 'loop@' + d.name, src: null, gain: 1 };
+        smpSlots[i] = { buf: nb, name: 'loop@' + d.fileName, src: null, gain: 1 };
         b.textContent = 'loop'; b.classList.add('set');
-        b.title = smpPadTitle('Resampled loop — ' + d.name + ' ' + (d.loopEnd - d.loopStart).toFixed(2) + 's');
+        b.title = smpPadTitle('Resampled loop — ' + d.fileName + ' ' + (d.loopEnd - d.loopStart).toFixed(2) + 's');
         padsSaveSoon();
         return;
       }
@@ -4491,9 +4755,13 @@ const libDropEl = document.querySelector('.library');
 const libDurOf = f => new Promise(res => {
   const a = new Audio();
   a.preload = 'metadata';
-  a.onloadedmetadata = () => { URL.revokeObjectURL(a.src); res(a.duration || 0); };
-  a.onerror = () => res(0);
-  a.src = URL.createObjectURL(f);
+  const url = URL.createObjectURL(f);
+  // Some files probe as Infinity (stream-like containers, odd WAVs) —
+  // storing that puts 'Infinity:NaN' on the row and poisons duration
+  // math downstream. Zero means unknown, same as a failed probe.
+  a.onloadedmetadata = () => { URL.revokeObjectURL(url); res(Number.isFinite(a.duration) ? a.duration : 0); };
+  a.onerror = () => { URL.revokeObjectURL(url); res(0); };   // bad drops must not leak the URL
+  a.src = url;
 });
 libDropEl.addEventListener('dragover', e => { e.preventDefault(); libDropEl.classList.add('drag'); });
 libDropEl.addEventListener('dragleave', () => libDropEl.classList.remove('drag'));
@@ -4518,13 +4786,22 @@ libImpFile.addEventListener('change', async () => {
   const rows = (await Library.all()).filter(t => !t.deleted_at && t.pad == null);
   let n = 0;
   for (const e of data) {
+    // Entries can be null/scalars in a hand-edited or hostile file —
+    // e.hash on null throws and would abort the import mid-loop with
+    // a partial tag write and no status.
+    if (!e || typeof e !== 'object') continue;
     const rec = (e.hash && rows.find(t => t.hash === e.hash))
              || rows.find(t => t.name === e.name && t.size === e.size);
     if (!rec) continue;   // audio not loaded here — nothing to tag
+    // Type-validate per field: a wrong-typed value (cues:"x") would
+    // write into the record and corrupt loadInto's meta reads.
     const patch = {};
-    for (const k of ['duration', 'bpm', 'beatOff', 'key', 'cues', 'cueIn', 'loop', 'stem', 'mem1', 'mem2']) if (e[k] !== undefined) patch[k] = e[k];
-    await Library.tag(rec.id, patch);
-    n++;
+    for (const k of ['duration', 'bpm', 'beatOff', 'cueIn'])
+      if (typeof e[k] === 'number' && Number.isFinite(e[k])) patch[k] = e[k];
+    for (const k of ['key', 'stem']) if (typeof e[k] === 'string') patch[k] = e[k];
+    for (const k of ['loop', 'mem1', 'mem2']) if (e[k] === null || Array.isArray(e[k])) patch[k] = e[k];
+    if (Array.isArray(e.cues)) patch.cues = e.cues;
+    if (Object.keys(patch).length) { await Library.tag(rec.id, patch); n++; }
   }
   // Report the outcome like every other honest status — the old
   // silent finish left "did that file even parse?" unknowable.
@@ -4667,6 +4944,11 @@ document.addEventListener('keydown', e => {
   // (here). While a slider owns focus, arrows belong to the slider.
   if (e.target.tagName === 'INPUT' && e.target.type === 'range' &&
       /^Arrow(Left|Right|Up|Down)$/.test(e.key)) return;
+  // Browser/OS chords must not also drive the mixer: without this,
+  // Cmd+R reloads the page AND arms a loop, Cmd+1-4 switches tabs AND
+  // fires sampler pads, Cmd+W closes the tab AND toggles headphone
+  // cue. Shift stays — shift+key is the clear-pad grammar.
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
   // Held keys auto-repeat: fine for the arrow-key fader ride, but a
   // held q machine-guns play/pause and a held 1 spams the sampler's
   // file picker. Only the arrows keep repeat; everything else is
@@ -4834,7 +5116,7 @@ function midiMsg(e) {
     const deck = (st & 0x0f) === 0 ? deckA : deckB;
     const bend = ((v << 7 | n) - 8192) / 8192;         // -1..1, 0 centre
     const mul = Math.abs(bend) < 0.08 ? 1 : 1 + bend * 0.05;
-    if (mul !== deck.bendMul) { deck.bendMul = mul; deck.setRate(deck.rate); }
+    deck._setBendMul(mul);
   }
 }
 if (navigator.requestMIDIAccess) {
@@ -4843,7 +5125,15 @@ if (navigator.requestMIDIAccess) {
   };
   navigator.requestMIDIAccess().then(acc => {
     midiBind(acc);
-    acc.onstatechange = () => midiBind(acc);   // hot-plug: rebind on connect/disconnect
+    acc.onstatechange = () => {
+      midiBind(acc);   // hot-plug: rebind on connect/disconnect
+      // A device that vanishes mid-note never sends note-off — the
+      // held gates it was driving would latch: an 80/81 roll loops
+      // forever, a mid-bend wheel leaves bendMul stuck. Release them
+      // all; stopRoll on an un-rolled deck is a no-op.
+      for (const d of [deckA, deckB]) { d.stopRoll(); d.bendMul = 1; d.setRate(d.rate); }
+      for (const k in midiNoteT) delete midiNoteT[k];
+    };
   }).catch(() => {});                          // no permission / no MIDI support — stay silent
 }
 
@@ -4949,13 +5239,18 @@ function tick() {
     // floor never hits dead air — Loop toggles off as usual to exit.
     if (d.playing && !d.loopOn && d.grid && d.buffer) {
       const beatLen = 60 / d.grid.bpm, dEnd = d._endAt || d.buffer.duration;
-      if (d.pos() > dEnd - 4 * beatLen && d.pos() < dEnd - 0.01) {
+      // One-shot per pass through the tail: once armed, a user exit is
+      // an informed choice — don't re-arm until the playhead has left
+      // the window and approaches it again.
+      if (d._emLoop && d.pos() < dEnd - 4 * beatLen - 0.5) d._emLoop = false;
+      if (!d._emLoop && d.pos() > dEnd - 4 * beatLen && d.pos() < dEnd - 0.01) {
         d.loopStart = Math.max(0, dEnd - 4 * beatLen);
         d.loopEnd = dEnd;
         d.loopOn = true;
         // Slip bookkeeping belongs to whoever arms loopOn — the exit
         // dead-reckons from here, not a stale _loopT (ADR-0375 parity).
         d._loopT = ctx.currentTime; d._loopEnterPos = d.pos();
+        d._emLoop = true;
         d.applyLoop();
         d._drawnPos = undefined;
         d.status('Emergency loop');
@@ -5140,6 +5435,7 @@ function sessSave() {
         loopbeats: q('[data-act=loopbeats]').value,
         tempo: q('[data-act=tempo]').value,
         stem: q('[data-act=stem]').value,
+        st: d.st,
         slip: q('[data-act=slip]').classList.contains('on'),
         brake: q('[data-act=brake]').classList.contains('on'),
         keylock: q('[data-act=keylock]').classList.contains('on'),
@@ -5207,6 +5503,13 @@ try {
       // ensureNodes forwards the armed state once the worklet is up.
       if (s2.keylock != null) { d.keylock = !!s2.keylock; klB.classList.toggle('on', d.keylock); }
       if (s2.remain != null) d.remain = !!s2.remain;   // TIME mode is a preference, not a state
+      // Transpose can't go through transpose() — it refuses without an
+      // engine, which is only built on the first track load. Set st
+      // directly; ensureNodes forwards it like the keylock arm above.
+      if (Number.isFinite(s2.st)) {
+        d.st = Math.min(6, Math.max(-6, s2.st));
+        d.stEl.textContent = d.st === 0 ? '±0' : (d.st > 0 ? '+' : '') + d.st + 'st';
+      }
     }
   }
 } catch {}
@@ -5214,8 +5517,14 @@ try {
 // Accessibility: every control already carries a descriptive title —
 // mirror it into aria-label so icon-only buttons announce a verb
 // instead of their glyph, and let deck status lines announce updates.
+// Elements whose title mutates at runtime (pads, Reloop/Cue buttons,
+// keylock) skip the copy: the title attribute is itself the
+// accessible-name fallback, so a boot-time snapshot would freeze a
+// stale label over the live title.
 document.querySelectorAll('button[title], select[title], input[title]').forEach(el => {
-  if (!el.getAttribute('aria-label')) el.setAttribute('aria-label', el.title);
+  if (!el.getAttribute('aria-label') &&
+      !el.matches('.pad, .smp, [data-act=reloop], [data-act=cue], [data-act=keylock]'))
+    el.setAttribute('aria-label', el.title);
 });
 document.querySelectorAll('.status').forEach(el => el.setAttribute('aria-live', 'polite'));
 </script>
