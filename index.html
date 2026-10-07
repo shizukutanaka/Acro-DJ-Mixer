@@ -1676,6 +1676,7 @@ class Deck {
           this.loopOn = true;
           this.loopBtn.classList.add('on');
           this.loopLenEl.hidden = false;
+          this._armLoopSlip();   // a restored loop is an armed loop — same slip bookkeeping
           this.applyLoop();
           this._drawnPos = undefined;
           this.drawWave();
@@ -2206,6 +2207,19 @@ class Deck {
     for (const s of [this._slip, this._roll])
       if (s && s.t == null) s.t = now;
     if (this._loopT == null && this.loopOn) this._loopT = now;
+  }
+
+  // Slip bookkeeping belongs to whoever arms loopOn — and it is a
+  // triple, not a pair. Anchor + entry rate + clock: skipping the rate
+  // falls back to `|| this.rate` and loses bend/spin (ADR-0384); the
+  // clock itself only runs while playing, so stamping it on a stopped
+  // deck would count the stopped gap as slip time on the next exit
+  // (ADR-0390's own class). Stopped arms leave _loopT null and
+  // _unfoldReckon stamps it at the next play().
+  _armLoopSlip() {
+    this._loopEnterPos = this.pos();
+    this._loopEnterRate = this.rate * this.bendMul * this.spinMul;
+    this._loopT = this.playing ? ctx.currentTime : null;
   }
 
   pause() {
@@ -2874,8 +2888,7 @@ class Deck {
       this.loopEnd = end;
       this.loopOn = true;
       stat('loops');
-      this._loopT = ctx.currentTime; this._loopEnterPos = this.pos();
-      this._loopEnterRate = this.rate * this.bendMul * this.spinMul;
+      this._armLoopSlip();
     } else if (!this.loopOn) {
       // Compute bounds BEFORE loopOn flips: pos() reads loopEnd for wrapping.
       const beatLen = this.grid ? 60 / this.grid.bpm : 1;
@@ -2898,8 +2911,7 @@ class Deck {
       this.loopEnd = end;
       this.loopOn = true;
       stat('loops');
-      this._loopT = ctx.currentTime; this._loopEnterPos = this.pos();
-      this._loopEnterRate = this.rate * this.bendMul * this.spinMul;
+      this._armLoopSlip();
     } else {
       this.loopOn = false;
       this._prevLoop = [this.loopStart, this.loopEnd];
@@ -2956,6 +2968,7 @@ class Deck {
     this.rollBtn.classList.remove('on');
     if (this.playing) this.seekTo(Math.min(slip, this.buffer.duration - 0.01));
     else this.offset = Math.min(slip, this.buffer.duration - 0.01);
+    if (this.loopOn) this._armLoopSlip();   // the restored loop anchors at the landing point, not a stale arm
     this._drawnPos = undefined;
     this.drawWave();
     this.tagLib({ loop: this.loopOn ? [this.loopStart, this.loopEnd] : null });
@@ -3031,7 +3044,7 @@ class Deck {
     this.loopStart = st; this.loopEnd = en; this.loopOn = true;
     // Same slip bookkeeping as a fresh arm — exit dead-reckons from
     // THIS entry, not the stale _loopT the previous loop left behind.
-    this._loopT = ctx.currentTime; this._loopEnterPos = this.pos();
+    this._armLoopSlip();
     this.applyLoop();
     this.loopBtn.classList.add('on');
     this.loopLenEl.hidden = false;
@@ -5374,7 +5387,7 @@ function tick() {
         d.loopOn = true;
         // Slip bookkeeping belongs to whoever arms loopOn — the exit
         // dead-reckons from here, not a stale _loopT (ADR-0375 parity).
-        d._loopT = ctx.currentTime; d._loopEnterPos = d.pos();
+        d._armLoopSlip();
         d._emLoop = true;
         d.applyLoop();
         d._drawnPos = undefined;
