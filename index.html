@@ -3646,6 +3646,10 @@ const Library = {
     });
   },
   async loadInto(deck, id) {
+    // Reads ride the write chain too: a tagLib queued but not yet
+    // applied (a cue set on one deck an instant before the row is
+    // loaded into the other) must not hand back the pre-write record.
+    await this._wr;
     let rec;
     try { rec = await this.get(id); } catch (_) { this.fail(); return; }
     if (!rec || rec.deleted_at) return;
