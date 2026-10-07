@@ -4953,6 +4953,9 @@ function tick() {
         d.loopStart = Math.max(0, dEnd - 4 * beatLen);
         d.loopEnd = dEnd;
         d.loopOn = true;
+        // Slip bookkeeping belongs to whoever arms loopOn — the exit
+        // dead-reckons from here, not a stale _loopT (ADR-0375 parity).
+        d._loopT = ctx.currentTime; d._loopEnterPos = d.pos();
         d.applyLoop();
         d._drawnPos = undefined;
         d.status('Emergency loop');
