@@ -1537,6 +1537,13 @@ class Deck {
       this._loopEnterPos = 0;
       this._loopEnterRate = 0;
       if (this._slice) { this._slice.pad.classList.remove('on'); this._slice = null; }
+      // A held momentary-cue press belongs to the old track: if the
+      // 250 ms hold already rang the PFL, drop it back off — release
+      // can't see this track's press, and a latched cueOn would leak
+      // the new track into the headphones.
+      clearTimeout(this.cueBtn._momTimer);
+      if (this.cueBtn._mom && this.cueOn) this.toggleCue();
+      this.cueBtn._mom = this.cueBtn._suppress = false;
       // Momentary holds on this deck's buttons die with the track too
       // (same abandonment as _slip/_roll/_slice and the Phones hold):
       // a pending 250 ms timer must not fire into the new track, an
@@ -2011,6 +2018,11 @@ class Deck {
     this._roll = null;
     this._emLoop = false;
     if (this._slice) { this._slice.pad.classList.remove('on'); this._slice = null; }
+    // Same for a held momentary-cue press (see load()): un-latch the
+    // PFL ring the hold opened before abandoning the gesture.
+    clearTimeout(this.cueBtn._momTimer);
+    if (this.cueBtn._mom && this.cueOn) this.toggleCue();
+    this.cueBtn._mom = this.cueBtn._suppress = false;
     // Momentary holds on this deck's buttons die with the track too
     // (same abandonment as _slip/_roll/_slice and the Phones hold):
     // a pending 250 ms timer must not fire into the new track, an
