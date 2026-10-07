@@ -4595,9 +4595,13 @@ const libDropEl = document.querySelector('.library');
 const libDurOf = f => new Promise(res => {
   const a = new Audio();
   a.preload = 'metadata';
-  a.onloadedmetadata = () => { URL.revokeObjectURL(a.src); res(a.duration || 0); };
-  a.onerror = () => res(0);
-  a.src = URL.createObjectURL(f);
+  const url = URL.createObjectURL(f);
+  // Some files probe as Infinity (stream-like containers, odd WAVs) —
+  // storing that puts 'Infinity:NaN' on the row and poisons duration
+  // math downstream. Zero means unknown, same as a failed probe.
+  a.onloadedmetadata = () => { URL.revokeObjectURL(url); res(Number.isFinite(a.duration) ? a.duration : 0); };
+  a.onerror = () => { URL.revokeObjectURL(url); res(0); };   // bad drops must not leak the URL
+  a.src = url;
 });
 libDropEl.addEventListener('dragover', e => { e.preventDefault(); libDropEl.classList.add('drag'); });
 libDropEl.addEventListener('dragleave', () => libDropEl.classList.remove('drag'));
