@@ -1587,8 +1587,12 @@ class Deck {
     // knob position survives the silence.
     this.muteGain = ac.createGain();
     this.muteGain.gain.value = 1;
-    const x = xfPos();
-    this.xfGain.gain.value = this.side === 'a' ? Math.cos(x * Math.PI / 2) : Math.sin(x * Math.PI / 2);
+    // Seed through the shared law, not a side-based guess: channel
+    // assign and the CUT curve both change what the fader means, and
+    // neither may move again this session (assign persists). Direct
+    // .value so a suspended AudioContext still gets the right level —
+    // setTargetAtTime doesn't tick while the context is stopped.
+    this.xfGain.gain.value = xfGainFor(this.assignSel.value);
     // DJ-style 3-band EQ (post-fader): lowshelf 250 Hz / peaking 1 kHz /
     // highshelf 4 kHz — the standard isolator split points.
     this.eq = { low: ac.createBiquadFilter(), mid: ac.createBiquadFilter(), high: ac.createBiquadFilter() };
@@ -3674,7 +3678,11 @@ document.getElementById('xfrev').addEventListener('click', e => {
   e.target.classList.toggle('on', xfRev);
   applyCrossfade();
 });
-function applyCrossfade() {
+// The crossfade law in one place: channel assign (DJM CH ASSIGN) maps
+// a deck to the A side, the B side, or Thru — bypassing the fader
+// entirely. ensureNodes seeds xfGain from this too, so the law can't
+// drift between node creation and fader movement.
+function xfGainFor(sel) {
   const x = xfPos();
   let ga, gb;
   if (xfcurve.value === 'cut') {
@@ -3687,11 +3695,11 @@ function applyCrossfade() {
     ga = Math.cos(x * Math.PI / 2);
     gb = Math.sin(x * Math.PI / 2);
   }
-  // Channel assign (DJM CH ASSIGN): a deck may sit on the A side, the B
-  // side, or Thru — bypassing the fader entirely.
-  const pick = sel => sel === 'a' ? ga : sel === 'b' ? gb : 1;
-  deckA.setXf(pick(deckA.assignSel.value));
-  deckB.setXf(pick(deckB.assignSel.value));
+  return sel === 'a' ? ga : sel === 'b' ? gb : 1;
+}
+function applyCrossfade() {
+  deckA.setXf(xfGainFor(deckA.assignSel.value));
+  deckB.setXf(xfGainFor(deckB.assignSel.value));
 }
 xfader.addEventListener('input', applyCrossfade);
 // Fader start (CDJ FADER START): sweeping the fader fully into a
