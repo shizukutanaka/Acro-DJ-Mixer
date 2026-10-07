@@ -1315,7 +1315,6 @@ class Deck {
       // the landing to the grid, off means freehand (ADR-0021/0176).
       const t = this.quantize(v0 + frac * (v1 - v0));
       this.cueIn = Math.min(Math.max(t, 0), this.buffer.duration);
-      this.cueIn = Math.min(Math.max(v0 + frac * (v1 - v0), 0), this.buffer.duration);
       if (!this.playing) this.offset = this.cueIn;   // playing: offset anchors pos(), moving it would jump the playhead
       this.tagLib({ cueIn: this.cueIn });
       this._drawnPos = undefined;
