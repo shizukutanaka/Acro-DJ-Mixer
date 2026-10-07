@@ -1100,16 +1100,21 @@ class Deck {
     this.gainEl.addEventListener('input', () => this.setGain(parseFloat(this.gainEl.value)));
     this.gainEl.addEventListener('dblclick', () => { this.gainEl.value = 1; this.setGain(1); });
     this._faderPrev = parseFloat(this.faderEl.value);
-    this.faderEl.addEventListener('input', () => {
-      const v = parseFloat(this.faderEl.value);
-      // Channel fader start (CDJ FADER START): pulling the upfader off
-      // zero starts a stopped deck — same edge-triggered idiom as the
-      // crossfader's fader start, per channel.
+    // Channel fader start (CDJ FADER START): pulling the upfader off
+    // zero starts a stopped deck — same edge-triggered idiom as the
+    // crossfader's fader start, per channel. One path for every
+    // writer: drag, double-click reset and MIDI CC all run this, so
+    // _faderPrev always mirrors the real last value — a stale 0 would
+    // ghost-fire the start on the next touch (the crossfader's
+    // xfEdgeCheck got the same contract when programmatic sweeps
+    // learned to share it).
+    this._faderIn = v => {
       if (this._faderPrev === 0 && v > 0 && this.buffer && !this.playing && this.pos() < this.buffer.duration) this.play();
       this._faderPrev = v;
       this.setFader(v);
-    });
-    this.faderEl.addEventListener('dblclick', () => { this.faderEl.value = 1; this.setFader(1); });
+    };
+    this.faderEl.addEventListener('input', () => this._faderIn(parseFloat(this.faderEl.value)));
+    this.faderEl.addEventListener('dblclick', () => { this.faderEl.value = 1; this._faderIn(1); });
     // Momentary deck mute: playback keeps running underneath, so the
     // release lands back on beat — pause would freeze the position.
     const mutBtn = this.el.querySelector('[data-act=mute]');
@@ -5115,8 +5120,8 @@ function midiMsg(e) {
     else if (n === 21) { deckB.gainEl.value = f; deckB.setGain(f); }
     // Channel upfaders on the next pair — hardware channel faders
     // commonly sit right after the trim CCs.
-    else if (n === 22) { deckA.faderEl.value = f; deckA.setFader(f); }
-    else if (n === 23) { deckB.faderEl.value = f; deckB.setFader(f); }
+    else if (n === 22) { deckA.faderEl.value = f; deckA._faderIn(f); }
+    else if (n === 23) { deckB.faderEl.value = f; deckB._faderIn(f); }
     // Tempo: full CC travel maps onto the deck's own range (±8/16/50
     // select included), with the same centre detent as the slider.
     else if (n === 14 || n === 15) {
