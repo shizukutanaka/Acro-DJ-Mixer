@@ -3636,6 +3636,11 @@ document.getElementById('xfrev').addEventListener('click', e => {
   xfRev = !xfRev;
   e.target.classList.toggle('on', xfRev);
   applyCrossfade();
+  // Reversing mirrors xfPos() — the parked fader instantly belongs to
+  // the other side. Rebase the edge bookkeeping WITHOUT firing: the
+  // reverse is not a fader move, so no start, but a stale xfPrev
+  // would ghost-fire or swallow the next real edge.
+  xfPrev = xfPos();
 });
 function applyCrossfade() {
   const x = xfPos();
