@@ -2192,6 +2192,9 @@ class Deck {
   cue() {
     // Cue returns to the cue-in point: track start, or the first
     // audible sample when auto-cue skipped lead-in silence.
+    // Empty deck: engine ('worklet') outlives buffer after eject —
+    // dereferencing buffer.sampleRate below would throw.
+    if (!this.buffer) return;
     const at = this.cueIn || 0;
     const wasPlaying = this.playing;
     this.stopPlayback();
