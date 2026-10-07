@@ -1271,6 +1271,9 @@ class Deck {
         const x = t => (t - v0) / (v1 - v0) * rect.width;
         if (Math.abs(px - x(this.cueIn)) <= 8) {
           cueInDrag = true;
+          // Same one-level undo record as shift+Cue — the drag is a
+          // cue-point overwrite and right-click must restore it.
+          this._prevCueIn = this.cueIn;
           this.wave.setPointerCapture(e.pointerId);
           return;
         }
@@ -1300,11 +1303,13 @@ class Deck {
       const rect = this.wave.getBoundingClientRect();
       const frac = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
       const [v0, v1] = this._viewSpan();
+      this._prevCueIn = this.cueIn;
       this.cueIn = Math.min(Math.max(v0 + frac * (v1 - v0), 0), this.buffer.duration);
       if (!this.playing) this.offset = this.cueIn;   // playing: offset anchors pos(), moving it would jump the playhead
       this.tagLib({ cueIn: this.cueIn });
       this._drawnPos = undefined;
       this.drawWave();
+      this._cueTitle();
       this.status('cue set ' + fmt(this.cueIn));
     });
     this.wave.addEventListener('pointermove', e => {
@@ -1356,6 +1361,7 @@ class Deck {
         }
         if (cueInDrag) {   // persist like a shift+Cue set
           this.tagLib({ cueIn: this.cueIn });
+          this._cueTitle();
           cueInDrag = false;
         }
         if (cueDrag !== null) {   // persist like a shift-click cue set
