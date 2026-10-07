@@ -1826,12 +1826,12 @@ class Deck {
     if (!this._playCounted && this.fileName) {
       this._playCounted = true;
       // Play count lives on the library record so digging shows
-      // which tracks actually got rinsed.
+      // which tracks actually got rinsed. The increment must happen
+      // inside the write chain — instant doubles (or any same-record
+      // both-decks play) would otherwise get->tag the same stale
+      // count and lose a play.
       (this.libId != null ? Promise.resolve(this.libId) : this._libP)
-        ?.then(async id => {
-          const rec = await Library.get(id);
-          if (rec) this.tagLib({ plays: (rec.plays || 0) + 1 });
-        });
+        ?.then(id => { if (id != null) Library.bump(id, 'plays'); });
     }
     const ac = audio();
     if (this.engine === 'worklet') {
@@ -3372,6 +3372,22 @@ const Library = {
       const rec = await this.get(id);
       if (!rec) return;
       Object.assign(rec, patch);
+      rec.updated_at = Date.now();
+      rec.version++;
+      await this.put(rec);
+      renderLibrary();
+    });
+  },
+  async bump(id, field) {
+    // Counter increment whose read lives inside the write chain —
+    // tag() takes absolute values, so a same-record increment from
+    // two decks would otherwise read one stale count and write it
+    // back twice.
+    if (!id) return;
+    return this._mutate(async () => {
+      const rec = await this.get(id);
+      if (!rec) return;
+      rec[field] = (rec[field] || 0) + 1;
       rec.updated_at = Date.now();
       rec.version++;
       await this.put(rec);
