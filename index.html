@@ -1760,6 +1760,9 @@ class Deck {
       this.node.connect(this.cueSend);
       this.engine = 'worklet';
       if (this.keylock) this.node.port.postMessage({ type: 'keylock', on: true });   // restored before the graph existed
+      // Transpose is likewise restored before the engine exists (sess
+      // restore sets st directly) — seed the fresh worklet's shift.
+      if (this.st) this.node.port.postMessage({ type: 'pitch', rate: Math.pow(2, this.st / 12) });
     } catch (err) {
       // file:// and opaque origins block worklet module loads — fall back to
       // BufferSource varispeed; key lock (WSOLA) needs http(s).
@@ -5137,6 +5140,7 @@ function sessSave() {
         loopbeats: q('[data-act=loopbeats]').value,
         tempo: q('[data-act=tempo]').value,
         stem: q('[data-act=stem]').value,
+        st: d.st,
         slip: q('[data-act=slip]').classList.contains('on'),
         brake: q('[data-act=brake]').classList.contains('on'),
         keylock: q('[data-act=keylock]').classList.contains('on'),
@@ -5204,6 +5208,13 @@ try {
       // ensureNodes forwards the armed state once the worklet is up.
       if (s2.keylock != null) { d.keylock = !!s2.keylock; klB.classList.toggle('on', d.keylock); }
       if (s2.remain != null) d.remain = !!s2.remain;   // TIME mode is a preference, not a state
+      // Transpose can't go through transpose() — it refuses without an
+      // engine, which is only built on the first track load. Set st
+      // directly; ensureNodes forwards it like the keylock arm above.
+      if (Number.isFinite(s2.st)) {
+        d.st = Math.min(6, Math.max(-6, s2.st));
+        d.stEl.textContent = d.st === 0 ? '±0' : (d.st > 0 ? '+' : '') + d.st + 'st';
+      }
     }
   }
 } catch {}
