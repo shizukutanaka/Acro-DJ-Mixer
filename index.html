@@ -4508,13 +4508,22 @@ libImpFile.addEventListener('change', async () => {
   const rows = (await Library.all()).filter(t => !t.deleted_at && t.pad == null);
   let n = 0;
   for (const e of data) {
+    // Entries can be null/scalars in a hand-edited or hostile file —
+    // e.hash on null throws and would abort the import mid-loop with
+    // a partial tag write and no status.
+    if (!e || typeof e !== 'object') continue;
     const rec = (e.hash && rows.find(t => t.hash === e.hash))
              || rows.find(t => t.name === e.name && t.size === e.size);
     if (!rec) continue;   // audio not loaded here — nothing to tag
+    // Type-validate per field: a wrong-typed value (cues:"x") would
+    // write into the record and corrupt loadInto's meta reads.
     const patch = {};
-    for (const k of ['duration', 'bpm', 'beatOff', 'key', 'cues', 'cueIn', 'loop', 'stem', 'mem1', 'mem2']) if (e[k] !== undefined) patch[k] = e[k];
-    await Library.tag(rec.id, patch);
-    n++;
+    for (const k of ['duration', 'bpm', 'beatOff', 'cueIn'])
+      if (typeof e[k] === 'number' && Number.isFinite(e[k])) patch[k] = e[k];
+    for (const k of ['key', 'stem']) if (typeof e[k] === 'string') patch[k] = e[k];
+    for (const k of ['loop', 'mem1', 'mem2']) if (e[k] === null || Array.isArray(e[k])) patch[k] = e[k];
+    if (Array.isArray(e.cues)) patch.cues = e.cues;
+    if (Object.keys(patch).length) { await Library.tag(rec.id, patch); n++; }
   }
   // Report the outcome like every other honest status — the old
   // silent finish left "did that file even parse?" unknowable.
