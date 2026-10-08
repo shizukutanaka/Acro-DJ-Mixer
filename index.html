@@ -3711,7 +3711,7 @@ const Library = {
     // stem rides along like cueIn/cues/loop: ADR-0222 saves it on the
     // record but loadInto never forwarded it, so a library-loaded deck
     // always came back Full even after splitting a track once.
-    deck.load(rec.blob, { libId: rec.id, bpm: rec.bpm, beatOff: rec.beatOff, key: rec.key, cues: rec.cues, cueIn: rec.cueIn, loop: rec.loop, mem1: rec.mem1, mem2: rec.mem2, stem: rec.stem });
+    deck.load(rec.blob, { libId: rec.id, bpm: rec.bpm, beatOff: rec.beatOff, key: rec.key, cues: rec.cues, cueIn: rec.cueIn, loop: rec.loop, mem1: rec.mem1, mem2: rec.mem2, stem: rec.stem, gain: rec.gain });
   },
 };
 
