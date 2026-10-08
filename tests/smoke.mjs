@@ -170,6 +170,26 @@ const r = await page.evaluate(async () => {
   document.getElementById('mono').click();
   out.monoFold = out.monoFold && monoNode.channelCount === 2;
 
+  // Quantize contract: Qtz on snaps a hot-cue write to the grid,
+  // Qtz off places it freehand (ADR-0021/0055).
+  deckA.seekTo(5.3);
+  deckA.padCue(1);
+  const snapped = deckA.cues[1];
+  deckA.clearPad(1);
+  document.getElementById('qtz').click();   // quantizeOn off
+  deckA.padCue(1);
+  const freehand = deckA.cues[1];
+  deckA.clearPad(1);
+  document.getElementById('qtz').click();   // restore
+  out.qtzSnap = Math.abs(snapped - 5.5) < 1e-9 && Math.abs(freehand - 5.3) < 1e-9;
+
+  // Beat jump rides the detected grid (0.5 s/beat at 120 BPM), ±1.
+  deckA.seekTo(5.3);
+  deckA.beatJump(1);
+  const jumped = deckA.pos();
+  deckA.beatJump(-1);
+  out.beatJump = Math.abs(jumped - 5.8) < 0.01 && Math.abs(deckA.pos() - 5.3) < 0.01;
+
   // alt+Eject (full channel reset) still rides eject() — the undo
   // stash must survive so right-click can restore the track.
   // (The smoke buffer is injected directly, so fake the file-loaded
