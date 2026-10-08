@@ -2443,6 +2443,11 @@ class Deck {
     // dereferencing buffer.sampleRate below would throw.
     if (!this.buffer) return;
     const at = this.cueIn || 0;
+    // Same escape as seekTo: landing outside an armed loop exits it.
+    // Without this a stopped deck could sit at a cue point away from
+    // the armed region, and the next play would wrap back into the
+    // loop at loopEnd — far from where the user asked to be.
+    if (this.loopOn && (at < this.loopStart || at >= this.loopEnd)) this.toggleLoop();
     const wasPlaying = this.playing;
     this.stopPlayback();
     if (this.engine === 'worklet') this.node.port.postMessage({ type: 'seek', pos: Math.round(at * this.buffer.sampleRate) });
