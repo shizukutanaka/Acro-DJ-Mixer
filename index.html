@@ -3152,6 +3152,11 @@ class Deck {
   async instantDouble() {
     const p = this.partner;
     if (!this._fileObj || !p || p === this) return;
+    // Same guard swapWith takes: a double load lands mid-fade and
+    // either swaps the fading track's buffer out from under the
+    // crossfader, or — once load() refuses mid-fade decks — applies
+    // the rate/seek/play below to the partner's OLD track.
+    if (autoMix.fade) { this.status('Finish or cancel the fade first.'); return; }
     const pos = this.pos();
     // Clamp to the partner's tempo range — the slider can only display
     // inside its min/max, so an out-of-range rate would play silently
