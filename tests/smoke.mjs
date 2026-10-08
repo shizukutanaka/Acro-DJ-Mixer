@@ -278,6 +278,45 @@ const r = await page.evaluate(async () => {
     out.stemMix = vocMix && Math.abs(deckA.mg[0].gain.value - 1) < 0.05 && Math.abs(deckA.mg[1].gain.value) < 0.05;
   } else out.stemMix = true;   // stereo path — no mid/side matrix on this engine
 
+  // Help overlay is modal: while it's open, keys belong to it and
+  // must not drive the mixer (ADR-0308) — then, once closed, a real
+  // keydown rides the handler end-to-end ('q' plays/pauses, ADR-0031).
+  document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', bubbles: true }));
+  const gated = deckA.playing === false && !helpEl.hidden;
+  helpEl.hidden = true;
+  document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', bubbles: true }));
+  const qPlays = deckA.playing === true;
+  document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', bubbles: true }));
+  out.keyDispatch = gated && qPlays && deckA.playing === false;
+
+  // Slip: a held pad snaps the playhead back to where the timeline
+  // would be on release (ADR-0060/0143/0390).
+  deckA.slip = true;
+  deckA.cues[0] = 5.0;
+  deckA.seekTo(2);
+  deckA.play();
+  await new Promise(r => setTimeout(r, 300));
+  deckA.slipCueStart(0);
+  const atCue = Math.abs(deckA.pos() - 5.0) < 0.05;
+  await new Promise(r => setTimeout(r, 300));
+  deckA.slipCueEnd();
+  const back = deckA.pos();
+  deckA.pause();
+  deckA.slip = false; deckA.cues[0] = null;
+  out.slipSnapBack = atCue && back > 2.1 && back < 2.9;
+
+  // Sampler choke groups: firing pad 2 chokes pad 1's voice but a
+  // shot in the other group keeps ringing (ADR-0239).
+  const sbuf = ctx.createBuffer(1, 1000, 44100);
+  smpSlots[0] = smpSlots[1] = smpSlots[3] = { buf: sbuf };
+  fireSmpPad(0);
+  const p0Lit = smpPadsEl.children[0].classList.contains('on');
+  fireSmpPad(1);
+  const choked = !smpPadsEl.children[0].classList.contains('on') && smpPadsEl.children[1].classList.contains('on');
+  fireSmpPad(3);
+  out.chokeGroup = p0Lit && choked && smpPadsEl.children[1].classList.contains('on');
+  smpSlots[0] = smpSlots[1] = smpSlots[3] = null;
+
   // alt+Eject (full channel reset) still rides eject() — the undo
   // stash must survive so right-click can restore the track.
   // (The smoke buffer is injected directly, so fake the file-loaded
