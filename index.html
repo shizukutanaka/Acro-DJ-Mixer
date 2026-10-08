@@ -1337,10 +1337,9 @@ class Deck {
       this.cueIn = Math.min(Math.max(t, 0), this.buffer.duration);
       if (!this.playing) this.offset = this.cueIn;   // playing: offset anchors pos(), moving it would jump the playhead
       this.tagLib({ cueIn: this.cueIn });
-      this._cueTitle();   // the Cue tooltip names where it lands — keep it honest
       this._drawnPos = undefined;
       this.drawWave();
-      this._cueTitle();
+      this._cueTitle();   // the Cue tooltip names where it lands — keep it honest
       this.status('cue set ' + fmt(this.cueIn));
     });
     this.wave.addEventListener('pointermove', e => {
