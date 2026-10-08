@@ -218,6 +218,40 @@ const r = await page.evaluate(async () => {
   await new Promise(r => setTimeout(r, 300));
   out.killRestores = killed < -20 && Math.abs(deckA.eq.high.gain.value - 13) < 2;
 
+  // Loop move + in/out adjust: the armed loop slides by its own
+  // length, or trims a bound by one beat (ADR-0050/0096/0098).
+  deckA.toggleLoop();
+  const ls0 = deckA.loopStart, llen = deckA.loopEnd - deckA.loopStart;
+  deckA.moveLoop(1);
+  const moved = Math.abs(deckA.loopStart - ls0 - llen) < 1e-9;
+  deckA.adjustLoopIn(1);
+  const inAdj = Math.abs(deckA.loopStart - (ls0 + llen) - 0.5) < 1e-9;
+  deckA.adjustLoopOut(-1);
+  out.loopMove = moved && inAdj && Math.abs(deckA.loopEnd - (ls0 + 2 * llen) + 0.5) < 1e-9;
+  deckA.toggleLoop();
+
+  // Free-size loop: shift+Loop marks IN, a second press marks OUT —
+  // bounds still snap under Qtz (ADR-0058/0176).
+  deckA.seekTo(5.3);
+  deckA.toggleLoop(true);              // marks _loopIn
+  deckA.seekTo(6.3);
+  deckA.toggleLoop(true);              // commits [5.5, 6.5]
+  out.freeLoop = deckA.loopOn && Math.abs(deckA.loopStart - 5.5) < 1e-9 && Math.abs(deckA.loopEnd - 6.5) < 1e-9;
+  deckA.toggleLoop();
+
+  // Transpose is engine-gated: on the fallback engine it refuses (a
+  // lying ±N readout is worse than no readout, ADR-0311); on the
+  // worklet it applies and resets.
+  if (deckA.engine === 'worklet') {
+    deckA.transpose(1);
+    const up = deckA.st === 1;
+    deckA.transpose(-1);
+    out.transposeGate = up && deckA.st === 0;
+  } else {
+    deckA.transpose(1);
+    out.transposeGate = deckA.st === 0;
+  }
+
   // alt+Eject (full channel reset) still rides eject() — the undo
   // stash must survive so right-click can restore the track.
   // (The smoke buffer is injected directly, so fake the file-loaded
