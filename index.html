@@ -1642,11 +1642,22 @@ class Deck {
       this.libId = meta ? meta.libId : null;
       this._libP = null;
       this._libPatch = null;
-      // Auto-gain: one downmix feeds level normalization plus (uncached)
-      // BPM/key analysis. Attenuation only — boosting a quiet track
-      // would just lean on the limiter.
-      const mono = monoResample(buf);   // promise — estimators await it internally
-      this.applyAutoGain(await mono);
+      // Auto-gain: one O(track) mono downmix feeds level normalization
+      // plus (uncached) BPM/key analysis. A record that already carries
+      // `gain` re-applies it and skips the resample entirely — persist
+      // the computed value on first load, reuse on every re-load.
+      // Attenuation only — boosting a quiet track would just lean on
+      // the limiter.
+      let mono = null;   // promise — built lazily; estimators await it
+      const mg = meta && Number.isFinite(meta.gain) && meta.gain > 0 && meta.gain <= 1 ? meta.gain : null;
+      if (mg != null) {
+        this.gainEl.value = mg;
+        this.setGain(mg);
+      } else {
+        mono = monoResample(buf);
+        this.applyAutoGain(await mono);
+        this.tagLib({ gain: +this.gainEl.value });   // first write — next load reads it back
+      }
       if (!live()) return;
       if (meta && Number.isFinite(meta.bpm) && meta.bpm > 0) {
         // Cached analysis from the library — instant, no recompute.
@@ -1661,6 +1672,10 @@ class Deck {
         this.refreshKey();
         if (this.partner) this.partner.refreshKey();
       } else {
+        // meta.gain without meta.bpm is rare (a gain-only record) — the
+        // analysis path builds the downmix lazily if the gain block
+        // never needed it.
+        mono = mono || monoResample(buf);
         this.estimateBpm(mono);
         this.estimateKey(mono);
       }
@@ -3198,7 +3213,9 @@ const deckSnap = d => ({ file: d._fileObj, pos: d.pos(), rate: d.rate, st: d.st,
     stem: d.stemSel.value,
     bpm: d.grid ? d.grid.bpm : null,
     beatOff: d.grid ? d.grid.beatOff : 0,
-    key: d.key, libId: d.libId } });
+    // The live trim level doubles as the record's gain field: a clone
+    // must sound identical, and a cached value skips the resample.
+    key: d.key, libId: d.libId, gain: +d.gainEl.value } });
 
 // ----- Analysis helpers (run off the audio thread; chunked to keep UI alive) -----
 
@@ -3712,7 +3729,7 @@ const Library = {
     // stem rides along like cueIn/cues/loop: ADR-0222 saves it on the
     // record but loadInto never forwarded it, so a library-loaded deck
     // always came back Full even after splitting a track once.
-    deck.load(rec.blob, { libId: rec.id, bpm: rec.bpm, beatOff: rec.beatOff, key: rec.key, cues: rec.cues, cueIn: rec.cueIn, loop: rec.loop, mem1: rec.mem1, mem2: rec.mem2, stem: rec.stem });
+    deck.load(rec.blob, { libId: rec.id, bpm: rec.bpm, beatOff: rec.beatOff, key: rec.key, cues: rec.cues, cueIn: rec.cueIn, loop: rec.loop, mem1: rec.mem1, mem2: rec.mem2, stem: rec.stem, gain: rec.gain });
   },
 };
 
