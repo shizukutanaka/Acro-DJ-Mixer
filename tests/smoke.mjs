@@ -110,6 +110,25 @@ const r = await page.evaluate(async () => {
   deckA._setBendMul(1.1);
   deckA.pause();
   out.bendReleased = deckA.bendMul === 1;
+
+  // Fader start: sweeping into a stopped deck's side starts it, and
+  // the edge bookkeeping re-arms after a double-click reset
+  // (ADR-0358/0391 — a parked xfPrev must not ghost-fire or swallow).
+  deckA.pause(); deckB.pause();
+  xfader.value = 0.5; applyCrossfade(); xfEdgeCheck();
+  xfader.value = 0.97; xfEdgeCheck();
+  out.faderStart = deckB.playing === true;
+  deckB.pause();
+  xfader.dispatchEvent(new Event('dblclick'));   // reset parks centre
+  xfader.value = 0.97; xfEdgeCheck();
+  out.faderStartRearm = deckB.playing === true;
+  deckB.pause();
+  xfader.value = 0.5; applyCrossfade(); xfEdgeCheck();
+
+  // Empty-deck control surfaces don't throw (ADR-0355/0356).
+  deckA.eject();
+  try { deckA.cue(); deckA.seekTo(1); deckA.play(); out.emptyDeckSafe = true; }
+  catch (_) { out.emptyDeckSafe = false; }
   return out;
 });
 
