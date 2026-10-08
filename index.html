@@ -5269,7 +5269,7 @@ if (navigator.requestMIDIAccess) {
       // held gates it was driving would latch: an 80/81 roll loops
       // forever, a mid-bend wheel leaves bendMul stuck. Release them
       // all; stopRoll on an un-rolled deck is a no-op.
-      for (const d of [deckA, deckB]) { d.stopRoll(); d.bendMul = 1; d.setRate(d.rate); }
+      for (const d of [deckA, deckB]) { d.stopRoll(); d._setBendMul(1); }
       for (const k in midiNoteT) delete midiNoteT[k];
     };
   }).catch(() => {});                          // no permission / no MIDI support — stay silent
