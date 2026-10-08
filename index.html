@@ -3050,6 +3050,17 @@ class Deck {
       : 'Loop';
   }
 
+  // Every armed-region edit owns the same four-step sync: apply to
+  // the engine, invalidate the cached draw, repaint, persist. One
+  // path so a region writer can't drift (ADR-0405 doctrine). Loop
+  // off writes go through toggleLoop's own tail — it tags null.
+  _syncLoop() {
+    this.applyLoop();
+    this._drawnPos = undefined;
+    this.drawWave();
+    this.tagLib({ loop: [this.loopStart, this.loopEnd] });
+  }
+
   // Halve or double the armed loop in place, keeping its start — the
   // Pioneer-style loop-length control (1/2, 1, 2, 4 beats ...).
   setLoopLen(factor) {
@@ -3059,10 +3070,7 @@ class Deck {
     const len = Math.min(Math.max(cur * factor, beatLen / 2), this.buffer.duration - this.loopStart);
     if (len === cur) return;
     this.loopEnd = this.loopStart + len;
-    this.applyLoop();
-    this._drawnPos = undefined;
-    this.drawWave();
-    this.tagLib({ loop: [this.loopStart, this.loopEnd] });
+    this._syncLoop();
   }
 
   // LOOP MOVE: slide the armed loop by its own length — the CDJ move
@@ -3086,12 +3094,9 @@ class Deck {
     // Same slip bookkeeping as a fresh arm — exit dead-reckons from
     // THIS entry, not the stale _loopT the previous loop left behind.
     this._armLoopSlip();
-    this.applyLoop();
+    this._syncLoop();
     this.loopBtn.classList.add('on');
     this.loopLenEl.hidden = false;
-    this._drawnPos = undefined;
-    this.drawWave();
-    this.tagLib({ loop: [st, en] });
   }
 
   moveLoop(dir) {
@@ -3101,10 +3106,7 @@ class Deck {
     if (start === this.loopStart) return;
     this.loopStart = start;
     this.loopEnd = start + len;
-    this.applyLoop();
-    this._drawnPos = undefined;
-    this.drawWave();
-    this.tagLib({ loop: [this.loopStart, this.loopEnd] });
+    this._syncLoop();
   }
 
   // Shift+‹loop› (CDJ LOOP IN ADJUST): slide the loop's in-point a
@@ -3117,10 +3119,7 @@ class Deck {
     const start = Math.min(Math.max(this.loopStart + dir * step, 0), this.loopEnd - min);
     if (start === this.loopStart) return;
     this.loopStart = start;
-    this.applyLoop();
-    this._drawnPos = undefined;
-    this.drawWave();
-    this.tagLib({ loop: [this.loopStart, this.loopEnd] });
+    this._syncLoop();
   }
 
   // Alt+‹loop› (CDJ LOOP OUT ADJUST): slide the loop's out-point a
@@ -3133,10 +3132,7 @@ class Deck {
     const end = Math.min(Math.max(this.loopEnd + dir * step, this.loopStart + min), this.buffer.duration);
     if (end === this.loopEnd) return;
     this.loopEnd = end;
-    this.applyLoop();
-    this._drawnPos = undefined;
-    this.drawWave();
-    this.tagLib({ loop: [this.loopStart, this.loopEnd] });
+    this._syncLoop();
   }
 
   // Instant doubles: clone this deck onto the partner at the same
