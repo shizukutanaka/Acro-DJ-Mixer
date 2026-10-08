@@ -345,6 +345,29 @@ const r = await page.evaluate(async () => {
   await new Promise(r => setTimeout(r, 400));
   out.titleNow = tPlaying && !document.title.includes('a.wav');
 
+  // Playing a named track earns a setlist entry (ADR-0093).
+  const log = JSON.parse(localStorage.getItem('acro-setlog') || '[]');
+  out.setLogEntry = log.some(e => e.name === 'a.wav' && e.deck === 'a');
+
+  // The effective-BPM hint follows the shared refresh path — shows the
+  // post-rate tempo while rate≠1, clears when the fader centres
+  // (ADR-0219/0387). 120 BPM grid * 1.10 = 132.0.
+  deckA.setRate(1.10);
+  const effOn = deckA.effEl.textContent.includes('132');
+  deckA.setRate(1.0);
+  out.effBpm = effOn && deckA.effEl.textContent === '';
+
+  // CUT crossfade curve: both sides are at full level in the middle —
+  // chops hit instantly, the equal-power law never applies (ADR-0036).
+  const prevCurve = xfcurve.value;
+  xfcurve.value = 'cut';
+  xfader.value = 0.05; applyCrossfade();
+  const cutLeft = xfGainFor('a') > 0.95 && xfGainFor('b') < 0.6;
+  xfader.value = 0.5; applyCrossfade();
+  const cutMid = xfGainFor('a') > 0.95 && xfGainFor('b') > 0.95;
+  xfcurve.value = prevCurve; xfader.value = 0.5; applyCrossfade();
+  out.cutCurve = cutLeft && cutMid;
+
   // alt+Eject (full channel reset) still rides eject() — the undo
   // stash must survive so right-click can restore the track.
   // (The smoke buffer is injected directly, so fake the file-loaded
