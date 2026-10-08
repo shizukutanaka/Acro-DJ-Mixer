@@ -190,6 +190,34 @@ const r = await page.evaluate(async () => {
   deckA.beatJump(-1);
   out.beatJump = Math.abs(jumped - 5.8) < 0.01 && Math.abs(deckA.pos() - 5.3) < 0.01;
 
+  // Loop scaling: halve/double an armed loop in place, clamped at
+  // half a beat (ADR-0009).
+  deckA.toggleLoop();               // loopbeats=4 → 2 s at 120 BPM
+  deckA.setLoopLen(0.5);
+  const halved = deckA.loopEnd - deckA.loopStart;
+  deckA.setLoopLen(2);
+  out.loopScale = Math.abs(halved - 1) < 1e-9 && Math.abs(deckA.loopEnd - deckA.loopStart - 2) < 1e-9;
+  deckA.toggleLoop();
+
+  // Bar jump lands on the next downbeat — floor+1 even mid-bar,
+  // shift jumps back one bar (ADR-0061/0201).
+  deckA.seekTo(1.2);
+  deckA.jumpBar(1);
+  const toBar = deckA.pos();
+  deckA.jumpBar(-1);
+  out.barJump = Math.abs(toBar - 2) < 0.01 && Math.abs(deckA.pos()) < 0.01;
+
+  // EQ kill pins the band at −26 dB and restores the knob's value on
+  // release (ADR-0015).
+  deckA.eqEls.high.value = 0.5;
+  deckA.setBand('high', 0.5);
+  deckA.setKill('high', true);
+  await new Promise(r => setTimeout(r, 300));
+  const killed = deckA.eq.high.gain.value;
+  deckA.setKill('high', false);
+  await new Promise(r => setTimeout(r, 300));
+  out.killRestores = killed < -20 && Math.abs(deckA.eq.high.gain.value - 13) < 2;
+
   // alt+Eject (full channel reset) still rides eject() — the undo
   // stash must survive so right-click can restore the track.
   // (The smoke buffer is injected directly, so fake the file-loaded
