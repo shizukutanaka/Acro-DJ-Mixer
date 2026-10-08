@@ -5370,8 +5370,12 @@ function tick() {
       ? '-' + fmt(rem) + ' / ' + fmt(d.buffer.duration)
       : fmt(d.pos()) + ' / ' + fmt(d.buffer.duration);
     // Track-end warning: flash the readout in the last 30 s — the
-    // "bring the next track in" signal every CDJ gives you.
-    d.timeEl.classList.toggle('urgent', rem > 0 && rem < 30);
+    // "bring the next track in" signal every CDJ gives you. Keyed to
+    // the effective end like auto-mix and the emergency loop below:
+    // a track decoded with a long silent tail must warn at the
+    // musical ending, not 30 s before the container runs out.
+    const remEnd = (d._endAt || d.buffer.duration) - d.pos();
+    d.timeEl.classList.toggle('urgent', remEnd > 0 && remEnd < 30);
     // Emergency loop (rekordbox): if a gridded track is about to run
     // out while still playing, arm a 4-beat loop over its tail so the
     // floor never hits dead air — Loop toggles off as usual to exit.
