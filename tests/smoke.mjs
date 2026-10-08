@@ -404,6 +404,31 @@ const r = await page.evaluate(async () => {
   out.padMarked = deckA.pads[0].classList.contains('set') && deckA.pads[0].title.includes('0:0');
   deckA.clearPad(0);
 
+  // Readouts: honest one-decimal BPM (ADR-0056) and the detected key.
+  out.bpmReadout = deckA.bpmEl.textContent === '120.0';
+  deckA.key = { num: 8, letter: 'A', name: 'Am' }; deckA.refreshKey();
+  out.keyReadout = deckA.keyEl.textContent.includes('8A');
+
+  // Key sync finds the smallest ±st landing harmonic with the partner
+  // (ADR-0046): B at 5A targeting A at 8A transposes +2 (5A+2st → 7A,
+  // which is adjacent to 8A on the wheel — the nearest harmonic match).
+  deckB.key = { num: 5, letter: 'A', name: 'Cm' };
+  if (deckB.engine === 'worklet') {
+    deckB.keySync();
+    out.keySync = deckB.st === 2 && deckB.stEl.textContent === '+2st' && deckB.effKey().num === 7;
+    deckB.transpose(-deckB.st);
+  } else out.keySync = true;
+  deckA.key = null; deckB.key = null;
+  deckA.refreshKey(); deckB.refreshKey();
+
+  // Free-size loop bounds stay freehand with Qtz off (ADR-0176).
+  quantizeOn = false;
+  deckA.seekTo(5.3); deckA.toggleLoop(true);
+  deckA.seekTo(6.3); deckA.toggleLoop(true);
+  out.freeLoopFreehand = deckA.loopOn && Math.abs(deckA.loopStart - 5.3) < 0.01 && Math.abs(deckA.loopEnd - 6.3) < 0.01;
+  deckA.toggleLoop();
+  quantizeOn = true;
+
   // alt+Eject (full channel reset) still rides eject() — the undo
   // stash must survive so right-click can restore the track.
   // (The smoke buffer is injected directly, so fake the file-loaded
