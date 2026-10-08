@@ -125,6 +125,23 @@ const r = await page.evaluate(async () => {
   deckB.pause();
   xfader.value = 0.5; applyCrossfade(); xfEdgeCheck();
 
+  // Sync clamps to the follower's own tempo range (ADR-0357):
+  // A at 120×1.15 asks B (range ±8) for 1.169 — beyond its ±8%,
+  // it must land on the clamp, not the raw rate.
+  deckB.tempoRange = 0.08;
+  deckA.rate = 1.15;
+  deckB.syncTo(deckA);
+  out.syncClamps = deckB.rate <= 1.081 && deckB.rate > 1.0;
+  deckB.tempoRange = 0.16; deckB.rate = 1;
+
+  // Grid undo: a nudge stashes _prevGrid, right-click on the tempo
+  // controls restores it (ADR-0292's right-click-restores grammar).
+  const off0 = deckA.grid.beatOff;
+  deckA.nudgeGrid(0.01);
+  out.undoStashed = deckA._prevGrid !== undefined;
+  deckA.el.querySelector('.bpmctl').dispatchEvent(new Event('contextmenu'));
+  out.undoRestored = Math.abs(deckA.grid.beatOff - off0) < 1e-9 && deckA._prevGrid === undefined;
+
   // Empty-deck control surfaces don't throw (ADR-0355/0356).
   deckA.eject();
   try { deckA.cue(); deckA.seekTo(1); deckA.play(); out.emptyDeckSafe = true; }
