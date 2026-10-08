@@ -1268,6 +1268,11 @@ class Deck {
       // pitch like a finger on the platter (CDJ vinyl mode). Plain
       // drag still scrubs the playhead.
       if (e.shiftKey && this.playing) {
+        // A second finger re-entering while the jog is active would
+        // overwrite _jogTimer and leak the first interval — it never
+        // gets cleared and eases bendMul forever. One jog gesture at
+        // a time, like every other drag latch here.
+        if (jog) return;
         jog = true;
         this.wave.setPointerCapture(e.pointerId);
         this._jogTimer = setInterval(() => {
