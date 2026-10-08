@@ -3195,6 +3195,7 @@ const deckSnap = d => ({ file: d._fileObj, pos: d.pos(), rate: d.rate, st: d.st,
     cueIn: d.cueIn,
     mem1: d._loopMem, mem2: d._loopMem2,
     stem: d.stemSel.value,
+    gain: +d.gainEl.value,
     bpm: d.grid ? d.grid.bpm : null,
     beatOff: d.grid ? d.grid.beatOff : 0,
     key: d.key, libId: d.libId } });
@@ -3711,7 +3712,7 @@ const Library = {
     // stem rides along like cueIn/cues/loop: ADR-0222 saves it on the
     // record but loadInto never forwarded it, so a library-loaded deck
     // always came back Full even after splitting a track once.
-    deck.load(rec.blob, { libId: rec.id, bpm: rec.bpm, beatOff: rec.beatOff, key: rec.key, cues: rec.cues, cueIn: rec.cueIn, loop: rec.loop, mem1: rec.mem1, mem2: rec.mem2, stem: rec.stem });
+    deck.load(rec.blob, { libId: rec.id, bpm: rec.bpm, beatOff: rec.beatOff, key: rec.key, cues: rec.cues, cueIn: rec.cueIn, loop: rec.loop, mem1: rec.mem1, mem2: rec.mem2, stem: rec.stem, gain: rec.gain });
   },
 };
 
@@ -4859,7 +4860,7 @@ document.getElementById('lib-search').addEventListener('keydown', e => {
 // Library metadata export/import: the analysis + prep (BPM, grid,
 // key, hot cues, loop) is the valuable part — audio blobs stay put,
 // so entries match by name+size on the other side.
-const LIB_META_KEYS = ['name', 'size', 'hash', 'type', 'duration', 'bpm', 'beatOff', 'key', 'cues', 'cueIn', 'loop', 'stem', 'mem1', 'mem2'];
+const LIB_META_KEYS = ['name', 'size', 'hash', 'type', 'duration', 'bpm', 'beatOff', 'key', 'cues', 'cueIn', 'loop', 'stem', 'mem1', 'mem2', 'gain'];
 document.getElementById('lib-exp').addEventListener('click', async () => {
   const rows = (await Library.all()).filter(t => !t.deleted_at && t.pad == null);
   const data = rows.map(t => Object.fromEntries(LIB_META_KEYS.filter(k => t[k] !== undefined).map(k => [k, t[k]])));
@@ -4931,7 +4932,7 @@ libImpFile.addEventListener('change', async () => {
     // Type-validate per field: a wrong-typed value (cues:"x") would
     // write into the record and corrupt loadInto's meta reads.
     const patch = {};
-    for (const k of ['duration', 'bpm', 'beatOff', 'cueIn'])
+    for (const k of ['duration', 'bpm', 'beatOff', 'cueIn', 'gain'])
       if (typeof e[k] === 'number' && Number.isFinite(e[k])) patch[k] = e[k];
     for (const k of ['key', 'stem']) if (typeof e[k] === 'string') patch[k] = e[k];
     for (const k of ['loop', 'mem1', 'mem2']) if (e[k] === null || Array.isArray(e[k])) patch[k] = e[k];
@@ -5040,6 +5041,16 @@ document.addEventListener('wheel', e => {
 const helpEl = document.getElementById('help');
 const toggleHelp = () => { helpEl.hidden = !helpEl.hidden; };
 helpEl.addEventListener('click', () => { helpEl.hidden = true; });
+// First visit only: open the gesture legend once so a new session
+// starts knowing the grammar, then stay quiet — the flag persists in
+// localStorage like the other prefs, and storage failure just means
+// the card shows again next time (harmless, one click dismisses it).
+try {
+  if (!localStorage.getItem('acro-seen-help')) {
+    localStorage.setItem('acro-seen-help', '1');
+    helpEl.hidden = false;
+  }
+} catch (_) {}
 // Window blur steals the pointerup every momentary control waits on:
 // hold Phones and alt-tab, release on the other window — the PFL,
 // kill, mute, bend, roll, mic, scrub or jog stays latched forever.
@@ -5155,10 +5166,14 @@ document.addEventListener('keydown', e => {
 
 // ----- Web MIDI: any connected controller drives the surface -----
 // Note-ons: 60-67 deck A pads, 68-75 deck B pads, 36-39 sampler
-// pads, 44/45 play A/B, 76/77 headphone cue A/B. CCs: 1 = crossfader, 7 = master,
-// 22/23 = channel faders A/B,
-// 20/21 = channel gain A/B, 78/79 = reloop A/B — the default CC names every
-// budget controller ships with, so most units work unmapped.
+// pads, 44/45 play A/B, 76/77 headphone cue A/B, 40/41 instant
+// doubles A→B / B→A, 46/47 sync, 48/49 loop, 50/51 cue,
+// 52-57 deck A/B H/M/L kills, 58/59 FX on/off, 78/79 reloop,
+// 80/81 gated loop roll. CCs: 1 = crossfader, 7 = master,
+// 20/21 = channel gains, 22/23 = channel faders, 14-17 = tempo /
+// colour filter pairs — the default CC names every budget
+// controller ships with, so most units work unmapped.
+// Pitch-bend wheel on ch1/ch2 bends deck A/B ±5%.
 // Held-note timestamps for the pad gate: the app's own momentary
 // grammar (tap = latch, hold >=250 ms = momentary) ported to MIDI —
 // a short tap still rings the whole one-shot, a held note stops on

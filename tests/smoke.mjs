@@ -82,6 +82,366 @@ const r = await page.evaluate(async () => {
   deckB.syncTo(deckA);
   out.syncs = Math.abs(deckB.rate - (120 * 1.1 / 118)) < 0.01;
   deckA.pause(); deckB.pause();
+
+  // Bookkeeping doctrines the audit rounds rely on — all merged on
+  // main, asserted here so CI pins them against regression.
+
+  // Loop arms stamp slip bookkeeping (ADR-0398): anchor + effective
+  // rate + a clock that only runs while playing.
+  deckA.loopBeats.value = '4';
+  deckA.play();
+  deckA.toggleLoop();
+  out.armBookkeeping = deckA.loopOn && deckA._loopEnterRate > 0 && deckA._loopT != null;
+  deckA.pause();
+
+  // Seeking outside an armed loop exits it — the deck-standard escape.
+  // Land past loopEnd (start-side seeks can land inside when the
+  // armed region starts at 0).
+  deckA.seekTo(Math.min(deckA.loopEnd + 1, deckA.buffer.duration - 0.01));
+  out.loopEscape = deckA.loopOn === false;
+
+  // Reloop re-enters the last exited region (ADR-0059/_prevLoop).
+  deckA.reloop();
+  out.reloops = deckA.loopOn === true;
+  deckA.loopOn = false;
+
+  // A latched pitch bend is transient finger state — stopping clears it.
+  deckA.play();
+  deckA._setBendMul(1.1);
+  deckA.pause();
+  out.bendReleased = deckA.bendMul === 1;
+
+  // Fader start: sweeping into a stopped deck's side starts it, and
+  // the edge bookkeeping re-arms after a double-click reset
+  // (ADR-0358/0391 — a parked xfPrev must not ghost-fire or swallow).
+  deckA.pause(); deckB.pause();
+  xfader.value = 0.5; applyCrossfade(); xfEdgeCheck();
+  xfader.value = 0.97; xfEdgeCheck();
+  out.faderStart = deckB.playing === true;
+  deckB.pause();
+  xfader.dispatchEvent(new Event('dblclick'));   // reset parks centre
+  xfader.value = 0.97; xfEdgeCheck();
+  out.faderStartRearm = deckB.playing === true;
+  deckB.pause();
+  xfader.value = 0.5; applyCrossfade(); xfEdgeCheck();
+
+  // Sync clamps to the follower's own tempo range (ADR-0357):
+  // A at 120×1.15 asks B (range ±8) for 1.169 — beyond its ±8%,
+  // it must land on the clamp, not the raw rate.
+  deckB.tempoRange = 0.08;
+  deckA.rate = 1.15;
+  deckB.syncTo(deckA);
+  out.syncClamps = deckB.rate <= 1.081 && deckB.rate > 1.0;
+  deckB.tempoRange = 0.16; deckB.rate = 1;
+
+  // Grid undo: a nudge stashes _prevGrid, right-click on the tempo
+  // controls restores it (ADR-0292's right-click-restores grammar).
+  const off0 = deckA.grid.beatOff;
+  deckA.nudgeGrid(0.01);
+  out.undoStashed = deckA._prevGrid !== undefined;
+  deckA.el.querySelector('.bpmctl').dispatchEvent(new Event('contextmenu'));
+  out.undoRestored = Math.abs(deckA.grid.beatOff - off0) < 1e-9 && deckA._prevGrid === undefined;
+
+  // Channel assign: deck B routed to side A follows the A-side law —
+  // audible at xfader 0, silent at xfader 1 (ADR-0377).
+  deckB.assignSel.value = 'a';
+  xfader.value = 0; applyCrossfade();
+  await new Promise(r => setTimeout(r, 300));   // setXf smooths with setTargetAtTime
+  const assignA = deckB.xfGain.gain.value > 0.9;
+  xfader.value = 1; applyCrossfade();
+  await new Promise(r => setTimeout(r, 300));
+  out.assignLaw = assignA && deckB.xfGain.gain.value < 0.1;
+  deckB.assignSel.value = 'b';
+  xfader.value = 0.5; applyCrossfade();
+
+  // Hamster reverse: Rev swaps the sides the fader feeds — fader at
+  // 0 then feeds deck B instead of A (ADR-0049/0382).
+  document.getElementById('xfrev').click();   // toggles xfRev + rebases xfPrev
+  xfader.value = 0; applyCrossfade();
+  await new Promise(r => setTimeout(r, 300));
+  out.hamsterLaw = deckB.xfGain.gain.value > 0.9 && deckA.xfGain.gain.value < 0.1;
+  document.getElementById('xfrev').click();
+  xfader.value = 0.5; applyCrossfade(); xfEdgeCheck();
+
+  // Mono fold: the Mono button flips the master chain to one channel
+  // (ADR-0054), and back.
+  document.getElementById('mono').click();
+  out.monoFold = monoNode.channelCount === 1;
+  document.getElementById('mono').click();
+  out.monoFold = out.monoFold && monoNode.channelCount === 2;
+
+  // Quantize contract: Qtz on snaps a hot-cue write to the grid,
+  // Qtz off places it freehand (ADR-0021/0055).
+  deckA.seekTo(5.3);
+  deckA.padCue(1);
+  const snapped = deckA.cues[1];
+  deckA.clearPad(1);
+  document.getElementById('qtz').click();   // quantizeOn off
+  deckA.padCue(1);
+  const freehand = deckA.cues[1];
+  deckA.clearPad(1);
+  document.getElementById('qtz').click();   // restore
+  out.qtzSnap = Math.abs(snapped - 5.5) < 1e-9 && Math.abs(freehand - 5.3) < 1e-9;
+
+  // Beat jump rides the detected grid (0.5 s/beat at 120 BPM), ±1.
+  deckA.seekTo(5.3);
+  deckA.beatJump(1);
+  const jumped = deckA.pos();
+  deckA.beatJump(-1);
+  out.beatJump = Math.abs(jumped - 5.8) < 0.01 && Math.abs(deckA.pos() - 5.3) < 0.01;
+
+  // Loop scaling: halve/double an armed loop in place, clamped at
+  // half a beat (ADR-0009).
+  deckA.toggleLoop();               // loopbeats=4 → 2 s at 120 BPM
+  deckA.setLoopLen(0.5);
+  const halved = deckA.loopEnd - deckA.loopStart;
+  deckA.setLoopLen(2);
+  out.loopScale = Math.abs(halved - 1) < 1e-9 && Math.abs(deckA.loopEnd - deckA.loopStart - 2) < 1e-9;
+  deckA.toggleLoop();
+
+  // Bar jump lands on the next downbeat — floor+1 even mid-bar,
+  // shift jumps back one bar (ADR-0061/0201).
+  deckA.seekTo(1.2);
+  deckA.jumpBar(1);
+  const toBar = deckA.pos();
+  deckA.jumpBar(-1);
+  out.barJump = Math.abs(toBar - 2) < 0.01 && Math.abs(deckA.pos()) < 0.01;
+
+  // EQ kill pins the band at −26 dB and restores the knob's value on
+  // release (ADR-0015).
+  deckA.eqEls.high.value = 0.5;
+  deckA.setBand('high', 0.5);
+  deckA.setKill('high', true);
+  await new Promise(r => setTimeout(r, 300));
+  const killed = deckA.eq.high.gain.value;
+  deckA.setKill('high', false);
+  await new Promise(r => setTimeout(r, 300));
+  out.killRestores = killed < -20 && Math.abs(deckA.eq.high.gain.value - 13) < 2;
+
+  // Loop move + in/out adjust: the armed loop slides by its own
+  // length, or trims a bound by one beat (ADR-0050/0096/0098).
+  deckA.toggleLoop();
+  const ls0 = deckA.loopStart, llen = deckA.loopEnd - deckA.loopStart;
+  deckA.moveLoop(1);
+  const moved = Math.abs(deckA.loopStart - ls0 - llen) < 1e-9;
+  deckA.adjustLoopIn(1);
+  const inAdj = Math.abs(deckA.loopStart - (ls0 + llen) - 0.5) < 1e-9;
+  deckA.adjustLoopOut(-1);
+  out.loopMove = moved && inAdj && Math.abs(deckA.loopEnd - (ls0 + 2 * llen) + 0.5) < 1e-9;
+  deckA.toggleLoop();
+
+  // Free-size loop: shift+Loop marks IN, a second press marks OUT —
+  // bounds still snap under Qtz (ADR-0058/0176).
+  deckA.seekTo(5.3);
+  deckA.toggleLoop(true);              // marks _loopIn
+  deckA.seekTo(6.3);
+  deckA.toggleLoop(true);              // commits [5.5, 6.5]
+  out.freeLoop = deckA.loopOn && Math.abs(deckA.loopStart - 5.5) < 1e-9 && Math.abs(deckA.loopEnd - 6.5) < 1e-9;
+  deckA.toggleLoop();
+
+  // Transpose is engine-gated: on the fallback engine it refuses (a
+  // lying ±N readout is worse than no readout, ADR-0311); on the
+  // worklet it applies and resets.
+  if (deckA.engine === 'worklet') {
+    deckA.transpose(1);
+    const up = deckA.st === 1;
+    deckA.transpose(-1);
+    out.transposeGate = up && deckA.st === 0;
+  } else {
+    deckA.transpose(1);
+    out.transposeGate = deckA.st === 0;
+  }
+
+  // Headphone cue: toggleCue opens the deck's PFL send; shift = solo
+  // drops the partner's cue (ADR-0007/0113).
+  deckA.toggleCue();
+  const cueOpened = deckA.cueOn === true;
+  deckB.toggleCue(true);               // solo — partner's cue drops
+  out.soloCue = cueOpened && deckB.cueOn === true && deckA.cueOn === false;
+  deckB.toggleCue();
+
+  // Sync leader is exclusive: only one deck leads (ADR-0130).
+  deckA.toggleLead();
+  const aLeads = deckA.leading === true;
+  deckB.toggleLead();
+  out.leaderExclusive = aLeads && deckB.leading === true && deckA.leading === false;
+  deckB.toggleLead();
+
+  // Mid/side stem split: 'voc' keeps mid only — all four matrix taps
+  // move to 0.5; 'off' restores pass-through (ADR-0026).
+  if (deckA.mg) {
+    deckA.setStem('voc');
+    await new Promise(r => setTimeout(r, 300));
+    const vocMix = deckA.mg.every(g => Math.abs(g.gain.value - 0.5) < 0.05);
+    deckA.setStem('off');
+    await new Promise(r => setTimeout(r, 300));
+    out.stemMix = vocMix && Math.abs(deckA.mg[0].gain.value - 1) < 0.05 && Math.abs(deckA.mg[1].gain.value) < 0.05;
+  } else out.stemMix = true;   // stereo path — no mid/side matrix on this engine
+
+  // Help overlay is modal: while it's open, keys belong to it and
+  // must not drive the mixer (ADR-0308) — then, once closed, a real
+  // keydown rides the handler end-to-end ('q' plays/pauses, ADR-0031).
+  document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', bubbles: true }));
+  const gated = deckA.playing === false && !helpEl.hidden;
+  helpEl.hidden = true;
+  document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', bubbles: true }));
+  const qPlays = deckA.playing === true;
+  document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', bubbles: true }));
+  out.keyDispatch = gated && qPlays && deckA.playing === false;
+
+  // Slip: a held pad snaps the playhead back to where the timeline
+  // would be on release (ADR-0060/0143/0390).
+  deckA.slip = true;
+  deckA.cues[0] = 5.0;
+  deckA.seekTo(2);
+  deckA.play();
+  await new Promise(r => setTimeout(r, 300));
+  deckA.slipCueStart(0);
+  const atCue = Math.abs(deckA.pos() - 5.0) < 0.05;
+  await new Promise(r => setTimeout(r, 300));
+  deckA.slipCueEnd();
+  const back = deckA.pos();
+  deckA.pause();
+  deckA.slip = false; deckA.cues[0] = null;
+  out.slipSnapBack = atCue && back > 2.1 && back < 2.9;
+
+  // Sampler choke groups: firing pad 2 chokes pad 1's voice but a
+  // shot in the other group keeps ringing (ADR-0239).
+  const sbuf = ctx.createBuffer(1, 1000, 44100);
+  smpSlots[0] = smpSlots[1] = smpSlots[3] = { buf: sbuf };
+  fireSmpPad(0);
+  const p0Lit = smpPadsEl.children[0].classList.contains('on');
+  fireSmpPad(1);
+  const choked = !smpPadsEl.children[0].classList.contains('on') && smpPadsEl.children[1].classList.contains('on');
+  fireSmpPad(3);
+  out.chokeGroup = p0Lit && choked && smpPadsEl.children[1].classList.contains('on');
+  smpSlots[0] = smpSlots[1] = smpSlots[3] = null;
+
+  // Session persistence: sessSave() serializes the mixer surface into
+  // acro-session — a reload restores every control (ADR-0158/0290).
+  sessSave();
+  const sess = JSON.parse(localStorage.getItem('acro-session') || 'null');
+  out.sessPersist = !!(sess && sess.v && sess.v.xfader != null &&
+    sess.decks && sess.decks.a && sess.decks.a.tempo != null && sess.decks.a.assign != null);
+
+  // The Cue button's title names the landing point (ADR-0253/0388).
+  deckA.cueIn = 5.0; deckA._cueTitle();
+  out.cueTitle = deckA._cueBtnEl.title.includes('0:05');
+  deckA.cueIn = 0; deckA._cueTitle();
+
+  // An armed loop lights the Loop button and shows the loop toolbar
+  // (ADR-0399); exiting restores both.
+  deckA.toggleLoop();
+  const lit = deckA.loopBtn.classList.contains('on') && !deckA.loopLenEl.hidden;
+  deckA.toggleLoop();
+  out.loopLit = lit && !deckA.loopBtn.classList.contains('on') && deckA.loopLenEl.hidden;
+
+  // The tab title shows the playing deck's track (ADR-0114).
+  deckA.fileName = 'a.wav';
+  deckA.play();
+  await new Promise(r => setTimeout(r, 400));
+  const tPlaying = document.title.includes('a.wav');
+  deckA.pause();
+  await new Promise(r => setTimeout(r, 400));
+  out.titleNow = tPlaying && !document.title.includes('a.wav');
+
+  // Playing a named track earns a setlist entry (ADR-0093).
+  const log = JSON.parse(localStorage.getItem('acro-setlog') || '[]');
+  out.setLogEntry = log.some(e => e.name === 'a.wav' && e.deck === 'a');
+
+  // The effective-BPM hint follows the shared refresh path — shows the
+  // post-rate tempo while rate≠1, clears when the fader centres
+  // (ADR-0219/0387). 120 BPM grid * 1.10 = 132.0.
+  deckA.setRate(1.10);
+  const effOn = deckA.effEl.textContent.includes('132');
+  deckA.setRate(1.0);
+  out.effBpm = effOn && deckA.effEl.textContent === '';
+
+  // CUT crossfade curve: both sides are at full level in the middle —
+  // chops hit instantly, the equal-power law never applies (ADR-0036).
+  const prevCurve = xfcurve.value;
+  xfcurve.value = 'cut';
+  xfader.value = 0.05; applyCrossfade();
+  const cutLeft = xfGainFor('a') > 0.95 && xfGainFor('b') < 0.6;
+  xfader.value = 0.5; applyCrossfade();
+  const cutMid = xfGainFor('a') > 0.95 && xfGainFor('b') > 0.95;
+  xfcurve.value = prevCurve; xfader.value = 0.5; applyCrossfade();
+  out.cutCurve = cutLeft && cutMid;
+
+  // deckSnap is the one snapshot every "clone this deck" verb (swap,
+  // doubles, eject-undo, export) forwards into load() — it must name
+  // every field load() restores (ADR-0298/0343/0352/0409).
+  deckA.cues[2] = 3.5;
+  deckA.cueIn = 1.0;
+  deckA.st = 2;
+  deckA.toggleLoop();
+  const snap = deckSnap(deckA);
+  out.snapCovers = snap.meta.cues[2] === 3.5 && snap.meta.cues !== deckA.cues &&
+    snap.meta.loop && Math.abs(snap.meta.loop[0] - deckA.loopStart) < 0.01 &&
+    snap.meta.cueIn === 1.0 && snap.meta.bpm === 120 &&
+    snap.st === 2 && snap.rate === deckA.rate && snap.file === deckA._fileObj;
+
+  // The armed loop's length is readable on the button — beats on a
+  // grid (ADR-0110). 4 beats at 120 BPM = 'Loop 4.0b'.
+  out.armedLoopText = deckA.loopBtn.textContent.includes('4.0b');
+  deckA.toggleLoop();
+  deckA.cues[2] = null; deckA.cueIn = 0; deckA.st = 0;
+
+  // Bar.beat counter reads the playhead's grid position while playing
+  // (ADR-0052); the phase meter reports the live delta between decks
+  // (ADR-0023). Same grid + same position ⇒ Δ ≈ 0.
+  deckB.buffer = deckA.buffer; deckB.grid = deckA.grid; deckB.offset = deckA.offset;
+  deckA.play(); deckB.play();
+  await new Promise(r => setTimeout(r, 400));
+  out.barCounter = /^\d+\.\d$/.test(deckA.barEl.textContent);
+  out.phaseMeter = phaseEl.textContent.includes('Δ') && phaseEl.className.includes('ok');
+  deckA.pause(); deckB.pause();
+  deckB.buffer = null; deckB.grid = null;
+
+  // A set hot cue lights its pad and names its time (ADR-0070/0254).
+  deckA.seekTo(5.0);
+  deckA.padCue(0);
+  out.padMarked = deckA.pads[0].classList.contains('set') && deckA.pads[0].title.includes('0:0');
+  deckA.clearPad(0);
+
+  // Readouts: honest one-decimal BPM (ADR-0056) and the detected key.
+  out.bpmReadout = deckA.bpmEl.textContent === '120.0';
+  deckA.key = { num: 8, letter: 'A', name: 'Am' }; deckA.refreshKey();
+  out.keyReadout = deckA.keyEl.textContent.includes('8A');
+
+  // Key sync finds the smallest ±st landing harmonic with the partner
+  // (ADR-0046): B at 5A targeting A at 8A transposes +2 (5A+2st → 7A,
+  // which is adjacent to 8A on the wheel — the nearest harmonic match).
+  deckB.key = { num: 5, letter: 'A', name: 'Cm' };
+  if (deckB.engine === 'worklet') {
+    deckB.keySync();
+    out.keySync = deckB.st === 2 && deckB.stEl.textContent === '+2st' && deckB.effKey().num === 7;
+    deckB.transpose(-deckB.st);
+  } else out.keySync = true;
+  deckA.key = null; deckB.key = null;
+  deckA.refreshKey(); deckB.refreshKey();
+
+  // Free-size loop bounds stay freehand with Qtz off (ADR-0176).
+  quantizeOn = false;
+  deckA.seekTo(5.3); deckA.toggleLoop(true);
+  deckA.seekTo(6.3); deckA.toggleLoop(true);
+  out.freeLoopFreehand = deckA.loopOn && Math.abs(deckA.loopStart - 5.3) < 0.01 && Math.abs(deckA.loopEnd - 6.3) < 0.01;
+  deckA.toggleLoop();
+  quantizeOn = true;
+
+  // alt+Eject (full channel reset) still rides eject() — the undo
+  // stash must survive so right-click can restore the track.
+  // (The smoke buffer is injected directly, so fake the file-loaded
+  // fields eject() reads to build the stash.)
+  deckA._fileObj = new File([new ArrayBuffer(8)], 'a.wav');
+  deckA.fileName = 'a.wav';
+  deckA.resetChannel();
+  out.resetUndoStash = deckA._ejected != null && deckA.st === 0 && deckA.slip === false;
+
+  // Empty-deck control surfaces don't throw (ADR-0355/0356).
+  deckA.eject();
+  try { deckA.cue(); deckA.seekTo(1); deckA.play(); out.emptyDeckSafe = true; }
+  catch (_) { out.emptyDeckSafe = false; }
   return out;
 });
 
