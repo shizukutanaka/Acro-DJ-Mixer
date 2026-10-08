@@ -5390,6 +5390,11 @@ function tick() {
         d._armLoopSlip();
         d._emLoop = true;
         d.applyLoop();
+        // Same arm affordances as every other loopOn writer — the Loop
+        // button is the exit control, so it must show armed, and the
+        // loop toolbar carries the halve/double/move gestures.
+        d.loopBtn.classList.add('on');
+        d.loopLenEl.hidden = false;
         d._drawnPos = undefined;
         d.status('Emergency loop');
       }
