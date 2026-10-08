@@ -252,6 +252,32 @@ const r = await page.evaluate(async () => {
     out.transposeGate = deckA.st === 0;
   }
 
+  // Headphone cue: toggleCue opens the deck's PFL send; shift = solo
+  // drops the partner's cue (ADR-0007/0113).
+  deckA.toggleCue();
+  const cueOpened = deckA.cueOn === true;
+  deckB.toggleCue(true);               // solo — partner's cue drops
+  out.soloCue = cueOpened && deckB.cueOn === true && deckA.cueOn === false;
+  deckB.toggleCue();
+
+  // Sync leader is exclusive: only one deck leads (ADR-0130).
+  deckA.toggleLead();
+  const aLeads = deckA.leading === true;
+  deckB.toggleLead();
+  out.leaderExclusive = aLeads && deckB.leading === true && deckA.leading === false;
+  deckB.toggleLead();
+
+  // Mid/side stem split: 'voc' keeps mid only — all four matrix taps
+  // move to 0.5; 'off' restores pass-through (ADR-0026).
+  if (deckA.mg) {
+    deckA.setStem('voc');
+    await new Promise(r => setTimeout(r, 300));
+    const vocMix = deckA.mg.every(g => Math.abs(g.gain.value - 0.5) < 0.05);
+    deckA.setStem('off');
+    await new Promise(r => setTimeout(r, 300));
+    out.stemMix = vocMix && Math.abs(deckA.mg[0].gain.value - 1) < 0.05 && Math.abs(deckA.mg[1].gain.value) < 0.05;
+  } else out.stemMix = true;   // stereo path — no mid/side matrix on this engine
+
   // alt+Eject (full channel reset) still rides eject() — the undo
   // stash must survive so right-click can restore the track.
   // (The smoke buffer is injected directly, so fake the file-loaded
