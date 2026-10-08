@@ -2195,7 +2195,13 @@ class Deck {
     this.bendMul = 1;
     for (const b of this.el.querySelectorAll('[data-act=benddn],[data-act=bendup]')) b.classList.remove('on');
     if (this.engine === 'worklet') {
+      // The worklet holds its own rate and play() only sends 'play' —
+      // pausing under a latched bend (or a just-finished brake ramp)
+      // would leave a stale bent/ramped rate parked, and the next
+      // play resumes audibly bent while pos() tracks the plain rate.
+      // Park first, then correct the stored rate — no audible change.
       this.node.port.postMessage({ type: 'pause' });
+      this.node.port.postMessage({ type: 'rate', rate: this.rate });
     } else if (this.source) {
       this.source.onended = null;
       try { this.source.stop(); } catch (_) {}
@@ -5310,7 +5316,7 @@ if (navigator.requestMIDIAccess) {
       // held gates it was driving would latch: an 80/81 roll loops
       // forever, a mid-bend wheel leaves bendMul stuck. Release them
       // all; stopRoll on an un-rolled deck is a no-op.
-      for (const d of [deckA, deckB]) { d.stopRoll(); d.bendMul = 1; d.setRate(d.rate); }
+      for (const d of [deckA, deckB]) { d.stopRoll(); d._setBendMul(1); }
       for (const k in midiNoteT) delete midiNoteT[k];
     };
   }).catch(() => {});                          // no permission / no MIDI support — stay silent
