@@ -5329,11 +5329,24 @@ function kwp(v, c, st) {
 // Screen wake lock: a laptop sleeping mid-set is the worst failure
 // mode a DJ app can have — hold the lock while any deck plays, drop
 // it when everything's stopped.
-let wakeLock = null;
+let wakeLock = null, wakeReq = null;
 async function wakeSync() {
   const want = deckA.playing || deckB.playing;
-  if (want && !wakeLock && navigator.wakeLock) {
-    try { wakeLock = await navigator.wakeLock.request('screen'); } catch (_) {}
+  if (want && (!wakeLock || wakeLock.released) && !wakeReq && navigator.wakeLock) {
+    try {
+      // tick calls this every frame — without an in-flight guard a
+      // request slower than one frame re-enters and the unreferenced
+      // lock leaks held forever.
+      wakeReq = navigator.wakeLock.request('screen');
+      wakeLock = await wakeReq;
+      // The OS can drop the lock without the tab hiding (power policy,
+      // memory pressure). A released sentinel is not a held lock —
+      // clear the ref so the next wakeSync re-requests, or the decks
+      // keep playing while the screen sleeps (the failure this exists
+      // to prevent).
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    } catch (_) {}
+    finally { wakeReq = null; }
   } else if (!want && wakeLock) {
     try { await wakeLock.release(); } catch (_) {}
     wakeLock = null;
