@@ -82,6 +82,34 @@ const r = await page.evaluate(async () => {
   deckB.syncTo(deckA);
   out.syncs = Math.abs(deckB.rate - (120 * 1.1 / 118)) < 0.01;
   deckA.pause(); deckB.pause();
+
+  // Bookkeeping doctrines the audit rounds rely on — all merged on
+  // main, asserted here so CI pins them against regression.
+
+  // Loop arms stamp slip bookkeeping (ADR-0398): anchor + effective
+  // rate + a clock that only runs while playing.
+  deckA.loopBeats.value = '4';
+  deckA.play();
+  deckA.toggleLoop();
+  out.armBookkeeping = deckA.loopOn && deckA._loopEnterRate > 0 && deckA._loopT != null;
+  deckA.pause();
+
+  // Seeking outside an armed loop exits it — the deck-standard escape.
+  // Land past loopEnd (start-side seeks can land inside when the
+  // armed region starts at 0).
+  deckA.seekTo(Math.min(deckA.loopEnd + 1, deckA.buffer.duration - 0.01));
+  out.loopEscape = deckA.loopOn === false;
+
+  // Reloop re-enters the last exited region (ADR-0059/_prevLoop).
+  deckA.reloop();
+  out.reloops = deckA.loopOn === true;
+  deckA.loopOn = false;
+
+  // A latched pitch bend is transient finger state — stopping clears it.
+  deckA.play();
+  deckA._setBendMul(1.1);
+  deckA.pause();
+  out.bendReleased = deckA.bendMul === 1;
   return out;
 });
 
