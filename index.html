@@ -1643,9 +1643,21 @@ class Deck {
       this._libPatch = null;
       // Auto-gain: one downmix feeds level normalization plus (uncached)
       // BPM/key analysis. Attenuation only — boosting a quiet track
-      // would just lean on the limiter.
+      // would just lean on the limiter. A carried gain (record cache,
+      // export/import, snapshot, doubles) wins over a recompute — the
+      // record's value is the single source once it exists.
       const mono = monoResample(buf);   // promise — estimators await it internally
-      this.applyAutoGain(await mono);
+      const fromMeta = meta && Number.isFinite(meta.gain) && meta.gain > 0 && meta.gain <= 1.5;
+      if (fromMeta) {
+        this.gainEl.value = meta.gain;
+        this.setGain(meta.gain);
+      } else {
+        const monoBuf = await mono;
+        this.applyAutoGain(monoBuf);
+        // Persist the computed gain so the next load (and any export)
+        // carries it — same write-once discipline as detected keys.
+        if (this.libId) this.tagLib({ gain: +this.gainEl.value });
+      }
       if (!live()) return;
       if (meta && Number.isFinite(meta.bpm) && meta.bpm > 0) {
         // Cached analysis from the library — instant, no recompute.
@@ -5045,12 +5057,14 @@ helpEl.addEventListener('click', () => { helpEl.hidden = true; });
 // starts knowing the grammar, then stay quiet — the flag persists in
 // localStorage like the other prefs, and storage failure just means
 // the card shows again next time (harmless, one click dismisses it).
-try {
-  if (!localStorage.getItem('acro-seen-help')) {
-    localStorage.setItem('acro-seen-help', '1');
-    helpEl.hidden = false;
-  }
-} catch (_) {}
+let seenHelp = null;
+try { seenHelp = localStorage.getItem('acro-seen-help'); } catch (_) {}
+if (!seenHelp) {
+  // Show first, persist after: a denied store must not suppress the
+  // one onboarding moment this app has.
+  helpEl.hidden = false;
+  try { localStorage.setItem('acro-seen-help', '1'); } catch (_) {}
+}
 // Window blur steals the pointerup every momentary control waits on:
 // hold Phones and alt-tab, release on the other window — the PFL,
 // kill, mute, bend, roll, mic, scrub or jog stays latched forever.
