@@ -142,6 +142,34 @@ const r = await page.evaluate(async () => {
   deckA.el.querySelector('.bpmctl').dispatchEvent(new Event('contextmenu'));
   out.undoRestored = Math.abs(deckA.grid.beatOff - off0) < 1e-9 && deckA._prevGrid === undefined;
 
+  // Channel assign: deck B routed to side A follows the A-side law —
+  // audible at xfader 0, silent at xfader 1 (ADR-0377).
+  deckB.assignSel.value = 'a';
+  xfader.value = 0; applyCrossfade();
+  await new Promise(r => setTimeout(r, 300));   // setXf smooths with setTargetAtTime
+  const assignA = deckB.xfGain.gain.value > 0.9;
+  xfader.value = 1; applyCrossfade();
+  await new Promise(r => setTimeout(r, 300));
+  out.assignLaw = assignA && deckB.xfGain.gain.value < 0.1;
+  deckB.assignSel.value = 'b';
+  xfader.value = 0.5; applyCrossfade();
+
+  // Hamster reverse: Rev swaps the sides the fader feeds — fader at
+  // 0 then feeds deck B instead of A (ADR-0049/0382).
+  document.getElementById('xfrev').click();   // toggles xfRev + rebases xfPrev
+  xfader.value = 0; applyCrossfade();
+  await new Promise(r => setTimeout(r, 300));
+  out.hamsterLaw = deckB.xfGain.gain.value > 0.9 && deckA.xfGain.gain.value < 0.1;
+  document.getElementById('xfrev').click();
+  xfader.value = 0.5; applyCrossfade(); xfEdgeCheck();
+
+  // Mono fold: the Mono button flips the master chain to one channel
+  // (ADR-0054), and back.
+  document.getElementById('mono').click();
+  out.monoFold = monoNode.channelCount === 1;
+  document.getElementById('mono').click();
+  out.monoFold = out.monoFold && monoNode.channelCount === 2;
+
   // alt+Eject (full channel reset) still rides eject() — the undo
   // stash must survive so right-click can restore the track.
   // (The smoke buffer is injected directly, so fake the file-loaded
