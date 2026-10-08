@@ -394,8 +394,9 @@ to classic varispeed tempo. Use option 2 for the full feature set.
   −26 dB, click again restores the slider value (see ADR-0015).
   Holding a letter ≥250 ms kills momentarily — release restores, for
   one-beat kill stabs (see ADR-0117).
-- **WAV takes** — `Alt`+Rec records the set losslessly: the webm
-  is decoded and re-saved as 16-bit PCM WAV on stop (see ADR-0213).
+- **WAV takes** — `Alt`+Rec records the set truly losslessly: a
+  `rectap` AudioWorklet taps the post-limiter frames straight to
+  PCM, written out as 16-bit WAV on stop (see ADR-0213, ADR-0385).
 - **Set recording** — `Rec` button captures the master output to a
   `.webm` (opus) download via `MediaRecorder` on a MediaStream tap;
   shift+Rec pauses/resumes the take (paused time doesn't count —

@@ -1337,10 +1337,9 @@ class Deck {
       this.cueIn = Math.min(Math.max(t, 0), this.buffer.duration);
       if (!this.playing) this.offset = this.cueIn;   // playing: offset anchors pos(), moving it would jump the playhead
       this.tagLib({ cueIn: this.cueIn });
-      this._cueTitle();   // the Cue tooltip names where it lands — keep it honest
       this._drawnPos = undefined;
       this.drawWave();
-      this._cueTitle();
+      this._cueTitle();   // the Cue tooltip names where it lands — keep it honest
       this.status('cue set ' + fmt(this.cueIn));
     });
     this.wave.addEventListener('pointermove', e => {
@@ -1643,13 +1642,16 @@ class Deck {
       this._libP = null;
       this._libPatch = null;
       // Auto-gain: one O(track) mono downmix feeds level normalization
-      // plus (uncached) BPM/key analysis. A record that already carries
-      // `gain` re-applies it and skips the resample entirely — persist
-      // the computed value on first load, reuse on every re-load.
-      // Attenuation only — boosting a quiet track would just lean on
-      // the limiter.
+      // plus (uncached) BPM/key analysis. A carried gain (record cache,
+      // export/import, snapshot, doubles) wins over a recompute and
+      // skips the resample entirely — the record's value is the single
+      // source of truth once it exists. Computed gains are attenuation-
+      // only (≤1) but a carried value can exceed 1 via the knob, so the
+      // range check follows the control's own bounds. Persist the
+      // computed value on first load — same write-once discipline as
+      // detected keys — so the next load reads it back.
       let mono = null;   // promise — built lazily; estimators await it
-      const mg = meta && Number.isFinite(meta.gain) && meta.gain > 0 && meta.gain <= 1 ? meta.gain : null;
+      const mg = meta && Number.isFinite(meta.gain) && meta.gain > 0 && meta.gain <= 1.5 ? meta.gain : null;
       if (mg != null) {
         this.gainEl.value = mg;
         this.setGain(mg);
@@ -3216,6 +3218,7 @@ const deckSnap = d => ({ file: d._fileObj, pos: d.pos(), rate: d.rate, st: d.st,
     cueIn: d.cueIn,
     mem1: d._loopMem, mem2: d._loopMem2,
     stem: d.stemSel.value,
+    gain: +d.gainEl.value,
     bpm: d.grid ? d.grid.bpm : null,
     beatOff: d.grid ? d.grid.beatOff : 0,
     // The live trim level doubles as the record's gain field: a clone
@@ -4882,7 +4885,7 @@ document.getElementById('lib-search').addEventListener('keydown', e => {
 // Library metadata export/import: the analysis + prep (BPM, grid,
 // key, hot cues, loop) is the valuable part — audio blobs stay put,
 // so entries match by name+size on the other side.
-const LIB_META_KEYS = ['name', 'size', 'hash', 'type', 'duration', 'bpm', 'beatOff', 'key', 'cues', 'cueIn', 'loop', 'stem', 'mem1', 'mem2'];
+const LIB_META_KEYS = ['name', 'size', 'hash', 'type', 'duration', 'bpm', 'beatOff', 'key', 'cues', 'cueIn', 'loop', 'stem', 'mem1', 'mem2', 'gain'];
 document.getElementById('lib-exp').addEventListener('click', async () => {
   const rows = (await Library.all()).filter(t => !t.deleted_at && t.pad == null);
   const data = rows.map(t => Object.fromEntries(LIB_META_KEYS.filter(k => t[k] !== undefined).map(k => [k, t[k]])));
@@ -4954,7 +4957,7 @@ libImpFile.addEventListener('change', async () => {
     // Type-validate per field: a wrong-typed value (cues:"x") would
     // write into the record and corrupt loadInto's meta reads.
     const patch = {};
-    for (const k of ['duration', 'bpm', 'beatOff', 'cueIn'])
+    for (const k of ['duration', 'bpm', 'beatOff', 'cueIn', 'gain'])
       if (typeof e[k] === 'number' && Number.isFinite(e[k])) patch[k] = e[k];
     for (const k of ['key', 'stem']) if (typeof e[k] === 'string') patch[k] = e[k];
     for (const k of ['loop', 'mem1', 'mem2']) if (e[k] === null || Array.isArray(e[k])) patch[k] = e[k];
@@ -5063,6 +5066,18 @@ document.addEventListener('wheel', e => {
 const helpEl = document.getElementById('help');
 const toggleHelp = () => { helpEl.hidden = !helpEl.hidden; };
 helpEl.addEventListener('click', () => { helpEl.hidden = true; });
+// First visit only: open the gesture legend once so a new session
+// starts knowing the grammar, then stay quiet — the flag persists in
+// localStorage like the other prefs, and storage failure just means
+// the card shows again next time (harmless, one click dismisses it).
+let seenHelp = null;
+try { seenHelp = localStorage.getItem('acro-seen-help'); } catch (_) {}
+if (!seenHelp) {
+  // Show first, persist after: a denied store must not suppress the
+  // one onboarding moment this app has.
+  helpEl.hidden = false;
+  try { localStorage.setItem('acro-seen-help', '1'); } catch (_) {}
+}
 // Window blur steals the pointerup every momentary control waits on:
 // hold Phones and alt-tab, release on the other window — the PFL,
 // kill, mute, bend, roll, mic, scrub or jog stays latched forever.
@@ -5178,10 +5193,14 @@ document.addEventListener('keydown', e => {
 
 // ----- Web MIDI: any connected controller drives the surface -----
 // Note-ons: 60-67 deck A pads, 68-75 deck B pads, 36-39 sampler
-// pads, 44/45 play A/B, 76/77 headphone cue A/B. CCs: 1 = crossfader, 7 = master,
-// 22/23 = channel faders A/B,
-// 20/21 = channel gain A/B, 78/79 = reloop A/B — the default CC names every
-// budget controller ships with, so most units work unmapped.
+// pads, 44/45 play A/B, 76/77 headphone cue A/B, 40/41 instant
+// doubles A→B / B→A, 46/47 sync, 48/49 loop, 50/51 cue,
+// 52-57 deck A/B H/M/L kills, 58/59 FX on/off, 78/79 reloop,
+// 80/81 gated loop roll. CCs: 1 = crossfader, 7 = master,
+// 20/21 = channel gains, 22/23 = channel faders, 14-17 = tempo /
+// colour filter pairs — the default CC names every budget
+// controller ships with, so most units work unmapped.
+// Pitch-bend wheel on ch1/ch2 bends deck A/B ±5%.
 // Held-note timestamps for the pad gate: the app's own momentary
 // grammar (tap = latch, hold >=250 ms = momentary) ported to MIDI —
 // a short tap still rings the whole one-shot, a held note stops on
@@ -5412,6 +5431,11 @@ function tick() {
         d._armLoopSlip();
         d._emLoop = true;
         d.applyLoop();
+        // Same arm affordances as every other loopOn writer — the Loop
+        // button is the exit control, so it must show armed, and the
+        // loop toolbar carries the halve/double/move gestures.
+        d.loopBtn.classList.add('on');
+        d.loopLenEl.hidden = false;
         d._drawnPos = undefined;
         d.status('Emergency loop');
       }
