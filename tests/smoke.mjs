@@ -317,6 +317,34 @@ const r = await page.evaluate(async () => {
   out.chokeGroup = p0Lit && choked && smpPadsEl.children[1].classList.contains('on');
   smpSlots[0] = smpSlots[1] = smpSlots[3] = null;
 
+  // Session persistence: sessSave() serializes the mixer surface into
+  // acro-session — a reload restores every control (ADR-0158/0290).
+  sessSave();
+  const sess = JSON.parse(localStorage.getItem('acro-session') || 'null');
+  out.sessPersist = !!(sess && sess.v && sess.v.xfader != null &&
+    sess.decks && sess.decks.a && sess.decks.a.tempo != null && sess.decks.a.assign != null);
+
+  // The Cue button's title names the landing point (ADR-0253/0388).
+  deckA.cueIn = 5.0; deckA._cueTitle();
+  out.cueTitle = deckA._cueBtnEl.title.includes('0:05');
+  deckA.cueIn = 0; deckA._cueTitle();
+
+  // An armed loop lights the Loop button and shows the loop toolbar
+  // (ADR-0399); exiting restores both.
+  deckA.toggleLoop();
+  const lit = deckA.loopBtn.classList.contains('on') && !deckA.loopLenEl.hidden;
+  deckA.toggleLoop();
+  out.loopLit = lit && !deckA.loopBtn.classList.contains('on') && deckA.loopLenEl.hidden;
+
+  // The tab title shows the playing deck's track (ADR-0114).
+  deckA.fileName = 'a.wav';
+  deckA.play();
+  await new Promise(r => setTimeout(r, 400));
+  const tPlaying = document.title.includes('a.wav');
+  deckA.pause();
+  await new Promise(r => setTimeout(r, 400));
+  out.titleNow = tPlaying && !document.title.includes('a.wav');
+
   // alt+Eject (full channel reset) still rides eject() — the undo
   // stash must survive so right-click can restore the track.
   // (The smoke buffer is injected directly, so fake the file-loaded
