@@ -368,6 +368,25 @@ const r = await page.evaluate(async () => {
   xfcurve.value = prevCurve; xfader.value = 0.5; applyCrossfade();
   out.cutCurve = cutLeft && cutMid;
 
+  // deckSnap is the one snapshot every "clone this deck" verb (swap,
+  // doubles, eject-undo, export) forwards into load() — it must name
+  // every field load() restores (ADR-0298/0343/0352/0409).
+  deckA.cues[2] = 3.5;
+  deckA.cueIn = 1.0;
+  deckA.st = 2;
+  deckA.toggleLoop();
+  const snap = deckSnap(deckA);
+  out.snapCovers = snap.meta.cues[2] === 3.5 && snap.meta.cues !== deckA.cues &&
+    snap.meta.loop && Math.abs(snap.meta.loop[0] - deckA.loopStart) < 0.01 &&
+    snap.meta.cueIn === 1.0 && snap.meta.bpm === 120 &&
+    snap.st === 2 && snap.rate === deckA.rate && snap.file === deckA._fileObj;
+
+  // The armed loop's length is readable on the button — beats on a
+  // grid (ADR-0110). 4 beats at 120 BPM = 'Loop 4.0b'.
+  out.armedLoopText = deckA.loopBtn.textContent.includes('4.0b');
+  deckA.toggleLoop();
+  deckA.cues[2] = null; deckA.cueIn = 0; deckA.st = 0;
+
   // alt+Eject (full channel reset) still rides eject() — the undo
   // stash must survive so right-click can restore the track.
   // (The smoke buffer is injected directly, so fake the file-loaded
