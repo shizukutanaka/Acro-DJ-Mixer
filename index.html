@@ -1641,22 +1641,24 @@ class Deck {
       this.libId = meta ? meta.libId : null;
       this._libP = null;
       this._libPatch = null;
-      // Auto-gain: one downmix feeds level normalization plus (uncached)
-      // BPM/key analysis. Attenuation only — boosting a quiet track
-      // would just lean on the limiter. A carried gain (record cache,
-      // export/import, snapshot, doubles) wins over a recompute — the
-      // record's value is the single source once it exists.
-      const mono = monoResample(buf);   // promise — estimators await it internally
-      const fromMeta = meta && Number.isFinite(meta.gain) && meta.gain > 0 && meta.gain <= 1.5;
-      if (fromMeta) {
-        this.gainEl.value = meta.gain;
-        this.setGain(meta.gain);
+      // Auto-gain: one O(track) mono downmix feeds level normalization
+      // plus (uncached) BPM/key analysis. A carried gain (record cache,
+      // export/import, snapshot, doubles) wins over a recompute and
+      // skips the resample entirely — the record's value is the single
+      // source of truth once it exists. Computed gains are attenuation-
+      // only (≤1) but a carried value can exceed 1 via the knob, so the
+      // range check follows the control's own bounds. Persist the
+      // computed value on first load — same write-once discipline as
+      // detected keys — so the next load reads it back.
+      let mono = null;   // promise — built lazily; estimators await it
+      const mg = meta && Number.isFinite(meta.gain) && meta.gain > 0 && meta.gain <= 1.5 ? meta.gain : null;
+      if (mg != null) {
+        this.gainEl.value = mg;
+        this.setGain(mg);
       } else {
-        const monoBuf = await mono;
-        this.applyAutoGain(monoBuf);
-        // Persist the computed gain so the next load (and any export)
-        // carries it — same write-once discipline as detected keys.
-        if (this.libId) this.tagLib({ gain: +this.gainEl.value });
+        mono = monoResample(buf);
+        this.applyAutoGain(await mono);
+        this.tagLib({ gain: +this.gainEl.value });   // first write — next load reads it back
       }
       if (!live()) return;
       if (meta && Number.isFinite(meta.bpm) && meta.bpm > 0) {
@@ -1672,6 +1674,10 @@ class Deck {
         this.refreshKey();
         if (this.partner) this.partner.refreshKey();
       } else {
+        // meta.gain without meta.bpm is rare (a gain-only record) — the
+        // analysis path builds the downmix lazily if the gain block
+        // never needed it.
+        mono = mono || monoResample(buf);
         this.estimateBpm(mono);
         this.estimateKey(mono);
       }
@@ -3148,6 +3154,11 @@ class Deck {
   async instantDouble() {
     const p = this.partner;
     if (!this._fileObj || !p || p === this) return;
+    // Same guard swapWith takes: a double load lands mid-fade and
+    // either swaps the fading track's buffer out from under the
+    // crossfader, or — once load() refuses mid-fade decks — applies
+    // the rate/seek/play below to the partner's OLD track.
+    if (autoMix.fade) { this.status('Finish or cancel the fade first.'); return; }
     const pos = this.pos();
     // Clamp to the partner's tempo range — the slider can only display
     // inside its min/max, so an out-of-range rate would play silently
@@ -3210,7 +3221,9 @@ const deckSnap = d => ({ file: d._fileObj, pos: d.pos(), rate: d.rate, st: d.st,
     gain: +d.gainEl.value,
     bpm: d.grid ? d.grid.bpm : null,
     beatOff: d.grid ? d.grid.beatOff : 0,
-    key: d.key, libId: d.libId } });
+    // The live trim level doubles as the record's gain field: a clone
+    // must sound identical, and a cached value skips the resample.
+    key: d.key, libId: d.libId, gain: +d.gainEl.value } });
 
 // ----- Analysis helpers (run off the audio thread; chunked to keep UI alive) -----
 
