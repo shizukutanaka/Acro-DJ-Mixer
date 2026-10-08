@@ -142,6 +142,15 @@ const r = await page.evaluate(async () => {
   deckA.el.querySelector('.bpmctl').dispatchEvent(new Event('contextmenu'));
   out.undoRestored = Math.abs(deckA.grid.beatOff - off0) < 1e-9 && deckA._prevGrid === undefined;
 
+  // alt+Eject (full channel reset) still rides eject() — the undo
+  // stash must survive so right-click can restore the track.
+  // (The smoke buffer is injected directly, so fake the file-loaded
+  // fields eject() reads to build the stash.)
+  deckA._fileObj = new File([new ArrayBuffer(8)], 'a.wav');
+  deckA.fileName = 'a.wav';
+  deckA.resetChannel();
+  out.resetUndoStash = deckA._ejected != null && deckA.st === 0 && deckA.slip === false;
+
   // Empty-deck control surfaces don't throw (ADR-0355/0356).
   deckA.eject();
   try { deckA.cue(); deckA.seekTo(1); deckA.play(); out.emptyDeckSafe = true; }
