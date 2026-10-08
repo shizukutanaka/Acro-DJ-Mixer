@@ -63,15 +63,15 @@ Supersedes the v1 audit (PR #210). Method: first-principles
 47. Zero runtime dependencies, no build step — one file opens anywhere.
 48. Committed smoke gate (tests/smoke.mjs) makes the core contract re-verifiable.
 49. The audit itself exists — the project self-examines instead of accruing blind spots.
-50. Velocity of iteration: 230+ rounds of small reversible increments with working verification each time.
+50. Velocity of iteration: 400+ rounds of small reversible increments with working verification each time.
 
 ## 短所 (Weaknesses) — 50
 
 ### Structure
-1. 3669-line single file — every edit risks touching everything; no seams for tests.
+1. ~5,670-line single file — every edit risks touching everything; no seams for tests.
 2. No modular boundary between audio engine, deck state, DOM, and persistence.
-3. tests/smoke.mjs exists only in an unmerged PR — main still has zero committed gates.
-4. ~45 open unmerged PRs — main diverges far behind the reviewed surface; merge-order stacks (#218→#219/#220) must land in sequence.
+3. ~~tests/smoke.mjs exists only in an unmerged PR~~ — fixed: committed (#221) and wired to per-PR CI (#379).
+4. ~~45 open unmerged PRs~~ — fixed: backlog flushed through #405; rounds now branch off current main.
 5. Duplicate gestural logic scattered (modifiers re-derived per handler; no single gesture interpreter).
 6. Global mutable singletons (deckA/deckB/smpSlots/ctx) make every feature implicitly coupled.
 7. ADRs document intent but nothing enforces behavior — docs drift from code silently.
@@ -81,27 +81,27 @@ Supersedes the v1 audit (PR #210). Method: first-principles
 
 ### Correctness risks
 11. `pos()`/worklet seek interplay re-derived in several places — edge cases when looping + slipping + seeking simultaneously.
-12. Library dedupe still partially name+size in legacy records — hash migration unfinished (PR open).
+12. ~~Library dedupe still partially name+size~~ — fixed: content-hash identity shipped (#215).
 13. IndexedDB has no schema version — record shape changes rely on tolerant reads.
-14. Soft-deleted pad records accumulate audio blobs (no vacuum/GC of deleted blob payloads).
+14. ~~Soft-deleted pad records accumulate audio blobs~~ — fixed: blob GC on delete + boot (#237).
 15. localStorage writes are fire-and-forget — quota errors degrade silently.
 16. Session restore replays synthetic events — a handler added without the replay contract is silently skipped.
 17. Several `catch (_)` remain on secondary paths — the loud-fail doctrine is not exhaustive.
 18. No error path for decode of huge files — multi-hundred-MB WAVs can exhaust memory with no guard.
 19. `setTargetAtTime` races when a control is hammered (cancelScheduledValues coverage varies by control).
-20. Timers (`setTimeout`-driven _mom/_arm) aren't cancelled on deck eject/load — latent edge bugs.
+20. ~~Timers aren't cancelled on deck eject/load~~ — fixed: every gesture now abandons its latch on track swap (ADR-0328/0334/0383/0395/0396).
 
 ### Missing features (vs. a 2026 floor expectation)
 21. No real stem separation — mid/side matrix only works on centre-heavy mixes; no spectral/ML option.
 22. No recording time-stamp splitting or multi-format export beyond wav/webm.
 23. No streaming input — local files only; a browser DJ in 2026 still can't pull a URL/track link.
 24. No visual key/Camelot wheel — harmonic fit is row-highlight only.
-25. No per-pad choke groups — single-voice only (fine for 4 pads, limiting if expanded).
+25. ~~No per-pad choke groups~~ — fixed: 1+2 / 3+4 MPC-style groups shipped (#244).
 26. No deck C/D or routing beyond 2 channels + sends.
 27. No undo beyond single-level cue-clear restore.
 28. No macro/FX presets — FX state persists per session but can't be saved/recalled by name.
 29. No touch-optimized surface — pointer events work, but the layout is mouse-first at small sizes.
-30. No accessibility pass — buttons rely on title attributes; no ARIA, no focus model, screen readers get little.
+30. ~~No accessibility pass~~ — partial fix: ARIA labels + live status regions shipped (#241); focus model still open.
 
 ### Performance & scale
 31. Peaks/waveform recompute is O(track) at load and O(zoom) per wheel tick — long sets stutter on redraw.
@@ -113,13 +113,13 @@ Supersedes the v1 audit (PR #210). Method: first-principles
 37. decodeAudioData holds the full float copy per deck — 2 decks + 4 pads + preview can pin GBs.
 38. `Library.all()` fetches every record incl. blobs wherever only metadata is needed.
 39. localStorage setlog/session blobs serialize entire objects per write — O(state) per keypress-debounce.
-40. No worker offload for analysis — BPM/key compute on the main thread blocks input on big tracks.
+40. ~~No worker offload for analysis~~ — fixed: BPM/key in a Web Worker with inline fallback (#238/#321).
 
 ### Process & product
-41. One maintainer, one branch cadence — PR backlog means "shipped" and "written" diverge by dozens of features.
+41. One maintainer, one branch cadence — review throughput is the bottleneck; the backlog was flushed once and can re-accumulate.
 42. Feature surface is now wider than the README gesture legend can honestly compress.
-43. No usage telemetry (even local counters) — which of 200 gestures are actually used is unknown.
-44. Help/discoverability is title-attribute-driven — a new user cannot learn the modifier grammar in-app.
+43. ~~No usage telemetry~~ — fixed: local-only counters behind the footer tooltip (#242).
+44. ~~Help/discoverability is title-attribute-driven~~ — fixed: `?` gesture-legend overlay (#236) + per-element tooltips; first-run guided onboarding still open.
 45. No onboarding state — first-run shows an empty mixer with no guided first track.
 46. ADR numbering races across parallel sessions (gaps/renumber risk noted before).
 47. Screenshot/visual regression is manual — CSS changes to the dense layout ship unverified visually.
@@ -129,7 +129,7 @@ Supersedes the v1 audit (PR #210). Method: first-principles
 
 ## Socratic reframes (assumptions worth re-questioning)
 - "Features = completeness." → The product now solves breadth; the open-PR pileup says depth-of-landing is the real bottleneck.
-- "Single file = simplicity." → True at 800 lines; at 3669 it's indirection-free but seam-free — the test gate exists because the file can't be trusted by reading.
+- "Single file = simplicity." → True at 800 lines; at ~5,670 it's indirection-free but seam-free — the test gate exists because the file can't be trusted by reading.
 - "More modifiers = more power." → The grammar is consistent but invisible; discoverability is now the binding constraint on power users.
 - "AI-era = automation." → The strongest current claim is *explainable* automation (pick reasons); the weakest is that nothing learns from the DJ's own history.
 - "Zero deps = principled." → Holds for runtime; the test tooling is already a sanctioned exception — extend the exception to a lint/type check, not to app deps.
@@ -140,26 +140,41 @@ Supersedes the v1 audit (PR #210). Method: first-principles
 - P2 (quality): FX macro presets, Camelot wheel readout, undo ring (cue/loop/grid ops), ARIA + focus model, per-PR CI on the smoke gate.
 - P3 (polish): visual diff checks on layout, telemetry-lite local counters, deck C, choke groups, split recordings.
 
-## v3 status (updated ~ADR-0376)
-The P0 structural row is now all delivered except the human-side one:
+## v4 status (updated ~ADR-0404)
+The P0 structural row is all delivered except the human-side one:
 smoke gate committed (#221), per-PR CI live and green (#379), hash
-migration done (#215). What remains there is only landing the open
-PR backlog — every other P0 has shipped.
+migration done (#215), and **the PR backlog was flushed — the merge
+wave landed everything through #405**. What remains there is only
+ongoing review cadence on new rounds.
 
-Landed since v2: per-PR smoke CI (#379), `?` gesture-legend overlay
-(#236), blob GC on delete + boot (#237), analysis in a Web Worker
-with inline fallback (#238/#321), ARIA labels + live regions (#241),
-choke groups (#244), local telemetry-lite counters (#242), ~100
-correctness fixes across tracks/persistence/gestures/audio-graph.
+Landed since v3 (~ADR-0376..0404): the *writer-owns-bookkeeping*
+converge — ~28 correctness fixes in one defect family. Every writer
+of shared state now owns its bookkeeping:
+- edge bookkeeping: `xfPrev`/`xfEdgeCheck` covers arrows/`0`/MIDI/
+  auto-mix sweeps/eject parks/dblclick resets; `_faderIn` single-path
+  for channel faders; hamster `Rev` rebases without firing.
+- clock rebasing: `_setBendMul` rebases the position clock under the
+  OLD multiplier first (5 bend writers unified); `Library.bump` RMW
+  for play counts.
+- dead-reckoning: slip/roll/loop exits stamp `{pos,t,rate}` at arm,
+  freeze on pause, stamp the entry-time effective rate; `_armLoopSlip`
+  single-path for all six `loopOn=true` arms.
+- marker/invalidation: every waveform-drawn write owns `_drawnPos`;
+  `_prevGrid` stash covers mid-analysis grid edits; `loadInto` reads
+  ride the `_wr` write chain.
+- lifecycle guards: wake-lock in-flight sentinel + release listener,
+  mid-fade `load()` refusal (parity with `swapWith`/`eject`), jog
+  `setInterval` re-entry guard, momentary-latch abandonment on swap.
+- effective-end consistency: emergency loop, auto-mix countdown AND
+  the 30 s track-end warning all key off `_endAt`, not container end.
 
 Still open, re-ranked:
-- P0: merge the open-PR backlog — the bottleneck is now human review,
-  not implementation.
+- P0: human review cadence — backlog is flushed, keep it that way.
 - P1: real stem separation path (mid/side split is a partial stand-in;
   a spectral/model-based path is the biggest mission gap), first-run
   onboarding flow.
 - P2: multi-level undo ring (today's one-level undos cover cue/loop/
   grid/mem/sampler/eject — the ring is the upgrade), FX macro presets,
   undo for waveform cue-drag writes.
-- P3: deck C refactor of index.html (~5200 lines), visual-diff layout
+- P3: deck C refactor of index.html (~5,670 lines), visual-diff layout
   checks, split recordings, Camelot wheel readout.
