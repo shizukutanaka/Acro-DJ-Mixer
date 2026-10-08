@@ -1478,6 +1478,14 @@ class Deck {
   }
 
   async load(fileObj, meta) {
+    // A deck mid-fade is mid-handoff: replacing its track would leave
+    // the fade's filter/bass/echo sweeps and the final fader park
+    // acting on content the transition was never meant for. Every
+    // load path funnels here — same refusal as swapWith.
+    if (autoMix.fade && (autoMix.fade.from === this || autoMix.fade.to === this)) {
+      this.status('Finish or cancel the fade first.');
+      return;
+    }
     killPadPrev(this);   // the old track's cue audition can't outlive it
     this.status('decoding…');
     // Two rapid loads must never interleave: the last caller wins.
