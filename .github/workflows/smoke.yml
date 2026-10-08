@@ -18,8 +18,10 @@ jobs:
         with:
           node-version: '20'
       - name: Install playwright + chromium
+        # Pinned — this is the only gate; a future playwright release
+        # must not be able to break it from outside the repo. Bump by PR.
         run: |
-          npm i playwright
+          npm i playwright@1.63.0
           npx playwright install --with-deps chromium
       - name: Serve the app + launch Chromium
         run: |
