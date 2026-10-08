@@ -387,6 +387,23 @@ const r = await page.evaluate(async () => {
   deckA.toggleLoop();
   deckA.cues[2] = null; deckA.cueIn = 0; deckA.st = 0;
 
+  // Bar.beat counter reads the playhead's grid position while playing
+  // (ADR-0052); the phase meter reports the live delta between decks
+  // (ADR-0023). Same grid + same position ⇒ Δ ≈ 0.
+  deckB.buffer = deckA.buffer; deckB.grid = deckA.grid; deckB.offset = deckA.offset;
+  deckA.play(); deckB.play();
+  await new Promise(r => setTimeout(r, 400));
+  out.barCounter = /^\d+\.\d$/.test(deckA.barEl.textContent);
+  out.phaseMeter = phaseEl.textContent.includes('Δ') && phaseEl.className.includes('ok');
+  deckA.pause(); deckB.pause();
+  deckB.buffer = null; deckB.grid = null;
+
+  // A set hot cue lights its pad and names its time (ADR-0070/0254).
+  deckA.seekTo(5.0);
+  deckA.padCue(0);
+  out.padMarked = deckA.pads[0].classList.contains('set') && deckA.pads[0].title.includes('0:0');
+  deckA.clearPad(0);
+
   // alt+Eject (full channel reset) still rides eject() — the undo
   // stash must survive so right-click can restore the track.
   // (The smoke buffer is injected directly, so fake the file-loaded
