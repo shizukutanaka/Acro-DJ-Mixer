@@ -5040,6 +5040,16 @@ document.addEventListener('wheel', e => {
 const helpEl = document.getElementById('help');
 const toggleHelp = () => { helpEl.hidden = !helpEl.hidden; };
 helpEl.addEventListener('click', () => { helpEl.hidden = true; });
+// First visit only: open the gesture legend once so a new session
+// starts knowing the grammar, then stay quiet — the flag persists in
+// localStorage like the other prefs, and storage failure just means
+// the card shows again next time (harmless, one click dismisses it).
+try {
+  if (!localStorage.getItem('acro-seen-help')) {
+    localStorage.setItem('acro-seen-help', '1');
+    helpEl.hidden = false;
+  }
+} catch (_) {}
 // Window blur steals the pointerup every momentary control waits on:
 // hold Phones and alt-tab, release on the other window — the PFL,
 // kill, mute, bend, roll, mic, scrub or jog stays latched forever.
