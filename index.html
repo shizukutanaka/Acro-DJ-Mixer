@@ -1658,13 +1658,14 @@ class Deck {
       // plus (uncached) BPM/key analysis. A carried gain (record cache,
       // export/import, snapshot, doubles) wins over a recompute and
       // skips the resample entirely — the record's value is the single
-      // source of truth once it exists. Computed gains are attenuation-
-      // only (≤1) but a carried value can exceed 1 via the knob, so the
-      // range check follows the control's own bounds. Persist the
-      // computed value on first load — same write-once discipline as
-      // detected keys — so the next load reads it back.
+      // source of truth once it exists. The sanitize follows the gain
+      // control's own range [0, 1]: zero is a legitimate carried value
+      // (a snapshot of a muted deck must clone muted), and anything
+      // above the slider max would play louder than the knob shows.
+      // Persist the computed value on first load — same write-once
+      // discipline as detected keys — so the next load reads it back.
       let mono = null;   // promise — built lazily; estimators await it
-      const mg = meta && Number.isFinite(meta.gain) && meta.gain > 0 && meta.gain <= 1.5 ? meta.gain : null;
+      const mg = meta && Number.isFinite(meta.gain) && meta.gain >= 0 && meta.gain <= 1 ? meta.gain : null;
       if (mg != null) {
         this.gainEl.value = mg;
         this.setGain(mg);
@@ -5372,6 +5373,19 @@ phaseEl.addEventListener('click', () => {
 });
 const meterBuf = new Uint8Array(256);
 const luBuf = new Float32Array(256);
+// Every level meter reads the same analyser window — the peak of |x|
+// over the byte-domain data. One scan for the channel, master, cue and
+// mic meters alike (the mic adds gate + brightness, the bars add the
+// decaying peak-hold tick on top of this instantaneous value).
+const meterScan = (an) => {
+  an.getByteTimeDomainData(meterBuf);
+  let p = 0;
+  for (let i = 0; i < meterBuf.length; i++) {
+    const v = Math.abs(meterBuf[i] - 128) / 128;
+    if (v > p) p = v;
+  }
+  return p;
+};
 let kwF1 = null, kwF2 = null, kwS1 = null, kwS2 = null;
 const luRing = [];
 const luEl = document.getElementById('lu');
@@ -5502,12 +5516,7 @@ function tick() {
   if (micAn) {
     // Mic input indicator: the button pulses brighter with the level,
     // so "is it actually picking up?" is answered by looking at it.
-    micAn.getByteTimeDomainData(meterBuf);
-    let mp = 0;
-    for (let i = 0; i < meterBuf.length; i++) {
-      const v = Math.abs(meterBuf[i] - 128) / 128;
-      if (v > mp) mp = v;
-    }
+    const mp = meterScan(micAn);
     micBtn.style.filter = 'brightness(' + (1 + Math.min(mp, 1) * 0.7).toFixed(2) + ')';
     // Gate state: snap open above 0.04, sink to −22 dB after ~300 ms
     // of quiet — same analyser the indicator reads, no extra tap.
@@ -5530,12 +5539,7 @@ function tick() {
   }
   for (const d of [deckA, deckB]) {
     if (d.chAnalyser && d.chFill) {
-      d.chAnalyser.getByteTimeDomainData(meterBuf);
-      let p = 0;
-      for (let i = 0; i < meterBuf.length; i++) {
-        const v = Math.abs(meterBuf[i] - 128) / 128;
-        if (v > p) p = v;
-      }
+      const p = meterScan(d.chAnalyser);
       d.chFill.style.width = Math.min(p * 100, 100).toFixed(1) + '%';
       // Peak-hold tick: jumps to a new peak, decays ~2%/frame — reads
       // like the max indicator on a hardware channel meter.
@@ -5546,12 +5550,7 @@ function tick() {
     }
   }
   if (ctx && analyser) {
-    analyser.getByteTimeDomainData(meterBuf);
-    let peak = 0;
-    for (let i = 0; i < meterBuf.length; i++) {
-      const v = Math.abs(meterBuf[i] - 128) / 128;
-      if (v > peak) peak = v;
-    }
+    const peak = meterScan(analyser);
     meterFill.style.width = Math.min(peak * 100, 100).toFixed(1) + '%';
     meterPeak = Math.max(peak, meterPeak - 0.012);
     meterPeakEl.style.left = Math.min(meterPeak * 100, 98).toFixed(1) + '%';
@@ -5577,12 +5576,7 @@ function tick() {
       luEl.classList.toggle('target', lu != null && lu > -15 && lu < -13);
     }
     if (cueAnalyser) {
-      cueAnalyser.getByteTimeDomainData(meterBuf);
-      let cp = 0;
-      for (let i = 0; i < meterBuf.length; i++) {
-        const v = Math.abs(meterBuf[i] - 128) / 128;
-        if (v > cp) cp = v;
-      }
+      const cp = meterScan(cueAnalyser);
       cueFill.style.width = Math.min(cp * 100, 100).toFixed(1) + '%';
       cuePeak = Math.max(cp, cuePeak - 0.012);
       cuePeakEl.style.left = Math.min(cuePeak * 100, 98).toFixed(1) + '%';
