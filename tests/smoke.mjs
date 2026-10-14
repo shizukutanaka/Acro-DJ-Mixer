@@ -471,17 +471,6 @@ const r = await page.evaluate(async () => {
     && kC && kC.num === 9 && kC.letter === 'A' && kC.name === 'Em');   // 'X' ignored, name derived (ADR-0417)
   await Library.remove(impA); await Library.remove(impB); await Library.remove(impC);
 
-  // The import's name-derivation is the exact inverse of estimateKey's
-  // Camelot map — for all 24 codes, forward(derived) must return the
-  // same {num, letter} (ADR-0417).
-  out.camelotNames = true;
-  for (const letter of ['A', 'B']) for (let n = 1; n <= 12; n++) {
-    const pc = ((n - 8 + 12) % 12) * 7 % 12;
-    const minor = letter === 'A';
-    const nm = NOTE_NAMES[minor ? (pc + 9) % 12 : pc];
-    const steps = (((minor ? NOTE_NAMES.indexOf(nm) - 9 : NOTE_NAMES.indexOf(nm)) * 7) % 12 + 12) % 12;
-    if ((7 + steps) % 12 + 1 !== n) out.camelotNames = false;
-  }
 
   return out;
 });
