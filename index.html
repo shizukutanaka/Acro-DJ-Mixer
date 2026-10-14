@@ -4982,11 +4982,15 @@ libImpFile.addEventListener('change', async () => {
       if (typeof e[k] === 'number' && Number.isFinite(e[k])) patch[k] = e[k];
     if (typeof e.stem === 'string') patch.stem = e.stem;
     // key is the {num, letter, name} object estimateKey() stores and
-    // export writes — a string check dropped every exported key.
+    // export writes. The name is derived from the Camelot code, never
+    // trusted from the file — effKey() indexes NOTE_NAMES by it.
     const k = e.key;
     if (k && typeof k === 'object' && Number.isInteger(k.num) && k.num >= 1 && k.num <= 12
-        && (k.letter === 'A' || k.letter === 'B') && typeof k.name === 'string')
-      patch.key = { num: k.num, letter: k.letter, name: k.name };
+        && (k.letter === 'A' || k.letter === 'B')) {
+      const pc = ((k.num - 8 + 12) % 12) * 7 % 12;   // C (8B) / A (8A) anchors, 7·7≡1 mod 12
+      const minor = k.letter === 'A';
+      patch.key = { num: k.num, letter: k.letter, name: NOTE_NAMES[minor ? (pc + 9) % 12 : pc] + (minor ? 'm' : '') };
+    }
     for (const k of ['loop', 'mem1', 'mem2']) if (e[k] === null || Array.isArray(e[k])) patch[k] = e[k];
     if (Array.isArray(e.cues)) patch.cues = e.cues;
     if (Object.keys(patch).length) { await Library.tag(rec.id, patch); n++; }
