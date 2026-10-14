@@ -553,7 +553,7 @@ async function refreshCueDevices() {
   catch (_) { return; } // mediaDevices unavailable (e.g. insecure context)
   const cur = sel.value;
   sel.innerHTML = '<option value="">System output</option>' +
-    outs.map((d, i) => `<option value="${d.deviceId}">${d.label || 'Output ' + (i + 1)}</option>`).join('');
+    outs.map((d, i) => `<option value="${esc(d.deviceId)}">${esc(d.label || 'Output ' + (i + 1))}</option>`).join('');
   sel.value = cur;
   if (cur && sel.value !== cur) {
     // The chosen cans were unplugged: the old deviceId no longer
