@@ -4980,7 +4980,13 @@ libImpFile.addEventListener('change', async () => {
     const patch = {};
     for (const k of ['duration', 'bpm', 'beatOff', 'cueIn', 'gain'])
       if (typeof e[k] === 'number' && Number.isFinite(e[k])) patch[k] = e[k];
-    for (const k of ['key', 'stem']) if (typeof e[k] === 'string') patch[k] = e[k];
+    if (typeof e.stem === 'string') patch.stem = e.stem;
+    // key is the {num, letter, name} object estimateKey() stores and
+    // export writes — a string check dropped every exported key.
+    const k = e.key;
+    if (k && typeof k === 'object' && Number.isInteger(k.num) && k.num >= 1 && k.num <= 12
+        && (k.letter === 'A' || k.letter === 'B') && typeof k.name === 'string')
+      patch.key = { num: k.num, letter: k.letter, name: k.name };
     for (const k of ['loop', 'mem1', 'mem2']) if (e[k] === null || Array.isArray(e[k])) patch[k] = e[k];
     if (Array.isArray(e.cues)) patch.cues = e.cues;
     if (Object.keys(patch).length) { await Library.tag(rec.id, patch); n++; }
