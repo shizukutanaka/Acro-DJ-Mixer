@@ -442,6 +442,31 @@ const r = await page.evaluate(async () => {
   deckA.eject();
   try { deckA.cue(); deckA.seekTo(1); deckA.play(); out.emptyDeckSafe = true; }
   catch (_) { out.emptyDeckSafe = false; }
+  // Library import keeps the Camelot key object export writes —
+  // a string-typed check dropped every exported key (ADR-0416).
+  const impA = await Library.addFromFile(new File([new Uint8Array(16)], 'impA.wav'), 1);
+  const impB = await Library.addFromFile(new File([new Uint8Array(24)], 'impB.wav'), 1);
+  const impJson = JSON.stringify([
+    { name: 'impA.wav', size: 16, key: { num: 8, letter: 'A', name: 'Am' }, bpm: 124 },
+    { name: 'impB.wav', size: 24, key: '8A', bpm: 126 },
+  ]);
+  const impDt = new DataTransfer();
+  impDt.items.add(new File([impJson], 'lib.json', { type: 'application/json' }));
+  libImpFile.files = impDt.files;
+  libImpFile.dispatchEvent(new Event('change'));
+  let recA, recB;
+  for (let i = 0; i < 20; i++) {
+    await new Promise(r => setTimeout(r, 100));
+    const rows = await Library.all();
+    recA = rows.find(t => t.id === impA);
+    recB = rows.find(t => t.id === impB);
+    if (recA && recA.key && recB && recB.bpm === 126) break;
+  }
+  const kA = recA && recA.key;
+  out.importKeyRoundTrip = !!(kA && kA.num === 8 && kA.letter === 'A' && kA.name === 'Am'
+    && recB && recB.key !== '8A' && recB.bpm === 126);
+  await Library.remove(impA); await Library.remove(impB);
+
   return out;
 });
 
