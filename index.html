@@ -1519,26 +1519,9 @@ class Deck {
       this.cueIn = 0;
       this._prevCueIn = null;   // cue-undo belongs to the previous track
       this._lastClear = null;   // so does the cleared-cue undo
-      {
-        const chs = [];
-        for (let c = 0; c < buf.numberOfChannels; c++) chs.push(buf.getChannelData(c));
-        const end = Math.min(chs[0].length, buf.sampleRate * 30);
-        outer: for (let i = 0; i < end; i++) {
-          for (const ch of chs) {
-            if (Math.abs(ch[i]) > 0.003) { this.cueIn = i / buf.sampleRate; break outer; }
-          }
-        }
-        // Effective end: the last sample above the same −50 dBFS
-        // floor on ANY channel — a right-channel tail that outlasts
-        // the left must not be faded out early. Tracks with a silent
-        // tail would otherwise make auto-mix fire late.
-        this._endAt = buf.duration;
-        outer: for (let i = chs[0].length - 1; i >= 0; i--) {
-          for (const ch of chs) {
-            if (Math.abs(ch[i]) > 0.003) { this._endAt = i / buf.sampleRate; break outer; }
-          }
-        }
-      }
+      const b = soundBounds(buf);
+      this.cueIn = b.start;
+      this._endAt = b.end;
       // A cue point set by hand (shift+Cue) beats the auto-detected
       // first sound — like a rekordbox memory cue.
       // Foreign meta (imports) is sanitized at the consumer: only a
@@ -1570,53 +1553,7 @@ class Deck {
       // Partner's harmonic tint referenced our key — recompute it
       // now that there's nothing to match against.
       if (this.partner) this.partner.refreshKey();
-      this.loopOn = false;
-      this.loopBtn.classList.remove('on');
-      this.loopBtn.classList.remove('armed');
-      this._loopIn = null;
-      this._prevLoop = null;
-      // A held slip cue or loop roll belongs to the old track: a late
-      // release would seek to a stale position or re-arm the old
-      // loop bounds (and tagLib them) on the new one.
-      this._slip = null;
-      this._roll = null;
-      this._bpmEdit = false;   // abandon a BPM edit mid-typing — the removal blur must not commit it to this track
-      this._emLoop = false;    // the emergency-loop latch belongs to the old track's tail
-      this._loopT = null;
-      this._loopEnterPos = 0;
-      this._loopEnterRate = 0;
-      if (this._slice) { this._slice.pad.classList.remove('on'); this._slice = null; }
-      // Same abandonment for a held Cue-preview: the flag must die
-      // with the old track or a later pointerleave/pointercancel on the
-      // button fires pause()+cue() on the NEW track — a phantom stop.
-      this._cuePreview = false;
-      // A held momentary-cue press belongs to the old track: if the
-      // 250 ms hold already rang the PFL, drop it back off — release
-      // can't see this track's press, and a latched cueOn would leak
-      // the new track into the headphones.
-      clearTimeout(this.cueBtn._momTimer);
-      if (this.cueBtn._mom && this.cueOn) this.toggleCue();
-      this.cueBtn._mom = this.cueBtn._suppress = false;
-      // Momentary holds on this deck's buttons die with the track too
-      // (same abandonment as _slip/_roll/_slice and the Phones hold):
-      // a pending 250 ms timer must not fire into the new track, an
-      // engaged hold must not stay latched, and a stale flag must not
-      // let the next pointer event write state the gesture never owned.
-      clearTimeout(this.slipBtn._momTimer);
-      if (this.slipBtn._mom && this.slip) { this.slip = false; this.slipBtn.classList.remove('on'); }
-      this.slipBtn._mom = this.slipBtn._suppress = false;
-      clearTimeout(this.fxBtn._momTimer);
-      if (this.fxBtn._mom && this.fxOn) this.setFxOn(false);
-      this.fxBtn._mom = this.fxBtn._suppress = false;
-      for (const [band, kb] of Object.entries(this.killEls)) {
-        clearTimeout(kb._momTimer);
-        if (kb._mom && this.kills[band]) this.setKill(band, false);
-        kb._mom = kb._suppress = false;
-      }
-      this.el.querySelector('[data-act=mute]').classList.remove('on');
-      this._waveAbort();   // same held-gesture doctrine as slip/roll
-      this.rollBtn.classList.remove('on');
-      this.loopLenEl.hidden = true;
+      this._dropTrackGestures();
       this.keyEl.textContent = '—';
       this.keyEl.className = 'key';
       // The analysis cache dedupes estimateBpm+estimateKey for ONE
@@ -2034,6 +1971,51 @@ class Deck {
     this.status(this.leading ? 'Sync leader — partner follows this deck.' : 'Leader off.');
   }
 
+  // Every held or latched gesture belongs to the track it started on:
+  // a held slip cue or loop roll's late release would seek to a stale
+  // position or re-arm (and tagLib) the old loop bounds; a dead
+  // _cuePreview flag would make a later pointerleave fire pause()+cue()
+  // on the NEW track — a phantom stop; a held momentary-cue press that
+  // already rang the PFL must be un-latched or the new track leaks into
+  // the headphones (release can't see the new track's press); a pending
+  // 250 ms momentary timer must not fire into the new track, an engaged
+  // hold must not stay latched, and a stale flag must not let the next
+  // pointer event write state the gesture never owned. One abandonment
+  // block for both load() and eject() (ADR-0418).
+  _dropTrackGestures() {
+    this.loopOn = false;
+    this.loopBtn.classList.remove('on', 'armed');
+    this._loopIn = null;
+    this._prevLoop = null;
+    this._slip = null;
+    this._roll = null;
+    this._bpmEdit = false;   // abandon a BPM edit mid-typing — the removal blur must not commit it to this track
+    this._emLoop = false;    // the emergency-loop latch belongs to the old track's tail
+    this._loopT = null;
+    this._loopEnterPos = 0;
+    this._loopEnterRate = 0;
+    if (this._slice) { this._slice.pad.classList.remove('on'); this._slice = null; }
+    this._cuePreview = false;
+    clearTimeout(this.cueBtn._momTimer);
+    if (this.cueBtn._mom && this.cueOn) this.toggleCue();
+    this.cueBtn._mom = this.cueBtn._suppress = false;
+    clearTimeout(this.slipBtn._momTimer);
+    if (this.slipBtn._mom && this.slip) { this.slip = false; this.slipBtn.classList.remove('on'); }
+    this.slipBtn._mom = this.slipBtn._suppress = false;
+    clearTimeout(this.fxBtn._momTimer);
+    if (this.fxBtn._mom && this.fxOn) this.setFxOn(false);
+    this.fxBtn._mom = this.fxBtn._suppress = false;
+    for (const [band, kb] of Object.entries(this.killEls)) {
+      clearTimeout(kb._momTimer);
+      if (kb._mom && this.kills[band]) this.setKill(band, false);
+      kb._mom = kb._suppress = false;
+    }
+    this.el.querySelector('[data-act=mute]').classList.remove('on');
+    this._waveAbort();   // same held-gesture doctrine as slip/roll
+    this.rollBtn.classList.remove('on');
+    this.loopLenEl.hidden = true;
+  }
+
   eject() {
     killPadPrev(this);
     // Invalidate an in-flight load first — during 'decoding…' the
@@ -2093,50 +2075,13 @@ class Deck {
     this.cues = [null, null, null, null, null, null, null, null];
     this.pads.forEach(p => { p.classList.remove('set'); p.title = 'Hot cue — click sets a marker · right-click restores the last cleared cue · alt-hold auditions a beat slice'; });
     this._lastClear = null;
-    this.loopOn = false;
-    this._prevLoop = null;
     this._prevGrid = undefined;   // grid-undo belongs to the ejected track
     this._taps = null;            // so does the tap history
     this._loopMem = null;
     this._loopMem2 = null;
     this._prevLoopMem = undefined;
     this._memTitle();
-    this._loopIn = null;
-    this._loopT = null;
-    this._loopEnterPos = 0;
-    this._loopEnterRate = 0;
-    this._slip = null;
-    this._roll = null;
-    this._bpmEdit = false;   // same abandonment as load() — an open editor belongs to the ejected track
-    this._emLoop = false;
-    if (this._slice) { this._slice.pad.classList.remove('on'); this._slice = null; }
-    this._cuePreview = false;   // same latch-abandonment as the load path
-    // Same for a held momentary-cue press (see load()): un-latch the
-    // PFL ring the hold opened before abandoning the gesture.
-    clearTimeout(this.cueBtn._momTimer);
-    if (this.cueBtn._mom && this.cueOn) this.toggleCue();
-    this.cueBtn._mom = this.cueBtn._suppress = false;
-    // Momentary holds on this deck's buttons die with the track too
-    // (same abandonment as _slip/_roll/_slice and the Phones hold):
-    // a pending 250 ms timer must not fire into the new track, an
-    // engaged hold must not stay latched, and a stale flag must not
-    // let the next pointer event write state the gesture never owned.
-    clearTimeout(this.slipBtn._momTimer);
-    if (this.slipBtn._mom && this.slip) { this.slip = false; this.slipBtn.classList.remove('on'); }
-    this.slipBtn._mom = this.slipBtn._suppress = false;
-    clearTimeout(this.fxBtn._momTimer);
-    if (this.fxBtn._mom && this.fxOn) this.setFxOn(false);
-    this.fxBtn._mom = this.fxBtn._suppress = false;
-    for (const [band, kb] of Object.entries(this.killEls)) {
-      clearTimeout(kb._momTimer);
-      if (kb._mom && this.kills[band]) this.setKill(band, false);
-      kb._mom = kb._suppress = false;
-    }
-    this.el.querySelector('[data-act=mute]').classList.remove('on');
-    this._waveAbort();   // same held-gesture doctrine as slip/roll
-    this.rollBtn.classList.remove('on');
-    this.loopLenEl.hidden = true;
-    this.loopBtn.classList.remove('on', 'armed');
+    this._dropTrackGestures();
     this.loopBtn.textContent = 'Loop';
     const dzEl2 = this.el.querySelector('.dropzone');
     dzEl2._arm = 0;   // drop the armed state with the track
@@ -3247,6 +3192,31 @@ const deckSnap = d => ({ file: d._fileObj, pos: d.pos(), rate: d.rate, st: d.st,
     key: d.key, libId: d.libId, gain: +d.gainEl.value } });
 
 // ----- Analysis helpers (run off the audio thread; chunked to keep UI alive) -----
+
+// First/last sample above −50 dBFS on ANY channel — the analogue of
+// Mixxx AnalyzerSilence / librosa.effects.trim. `start` scans only the
+// first `leadSec` seconds (auto-cue skips lead-in silence; a quiet
+// intro past that is intentional and stays). `end` scans the whole
+// buffer: a right-channel tail that outlasts the left must not be
+// faded out early — silent tails would make auto-mix fire late.
+function soundBounds(buf, floor = 0.003, leadSec = 30) {
+  const chs = [];
+  for (let c = 0; c < buf.numberOfChannels; c++) chs.push(buf.getChannelData(c));
+  let start = 0;
+  const leadEnd = Math.min(chs[0].length, buf.sampleRate * leadSec);
+  outer: for (let i = 0; i < leadEnd; i++) {
+    for (const ch of chs) {
+      if (Math.abs(ch[i]) > floor) { start = i / buf.sampleRate; break outer; }
+    }
+  }
+  let end = buf.duration;
+  outer: for (let i = chs[0].length - 1; i >= 0; i--) {
+    for (const ch of chs) {
+      if (Math.abs(ch[i]) > floor) { end = i / buf.sampleRate; break outer; }
+    }
+  }
+  return { start, end };
+}
 
 function computePeaks(buf, buckets) {
   const ch = buf.getChannelData(0);

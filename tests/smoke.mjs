@@ -435,13 +435,31 @@ const r = await page.evaluate(async () => {
   // fields eject() reads to build the stash.)
   deckA._fileObj = new File([new ArrayBuffer(8)], 'a.wav');
   deckA.fileName = 'a.wav';
+  // Held/latched gestures must die with the track — the same
+  // abandonment block load() and eject() now share (ADR-0418).
+  deckA._cuePreview = true; deckA._bpmEdit = true; deckA._emLoop = true;
+  deckA.slipBtn._mom = true; deckA._loopIn = 1;
   deckA.resetChannel();
   out.resetUndoStash = deckA._ejected != null && deckA.st === 0 && deckA.slip === false;
+  out.ejectDropsGestures = deckA._cuePreview === false && deckA._bpmEdit === false
+    && deckA._emLoop === false && deckA.slipBtn._mom === false && deckA._loopIn === null;
 
   // Empty-deck control surfaces don't throw (ADR-0355/0356).
   deckA.eject();
   try { deckA.cue(); deckA.seekTo(1); deckA.play(); out.emptyDeckSafe = true; }
   catch (_) { out.emptyDeckSafe = false; }
+  // soundBounds: first/last sample above −50 dBFS on any channel —
+  // start scans only the first 30 s, end the whole buffer (ADR-0418).
+  const sb1 = new AudioBuffer({ numberOfChannels: 2, length: 3 * 8000, sampleRate: 8000 });
+  sb1.getChannelData(0)[4000] = 0.5; sb1.getChannelData(1)[20000] = 0.5;
+  const sb0 = new AudioBuffer({ numberOfChannels: 1, length: 3 * 8000, sampleRate: 8000 });
+  const sb2 = new AudioBuffer({ numberOfChannels: 1, length: 40 * 8000, sampleRate: 8000 });
+  sb2.getChannelData(0)[35 * 8000] = 0.5;
+  const b1 = soundBounds(sb1), b0 = soundBounds(sb0), b2 = soundBounds(sb2);
+  out.soundBounds = b1.start === 0.5 && b1.end === 2.5
+    && b0.start === 0 && b0.end === 3
+    && b2.start === 0 && b2.end === 35;
+
   // Library import keeps the Camelot key object export writes —
   // a string-typed check dropped every exported key (ADR-0416).
   const impA = await Library.addFromFile(new File([new Uint8Array(16)], 'impA.wav'), 1);
