@@ -174,7 +174,7 @@ Still open, re-ranked:
   a spectral/model-based path is the biggest mission gap), first-run
   onboarding flow.
 - P2: multi-level undo ring (today's one-level undos cover cue/loop/
-  grid/mem/sampler/eject — the ring is the upgrade), FX macro presets,
-  undo for waveform cue-drag writes.
+  grid/mem/sampler/eject/cue-drag — the ring is the upgrade), FX macro
+  presets.
 - P3: deck C refactor of index.html (~5,670 lines), visual-diff layout
   checks, split recordings, Camelot wheel readout.

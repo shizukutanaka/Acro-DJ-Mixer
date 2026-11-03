@@ -275,7 +275,7 @@
     <p><b>wheel</b> — fine-trim any knob or fader; on a loaded pad it trims that pad's level</p>
     <p><b>shift</b> — the alternate: clear hot cue, free-size loop in/out marks, phase-only sync, bar jump, half-beat roll, jog scrub, loop-edge trim, save loop memory, solo phones, resample an armed loop to an empty pad, clear a pad</p>
     <p><b>alt</b> — the expert layer: sync leader, stop a sampler voice, second loop-memory slot, trim the loop out-point, beat-slice audition on a pad (alt+hold), lossless WAV take (alt+Rec)</p>
-    <p><b>right-click</b> — cue-bus preview on hot-cue and sampler pads · one-level undo on the thing that was just broken: cleared hot cue or sample (empty pad), cue set (Cue button), grid write (Tap/‹›), loop-memory overwrite (↺), eject (empty deck)</p>
+    <p><b>right-click</b> — cue-bus preview on hot-cue and sampler pads · one-level undo on the thing that was just broken: cleared hot cue or sample (empty pad), moved hot cue (its pad), cue set (Cue button), grid write (Tap/‹›), loop-memory overwrite (↺), eject (empty deck)</p>
     <p><b>library</b> — type to filter · ▶ previews on the cue bus · × deletes (two-click confirm) · ‹ › step a track into the deck</p>
     <h3>Keys</h3>
     <p><b>q / p</b> play decks · <b>g / '</b> slip · <b>w / o</b> headphone cue · <b>1–4</b> sampler pads · <b>Z X C V / B N M ,</b> hot cues 1–4 · <b>.</b> auto-mix · <b>A S D F / H J K L</b> hot cues 5–8 · <b>shift+key</b> clears a cue · <b>e / i</b> sync · <b>r / u</b> loop · <b>0</b> crossfader centre · <b>← →</b> crossfader · <b>↑ ↓</b> master · <b>t / y</b> key sync · <b>?</b> this help</p>
@@ -615,6 +615,7 @@ class Deck {
     this.pads = [...root.querySelectorAll('.hotcues .pad')];
     this.pads.forEach((p, i) => p.style.setProperty('--pc', PAD_COLORS[i]));
     this.cues = [null, null, null, null, null, null, null, null];  // hot-cue marker times (seconds)
+    this._movedCue = null;   // {i, t}: pre-drag position of a cue dragged on the waveform — pad right-click undoes the move (ADR-0419)
     this.cueSend = null;   // pre-fader tap -> cue bus
     this.deckGain = null;
     this.xfGain = null;
@@ -885,6 +886,19 @@ class Deck {
             this.drawWave();
             this.status('cue restored ' + fmt(lc.t));
           }
+          return;
+        }
+        // The pad you just dragged on the waveform holds a one-level
+        // undo: first right-click puts the cue back where the drag
+        // took it from, then the gesture is preview again.
+        if (this._movedCue && this._movedCue.i === i) {
+          const mc = this._movedCue; this._movedCue = null;
+          this.cues[i] = mc.t;
+          this.pads[i].title = 'Hot cue ' + fmt(mc.t) + ' — click jumps, shift-click clears, right-click previews, alt-hold = slice audition';
+          this.tagLib({ cues: this.cues });
+          this._drawnPos = undefined;
+          this.drawWave();
+          this.status('cue restored ' + fmt(mc.t));
           return;
         }
         // Right-click on the pad whose audition is ringing stops it —
@@ -1321,7 +1335,14 @@ class Deck {
         for (let i = 0; i < this.cues.length; i++) {
           if (this.cues[i] != null && Math.abs(px - x(this.cues[i])) <= 8) { cueDrag = i; break; }
         }
-        if (cueDrag !== null) { this.wave.setPointerCapture(e.pointerId); return; }
+        if (cueDrag !== null) {
+          // A drag overwrites the cue's position — stash the pre-drag
+          // value so right-click on that pad restores it (one level,
+          // same grammar as the cleared-cue undo on empty pads).
+          this._movedCue = { i: cueDrag, t: this.cues[cueDrag] };
+          this.wave.setPointerCapture(e.pointerId);
+          return;
+        }
       }
       scrubbing = true;
       this.wave.setPointerCapture(e.pointerId);
@@ -1519,6 +1540,7 @@ class Deck {
       this.cueIn = 0;
       this._prevCueIn = null;   // cue-undo belongs to the previous track
       this._lastClear = null;   // so does the cleared-cue undo
+      this._movedCue = null;    // and the dragged-cue undo
       const b = soundBounds(buf);
       this.cueIn = b.start;
       this._endAt = b.end;
@@ -2075,6 +2097,7 @@ class Deck {
     this.cues = [null, null, null, null, null, null, null, null];
     this.pads.forEach(p => { p.classList.remove('set'); p.title = 'Hot cue — click sets a marker · right-click restores the last cleared cue · alt-hold auditions a beat slice'; });
     this._lastClear = null;
+    this._movedCue = null;        // dragged-cue undo belongs to the ejected track too
     this._prevGrid = undefined;   // grid-undo belongs to the ejected track
     this._taps = null;            // so does the tap history
     this._loopMem = null;
@@ -2779,6 +2802,9 @@ class Deck {
     // Remember the last cleared cue — right-click on an empty pad
     // brings it back (undo, one level deep).
     this._lastClear = { i, t: this.cues[i] };
+    // The clear stash takes over this pad's undo — a stale drag record
+    // would otherwise resurrect the pre-drag position after a re-set.
+    if (this._movedCue && this._movedCue.i === i) this._movedCue = null;
     this.cues[i] = null;
     this.pads[i].classList.remove('set');
     this.pads[i].title = 'Hot cue — click sets a marker · right-click restores the last cleared cue · alt-hold auditions a beat slice';
