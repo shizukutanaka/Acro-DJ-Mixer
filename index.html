@@ -2724,8 +2724,13 @@ class Deck {
     // Accumulate: two tags can race on the same record (get->put is
     // read-modify-write), so each write must carry every prior patch.
     this._libPatch = Object.assign(this._libPatch || {}, patch);
+    // Snapshot the accumulated patch AND the id promise together: a
+    // load() can land while _libP is awaited — it resets both fields
+    // for the new track, and re-reading this._libPatch after the await
+    // would tag the new track's patch (or null) onto the old record.
+    const snap = this._libPatch;
     const id = this.libId ?? await this._libP;
-    if (id != null) Library.tag(id, this._libPatch);
+    if (id != null) Library.tag(id, snap);
   }
 
   // One worker run feeds both readouts — BPM and key estimate from the
