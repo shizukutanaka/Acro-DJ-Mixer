@@ -275,7 +275,7 @@
     <p><b>wheel</b> — fine-trim any knob or fader; on a loaded pad it trims that pad's level</p>
     <p><b>shift</b> — the alternate: clear hot cue, free-size loop in/out marks, phase-only sync, bar jump, half-beat roll, jog scrub, loop-edge trim, save loop memory, solo phones, resample an armed loop to an empty pad, clear a pad</p>
     <p><b>alt</b> — the expert layer: sync leader, stop a sampler voice, second loop-memory slot, trim the loop out-point, beat-slice audition on a pad (alt+hold), lossless WAV take (alt+Rec)</p>
-    <p><b>right-click</b> — cue-bus preview on hot-cue and sampler pads · one-level undo on the thing that was just broken: cleared hot cue or sample (empty pad), moved hot cue (its pad), cue set (Cue button), grid write (Tap/‹›), loop-memory overwrite (↺), eject (empty deck)</p>
+    <p><b>right-click</b> — cue-bus preview on hot-cue and sampler pads · one-level undo on the thing that was just broken: cleared hot cue or sample (empty pad), moved hot cue or overwritten sample (its pad), cue set (Cue button), grid write (Tap/‹›), loop-memory overwrite (↺), eject (empty deck)</p>
     <p><b>library</b> — type to filter · ▶ previews on the cue bus · × deletes (two-click confirm) · ‹ › step a track into the deck</p>
     <h3>Keys</h3>
     <p><b>q / p</b> play decks · <b>g / '</b> slip · <b>w / o</b> headphone cue · <b>1–4</b> sampler pads · <b>Z X C V / B N M ,</b> hot cues 1–4 · <b>.</b> auto-mix · <b>A S D F / H J K L</b> hot cues 5–8 · <b>shift+key</b> clears a cue · <b>e / i</b> sync · <b>r / u</b> loop · <b>0</b> crossfader centre · <b>← →</b> crossfader · <b>↑ ↓</b> master · <b>t / y</b> key sync · <b>?</b> this help</p>
@@ -4533,7 +4533,7 @@ async function padsRestore() {
   } catch (_) {}
 }
 
-let smpCleared = null;   // last shift-cleared slot — right-click an empty pad restores it (one level)
+let smpCleared = null;   // last destructive pad write {i, slot, label, title, overwrite} — right-click restores it: an empty pad gets its cleared sample back, an overwritten pad its pre-drop sample (one level, ADR-0420)
 
 let smpGain = null;
 let smpPrev = null;
@@ -4686,17 +4686,21 @@ smpSlots.forEach((_, i) => {
       smpPrev = null; smpPrevPad = -1;
       return;
     }
-    if (!slot) {
-      // Undo a shift-clear: right-click an empty pad puts the last
-      // cleared sample back — one level, like the hot-cue undo.
-      if (!smpCleared) return;
+    // One-level undo of the last destructive write on THIS pad:
+    // a clear restores on the empty pad, an overwrite (file drop on
+    // a loaded pad) restores on the pad that ate it — the same
+    // right-click-restore grammar as the hot-cue undos (ADR-0420).
+    if (smpCleared && smpCleared.i === i && (!slot || smpCleared.overwrite)) {
       const c = smpCleared; smpCleared = null;
-      smpSlots[c.i] = c.slot;
-      const cb = smpPadsEl.children[c.i];
-      cb.textContent = c.label; cb.classList.add('set');
-      cb.title = c.title;
+      if (slot && slot.src) { try { slot.src.stop(); } catch (_) {} b.classList.remove('on'); }
+      if (smpPrev && smpPrevPad === i) { try { smpPrev.stop(); } catch (_) {} smpPrev = null; smpPrevPad = -1; }
+      smpSlots[i] = c.slot;
+      b.textContent = c.label; b.classList.add('set');
+      b.title = c.title;
+      padsSaveSoon();   // the restore is a write — persist it like clear/load do
       return;
     }
+    if (!slot) return;
     if (!slot.buf) return;
     killAllPreviews();   // one audition at a time on the cue bus
     const src = audio().createBufferSource();
@@ -4781,6 +4785,13 @@ async function loadSmpFile(i, f) {
   const old = smpSlots[i];
   if (old && old.src) { try { old.src.stop(); } catch (_) {} old.src = null; }
   if (old && smpPrev && smpPrev.buffer === old.buf) { try { smpPrev.stop(); } catch (_) {} smpPrev = null; }
+  // Dropping a file on a loaded pad is a destructive overwrite —
+  // stash the old sample for the one-level undo (ADR-0420): first
+  // right-click on this pad brings it back, like a shift-clear.
+  if (old) {
+    const ob = smpPadsEl.children[i];
+    smpCleared = { i, slot: old, label: ob.textContent, title: ob.title, overwrite: true };
+  }
   // Auto-gain like the decks (ADR-0019): one-shots come in at their
   // file loudness — a whisper snare next to a slammed clap. Normalize
   // to the same K-weighted target so pads start level; the per-pad
