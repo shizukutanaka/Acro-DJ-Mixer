@@ -275,7 +275,7 @@
     <p><b>wheel</b> — fine-trim any knob or fader; on a loaded pad it trims that pad's level</p>
     <p><b>shift</b> — the alternate: clear hot cue, free-size loop in/out marks, phase-only sync, bar jump, half-beat roll, jog scrub, loop-edge trim, save loop memory, solo phones, resample an armed loop to an empty pad, clear a pad</p>
     <p><b>alt</b> — the expert layer: sync leader, stop a sampler voice, second loop-memory slot, trim the loop out-point, beat-slice audition on a pad (alt+hold), lossless WAV take (alt+Rec)</p>
-    <p><b>right-click</b> — cue-bus preview on hot-cue and sampler pads · one-level undo on the thing that was just broken: cleared hot cue or sample (empty pad), moved hot cue or overwritten sample (its pad), cue set (Cue button), grid write (Tap/‹›), loop-memory overwrite (↺), eject (empty deck)</p>
+    <p><b>right-click</b> — cue-bus preview on hot-cue and sampler pads · one-level undo on the thing that was just broken: cleared hot cue or sample (empty pad), moved hot cue or overwritten sample (its pad), cue set (Cue button), grid write (Tap/‹›), loop-memory overwrite (↺), loop-bounds edit (½ 2× ◂ ▸), eject (empty deck)</p>
     <p><b>library</b> — type to filter · ▶ previews on the cue bus · × deletes (two-click confirm) · ‹ › step a track into the deck</p>
     <h3>Keys</h3>
     <p><b>q / p</b> play decks · <b>g / '</b> slip · <b>w / o</b> headphone cue · <b>1–4</b> sampler pads · <b>Z X C V / B N M ,</b> hot cues 1–4 · <b>.</b> auto-mix · <b>A S D F / H J K L</b> hot cues 5–8 · <b>shift+key</b> clears a cue · <b>e / i</b> sync · <b>r / u</b> loop · <b>0</b> crossfader centre · <b>← →</b> crossfader · <b>↑ ↓</b> master · <b>t / y</b> key sync · <b>?</b> this help</p>
@@ -602,6 +602,7 @@ class Deck {
     this.loopOn = false;
     this._loopIn = null;
     this._prevLoop = null;
+    this._prevLoopEdit = null;   // [start, end] before the last bounds edit — right-click on a loop-size/move button undoes it (ADR-0423)
     this._loopMem = null;
     this._loopMem2 = null;
     this.loopStart = 0;
@@ -835,6 +836,24 @@ class Deck {
     this.rollBtn = rollBtn;
     this.el.querySelector('[data-act=loopdiv]').addEventListener('click', () => this.setLoopLen(0.5));
     this.el.querySelector('[data-act=loopmul]').addEventListener('click', () => this.setLoopLen(2));
+    // Right-click on any loop-size/move button = one-level undo of the
+    // last bounds edit — same right-click-restores grammar as cue,
+    // grid, memory and sampler writes (ADR-0423). The stash is consumed
+    // either way: it belonged to the loop that was armed when the edit
+    // ran, and a disarmed loop has no bounds to restore onto.
+    const undoLoopEdit = e => {
+      e.preventDefault();
+      if (!this._prevLoopEdit) return;
+      const m = this._prevLoopEdit;
+      this._prevLoopEdit = null;
+      if (!this.loopOn) return;
+      this.loopStart = m[0];
+      this.loopEnd = m[1];
+      this._syncLoop();   // restore is a write — persist it like the edit did
+      this.status('loop bounds restored');
+    };
+    for (const act of ['loopdiv', 'loopmul', 'loopback', 'loopfwd'])
+      this.el.querySelector('[data-act=' + act + ']').addEventListener('contextmenu', undoLoopEdit);
     const loopMove = (e, dir) => e.altKey ? this.adjustLoopOut(dir) : e.shiftKey ? this.adjustLoopIn(dir) : this.moveLoop(dir);
     this.el.querySelector('[data-act=loopback]').addEventListener('click', e => loopMove(e, -1));
     this.el.querySelector('[data-act=loopfwd]').addEventListener('click', e => loopMove(e, 1));
@@ -2022,6 +2041,7 @@ class Deck {
     this.loopBtn.classList.remove('on', 'armed');
     this._loopIn = null;
     this._prevLoop = null;
+    this._prevLoopEdit = null;   // loop-edit undo belongs to the old track's loop
     this._slip = null;
     this._roll = null;
     this._bpmEdit = false;   // abandon a BPM edit mid-typing — the removal blur must not commit it to this track
@@ -3059,6 +3079,7 @@ class Deck {
     const cur = this.loopEnd - this.loopStart;
     const len = Math.min(Math.max(cur * factor, beatLen / 2), this.buffer.duration - this.loopStart);
     if (len === cur) return;
+    this._prevLoopEdit = [this.loopStart, this.loopEnd];
     this.loopEnd = this.loopStart + len;
     this._syncLoop();
   }
@@ -3094,6 +3115,7 @@ class Deck {
     const len = this.loopEnd - this.loopStart;
     const start = Math.min(Math.max(this.loopStart + dir * len, 0), this.buffer.duration - len);
     if (start === this.loopStart) return;
+    this._prevLoopEdit = [this.loopStart, this.loopEnd];
     this.loopStart = start;
     this.loopEnd = start + len;
     this._syncLoop();
@@ -3108,6 +3130,7 @@ class Deck {
     const min = this.grid ? step / 2 : 0.05;
     const start = Math.min(Math.max(this.loopStart + dir * step, 0), this.loopEnd - min);
     if (start === this.loopStart) return;
+    this._prevLoopEdit = [this.loopStart, this.loopEnd];
     this.loopStart = start;
     this._syncLoop();
   }
@@ -3121,6 +3144,7 @@ class Deck {
     const min = this.grid ? step / 2 : 0.05;
     const end = Math.min(Math.max(this.loopEnd + dir * step, this.loopStart + min), this.buffer.duration);
     if (end === this.loopEnd) return;
+    this._prevLoopEdit = [this.loopStart, this.loopEnd];
     this.loopEnd = end;
     this._syncLoop();
   }
