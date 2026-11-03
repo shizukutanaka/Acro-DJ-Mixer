@@ -1259,7 +1259,7 @@ class Deck {
       this.nudgeGrid(e.shiftKey && this.grid ? 60 / this.grid.bpm : 0.01));
     // Jog scrub: press anywhere seeks, and holding the button drags
     // the playhead continuously — CDJ-style searching by feel.
-    let scrubbing = false, jog = false, cueInDrag = false, loopDrag = null, cueDrag = null;   // cueInDrag: pulling the cyan cue tick; loopDrag: 'in'|'out' on a loop edge; cueDrag: pad index on a hot-cue tick
+    let scrubbing = false, jog = false, cueInDrag = false, loopDrag = null, cueDrag = null, cueDragFrom = null, cueInDragFrom = null;   // cueInDrag: pulling the cyan cue tick; loopDrag: 'in'|'out' on a loop edge; cueDrag: pad index on a hot-cue tick; cueDragFrom/cueInDragFrom: their pre-drag positions
     const jogEnd = () => {
       if (!jog) return;
       jog = false;
@@ -1271,7 +1271,7 @@ class Deck {
     // mid-drag (auto-mix reload, a partner's load, a keyboard Enter)
     // must abandon it: pointermove would keep mutating the new track
     // and pointerup would tagLib phantom bounds onto its record.
-    this._waveAbort = () => { scrubbing = false; cueInDrag = false; loopDrag = null; cueDrag = null; jogEnd(); };
+    this._waveAbort = () => { scrubbing = false; cueInDrag = false; loopDrag = null; cueDrag = null; cueDragFrom = null; cueInDragFrom = null; jogEnd(); };
     this.wave.addEventListener('contextmenu', e => e.preventDefault());
     this.wave.addEventListener('pointerdown', e => {
       // Right/middle buttons must not scrub, jog or drag cues — and
@@ -1317,9 +1317,11 @@ class Deck {
         const x = t => (t - v0) / (v1 - v0) * rect.width;
         if (Math.abs(px - x(this.cueIn)) <= 8) {
           cueInDrag = true;
-          // Same one-level undo record as shift+Cue — the drag is a
-          // cue-point overwrite and right-click must restore it.
-          this._prevCueIn = this.cueIn;
+          // Same one-level undo record as shift+Cue — but like the
+          // hot-cue tick, a bare click on the tick is not an
+          // overwrite: keep the grab position local and commit
+          // _prevCueIn only when a move actually changes cueIn.
+          cueInDragFrom = this.cueIn;
           this.wave.setPointerCapture(e.pointerId);
           return;
         }
@@ -1336,10 +1338,12 @@ class Deck {
           if (this.cues[i] != null && Math.abs(px - x(this.cues[i])) <= 8) { cueDrag = i; break; }
         }
         if (cueDrag !== null) {
-          // A drag overwrites the cue's position — stash the pre-drag
-          // value so right-click on that pad restores it (one level,
+          // A drag overwrites the cue's position — but a bare click
+          // on the tick is not an overwrite, so the grab position
+          // stays local and only a pointermove that actually moves
+          // the cue commits it to _movedCue (the one-level undo,
           // same grammar as the cleared-cue undo on empty pads).
-          this._movedCue = { i: cueDrag, t: this.cues[cueDrag] };
+          cueDragFrom = this.cues[cueDrag];
           this.wave.setPointerCapture(e.pointerId);
           return;
         }
@@ -1387,6 +1391,7 @@ class Deck {
         const [v0, v1] = this._viewSpan();
         const t = this.quantize(v0 + frac * (v1 - v0));
         this.cueIn = Math.min(Math.max(t, 0), this.buffer.duration);
+        if (this.cueIn !== cueInDragFrom) this._prevCueIn = cueInDragFrom;
         if (!this.playing) this.offset = this.cueIn;   // playing: offset anchors pos(), moving it would jump the playhead
         this._drawnPos = undefined;
         this.drawWave();
@@ -1398,6 +1403,8 @@ class Deck {
         const [v0, v1] = this._viewSpan();
         const t = this.quantize(v0 + frac * (v1 - v0));
         this.cues[cueDrag] = Math.min(Math.max(t, 0), this.buffer.duration);
+        if (this.cues[cueDrag] !== cueDragFrom)
+          this._movedCue = { i: cueDrag, t: cueDragFrom };   // the position actually changed — the move owns an undo record
         this.pads[cueDrag].title = 'Hot cue ' + fmt(this.cues[cueDrag]) + ' — click jumps, shift-click clears, right-click previews, alt-hold = slice audition';
         this._drawnPos = undefined;
         this.drawWave();
@@ -1419,10 +1426,12 @@ class Deck {
           this.tagLib({ cueIn: this.cueIn });
           this._cueTitle();   // same as the right-click drop: title must name the new landing
           cueInDrag = false;
+          cueInDragFrom = null;
         }
         if (cueDrag !== null) {   // persist like a shift-click cue set
           this.tagLib({ cues: this.cues });
           cueDrag = null;
+          cueDragFrom = null;
         }
         scrubbing = false; jogEnd();
       });

@@ -18,8 +18,13 @@ the exact repair cost the drag gesture exists to avoid.
 
 ## Decision
 
-- `this._movedCue = { i, t }` stashes the pre-drag position at grab
-  time (wave pointerdown), alongside the existing drag latches.
+- `this._movedCue = { i, t }` stashes the pre-drag position on the
+  first pointermove that actually changes it — the grab position
+  stays in a gesture-local var (`cueDragFrom`), so a bare click on
+  the tick is not an overwrite and can't eat the previous record or
+  the pad's right-click preview. Same treatment for the cueIn tick:
+  `cueInDragFrom` replaces the grab-time `_prevCueIn` write that had
+  the identical defect.
 - Right-click on the pad that was just moved restores `t` first —
   consumed on use, then the gesture is cue-bus preview again. Only
   that pad's right-click is captured; previews elsewhere are
