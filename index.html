@@ -1639,7 +1639,11 @@ class Deck {
         this.setGain(mg);
       } else {
         mono = monoResample(buf);
-        this.applyAutoGain(await mono);
+        // Wait for the resample BEFORE applying: a new load during the
+        // await must not put A's gain on B's slider (or B's record).
+        const g = await mono;
+        if (!live()) return;
+        this.applyAutoGain(g);
         this.tagLib({ gain: +this.gainEl.value });   // first write — next load reads it back
       }
       if (!live()) return;
