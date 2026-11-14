@@ -28,6 +28,11 @@ await page.waitForTimeout(800);
 
 const r = await page.evaluate(async () => {
   const out = {};
+  // First-run quickstart bar (ADR-0425): fresh profile (localStorage
+  // cleared above) must show it; the Got-it button retires it.
+  out.qsShown = !document.getElementById('quickstart').hidden;
+  document.getElementById('qs-done').click();
+  out.qsDismiss = document.getElementById('quickstart').hidden;
   audio();                                   // creates/resumes ctx
   const mk = secs => {                        // 16-bit stereo WAV
     const sr = 44100, n = sr * secs;
