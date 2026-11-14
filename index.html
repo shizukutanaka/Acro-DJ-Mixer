@@ -163,6 +163,10 @@
   .lib-row.fit .name::before { content: '● '; font-size: 9px; vertical-align: 1px; }
   .lib-row.onA .name::after { content: ' A'; color: #4aa3ff; font-size: 9px; font-weight: 700; }
   .lib-row.onB .name::after { content: ' B'; color: #ffb54a; font-size: 9px; font-weight: 700; }
+  #quickstart { display: flex; gap: 10px; align-items: center; justify-content: center; padding: 7px 12px; background: #16202c; border-bottom: 1px solid #28425e; font-size: 12.5px; color: #cfe3f5; }
+  #quickstart[hidden] { display: none; }
+  #quickstart b { color: var(--acc); }
+  #quickstart button { flex: none; }
   #help { position: fixed; inset: 0; background: rgba(0,0,0,.72); display: flex; align-items: center; justify-content: center; z-index: 50; }
   #help[hidden] { display: none; }
   #help .card { background: #1a1d23; border: 1px solid #333; border-radius: 10px; padding: 18px 22px; max-width: 560px; font-size: 12.5px; line-height: 1.55; }
@@ -179,6 +183,10 @@
   <h1>Acro DJ Mixer</h1>
   <span class="hint">Drop an audio file on each deck. Keys: <b>Q</b>/<b>P</b> play A/B · <b>Z–V</b>/<b>B–,</b> pads A/B · <b>E</b>/<b>I</b> sync · <b>R</b>/<b>U</b> loop · <b>←</b>/<b>→</b> crossfade · <b>0</b> center</span>
 </header>
+<div id="quickstart" hidden>
+  <span><b>First mix:</b> 1 · Drop a track on each deck (or click its drop zone) &nbsp; 2 · Press <b>Play</b> on both decks &nbsp; 3 · Slide the <b>crossfader</b> in the middle to blend A → B</span>
+  <button id="qs-done" title="Dismiss — stays dismissed. The bar also retires itself once both decks hold a track">Got it</button>
+</div>
 <main>
   <section class="deck a" id="deck-a">
     <h2>Deck A</h2>
@@ -5139,6 +5147,29 @@ if (!seenHelp) {
   // one onboarding moment this app has.
   helpEl.hidden = false;
   try { localStorage.setItem('acro-seen-help', '1'); } catch (_) {}
+}
+// First-run quickstart (ADR-0425): the legend teaches the gesture
+// grammar, but nothing walked a newcomer to the one outcome the app
+// exists for — two tracks, one blend. A one-line bar names the three
+// steps and retires itself the moment both decks hold a track (the
+// goal, reached); the button covers "read it, go away". Same
+// localStorage doctrine as the help flag: a denied store just means
+// the bar shows again next visit.
+const qsEl = document.getElementById('quickstart');
+let qsDone = null;
+try { qsDone = localStorage.getItem('acro-quickstart-done'); } catch (_) {}
+if (!qsDone) {
+  qsEl.hidden = false;
+  const qsRetire = () => {
+    if (qsEl.hidden) return;
+    qsEl.hidden = true;
+    try { localStorage.setItem('acro-quickstart-done', '1'); } catch (_) {}
+  };
+  document.getElementById('qs-done').addEventListener('click', qsRetire);
+  const qsTick = setInterval(() => {
+    if (qsEl.hidden) { clearInterval(qsTick); return; }
+    if (deckA.buffer && deckB.buffer) { qsRetire(); clearInterval(qsTick); }
+  }, 800);
 }
 // Window blur steals the pointerup every momentary control waits on:
 // hold Phones and alt-tab, release on the other window — the PFL,
