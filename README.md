@@ -9,6 +9,8 @@ gain, a crossfader, and cueing — so that is exactly what ships first, with
 AI-era automation (beat-grid, stems, harmonic mixing, recommendations) layered
 on top one capability at a time.
 
+![Acro DJ Mixer screenshot — two decks loaded with waveforms and BPM/key analysis, the mixer, and the track library](docs/images/screenshot.png)
+
 ## Quickstart
 
 No build step, no install:
