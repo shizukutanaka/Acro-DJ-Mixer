@@ -312,6 +312,16 @@ class WsolaProcessor extends AudioWorkletProcessor {
         this.inPos = 0; this.rPos = 0;
         this.playing = false;
         break;
+      case 'unload':
+        // Eject: the deck is empty, so the engine must be too. A
+        // retained buffer keeps reporting the dead track's position
+        // (and pins its samples) after the deck let go of it.
+        this.buf = null; this.len = 0;
+        this.inPos = 0; this.rPos = 0;
+        this.qHead = 0; this.qLen = 0;
+        this.syn = null; this.queue = null;
+        this.playing = false;
+        break;
       case 'play': this.playing = true; break;
       case 'pause': this.playing = false; break;
       case 'seek':
@@ -2099,8 +2109,15 @@ class Deck {
       xfEdgeCheck();
     }
     this.stopPlayback();
-    if (this.engine === 'worklet' && this.node)
+    if (this.engine === 'worklet' && this.node) {
       this.node.port.postMessage({ type: 'loop', on: false });
+      // The worklet is the deck's other half — it must end as empty
+      // as the fields below. Left loaded, it keeps the ejected
+      // track's samples and playhead, and its 'pos' reports keep
+      // stamping offset with the dead track's timeline: the next
+      // buffer inherits a position that isn't its (ADR-0427).
+      this.node.port.postMessage({ type: 'unload' });
+    }
     this.buffer = null;
     this.peaks = null;
     this.fileName = this._fileObj = null;
