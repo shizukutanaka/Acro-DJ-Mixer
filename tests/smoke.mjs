@@ -33,6 +33,43 @@ const r = await page.evaluate(async () => {
   out.qsShown = !document.getElementById('quickstart').hidden;
   document.getElementById('qs-done').click();
   out.qsDismiss = document.getElementById('quickstart').hidden;
+
+  // Built-in demo tracks (ADR-0426): a first-timer with no files can
+  // load both decks from the page itself. Deck B goes through its
+  // real demo button; deck A through DemoTracks.loadInto. The render
+  // is synthesized in-page and rides the ordinary load path, with
+  // grid/key arriving exact because the track was built from them.
+  document.querySelector('#deck-b .demo-btn').click();
+  for (let i = 0; i < 50 && !deckB.buffer; i++) await new Promise(r => setTimeout(r, 100));
+  out.demoButton = !!deckB.buffer;
+  await DemoTracks.loadInto(deckA, 0);
+  out.demoLoads = !!(deckA.buffer && deckB.buffer && deckA.buffer.duration > 55 && deckB.buffer.duration > 55);
+  out.demoGrid = !!deckA.grid && deckA.grid.bpm === DemoTracks.DEFS[0].bpm
+    && !!deckB.grid && deckB.grid.bpm === DemoTracks.DEFS[1].bpm
+    && DemoTracks.DEFS[0].bpm !== DemoTracks.DEFS[1].bpm;
+  out.demoKey = !!deckA.key && deckA.key.name === 'Am' && !!deckB.key && deckB.key.name === 'C';
+  out.demoNamed = deckA.fileName.indexOf('DEMO') === 0 && deckB.fileName.indexOf('DEMO') === 0
+    && deckA.el.querySelector('.dropzone').textContent.indexOf('DEMO') === 0;
+  out.demoWave = deckA.peaks.some(p => p > 0.2) && deckB.peaks.some(p => p > 0.2);
+  out.demoCached = (await DemoTracks.fileFor(0)) === (await DemoTracks.fileFor(0));
+  // The waveform canvas actually painted (not just peaks computed).
+  const wpx = deckA.wctx.getImageData(0, 0, deckA.wave.width, deckA.wave.height).data;
+  let painted = 0;
+  for (let i = 3; i < wpx.length; i += 4) if (wpx[i] > 0) painted++;
+  out.demoPainted = painted > 500;
+  deckA.play();
+  await new Promise(r => setTimeout(r, 350));
+  out.demoPlays = deckA.playing === true && deckA.pos() > 0.05;
+  deckA.pause();
+  // Hand the decks back empty: sections below assign buffers
+  // directly and read fileName / the earned-entry flags as if
+  // nothing had ever loaded — a lingering demo name would earn
+  // setlist entries under the wrong track in the key-dispatch
+  // checks, and latch the flag before the title/setlog section.
+  deckA.eject(); deckB.eject();
+  deckA._setLogged = deckB._setLogged = false;      // eject keeps
+  deckA._playCounted = deckB._playCounted = false;  // the flags
+
   audio();                                   // creates/resumes ctx
   const mk = secs => {                        // 16-bit stereo WAV
     const sr = 44100, n = sr * secs;
