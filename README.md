@@ -34,6 +34,11 @@ to classic varispeed tempo. Use option 2 for the full feature set.
 - **Two decks** — load audio by click or drag & drop (MP3/WAV/OGG/FLAC/M4A,
   whatever the browser's `decodeAudioData` supports). Rapid loads
   can't interleave — the last caller wins (see ADR-0261).
+- **Built-in demo tracks** — no files handy? Two practice tracks
+  (124 BPM A minor / 128 BPM C major, 32 bars each) are synthesized
+  in the browser from code — no audio asset ships, nothing is
+  sampled or licensed — and load into the decks in one click from
+  the quickstart bar or each deck's demo button (see ADR-0426).
 - **Transport** — play/pause, cue-to-start, click waveform to seek.
 - **Tempo** — ±16% playback-rate slider per deck.
 - **Key lock** — preserve pitch while tempo changes (WSOLA time-stretching
