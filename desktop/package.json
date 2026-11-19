@@ -1,0 +1,46 @@
+{
+  "name": "acro-dj-mixer-desktop",
+  "productName": "Acro DJ Mixer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Desktop shell for Acro DJ Mixer (loads ../index.html unchanged)",
+  "author": "shizukutanaka",
+  "license": "MIT",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --publish never"
+  },
+  "devDependencies": {
+    "electron": "45.3.4",
+    "electron-builder": "26.18.1"
+  },
+  "build": {
+    "appId": "io.github.shizukutanaka.acro-dj-mixer",
+    "productName": "Acro DJ Mixer",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../index.html",
+        "to": "web/index.html"
+      }
+    ],
+    "win": {
+      "target": "portable"
+    },
+    "mac": {
+      "target": "zip",
+      "identity": null
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "Audio"
+    }
+  }
+}

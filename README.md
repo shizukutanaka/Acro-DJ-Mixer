@@ -1,7 +1,8 @@
 # Acro DJ Mixer
 
-DJ software for the AI era — a minimal, dependency-free two-deck mixer that runs
-entirely in your browser. Audio files stay local; nothing is uploaded.
+DJ software for the AI era — a minimal, dependency-free two-deck mixer, shipped
+as a desktop app (Windows / macOS / Linux). The same `index.html` also runs in a
+browser. Audio files stay local; nothing is uploaded.
 
 Scope and rationale are defined in [docs/adr/ADR-0001](docs/adr/ADR-0001-first-principles-scope.md):
 first-principles analysis says the atomic unit of DJing is two sources, tempo,
@@ -11,9 +12,36 @@ on top one capability at a time.
 
 ![Acro DJ Mixer screenshot — two decks loaded with waveforms and BPM/key analysis, the mixer, and the track library](docs/images/screenshot.png)
 
+## Desktop app
+
+The desktop app is the canonical form of Acro DJ Mixer. It is a minimal
+Electron shell in [`desktop/`](desktop/) that loads the unchanged `index.html`
+from a private secure origin (`acro://app`), so key lock (`AudioWorklet`), the
+library (IndexedDB) and saved settings all work — unlike `file://`. The page
+gets no Node access (`contextIsolation` and `sandbox` on, `nodeIntegration`
+off, no preload); navigating away from the app and opening new windows are
+blocked.
+
+There are no prebuilt downloads yet — build it yourself with Node.js 20+:
+
+```sh
+cd desktop
+npm ci
+npm start        # run the app
+npm run dist     # package into desktop/dist/
+```
+
+`npm run dist` builds for the host OS: a portable `.exe` on Windows, a `.zip`
+on macOS, an `AppImage` on Linux.
+
+The builds are **not code-signed**. Windows SmartScreen may warn "Windows
+protected your PC" (More info → Run anyway), and macOS Gatekeeper may refuse
+to open the app as from an unidentified developer (right-click the app →
+Open, or System Settings → Privacy & Security → Open Anyway).
+
 ## Quickstart
 
-No build step, no install:
+Browser — no build step, no install:
 
 ```sh
 # option 1: just open it
