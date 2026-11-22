@@ -1,8 +1,9 @@
 # Acro DJ Mixer
 
-DJ software for the AI era — a minimal, dependency-free two-deck mixer, shipped
-as a desktop app (Windows / macOS / Linux). The same `index.html` also runs in a
-browser. Audio files stay local; nothing is uploaded.
+DJ software for the AI era — a minimal, dependency-free two-deck mixer. Its
+canonical form is a desktop app (Windows / macOS / Linux) that you build from
+source — no prebuilt downloads yet — and the same `index.html` also runs in a
+browser with no install. Audio files stay local; nothing is uploaded.
 
 Scope and rationale are defined in [docs/adr/ADR-0001](docs/adr/ADR-0001-first-principles-scope.md):
 first-principles analysis says the atomic unit of DJing is two sources, tempo,
